@@ -30,7 +30,12 @@ const GRADES = [
 function getGrade(pointsOcculte) {
     let g = GRADES[0];
     for (const grade of GRADES) { if (pointsOcculte >= grade.minOcculte) g = grade; }
-    return g;
+    return g.nom; // retourne le nom (string) pour stockage Firestore
+}
+
+function getGradeIndex(nomGrade) {
+    const idx = GRADES.findIndex(g => g.nom === nomGrade);
+    return idx === -1 ? 0 : idx;
 }
 
 function badgeGrade(nomGrade) {

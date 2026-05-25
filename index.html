@@ -135,9 +135,20 @@
           <input class="form-control" type="number" id="edit-incan-pts" min="0" value="0">
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Catégorie</label>
-        <input class="form-control" type="text" id="edit-incan-cat" placeholder="Combat, Manipulation…">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Catégorie</label>
+          <input class="form-control" type="text" id="edit-incan-cat" placeholder="Combat, Manipulation…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grade requis</label>
+          <select class="form-control" id="edit-incan-grade">
+            <option value="0">Incantateur</option>
+            <option value="1">Marcheur des Voiles</option>
+            <option value="2">Collecteur d'Ombre</option>
+            <option value="3">Marchand des Âmes</option>
+          </select>
+        </div>
       </div>
       <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
         <button class="btn btn-ghost" onclick="closeModal('modal-incan')">Annuler</button>
@@ -440,9 +451,47 @@
           <div class="panel-hdr">
             <div class="panel-title">✦ Grimoire des Incantations</div>
           </div>
-          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem">
-            Dépensez vos points de Manipulation pour découvrir les incantations et gagner des points Occulte.
+          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem" id="dash-incan-subtitle">
+            Seules les incantations de votre grade et inférieures vous sont accessibles.
           </p>
+
+          <!-- Création d'incantation — Collecteur d'Ombre et plus -->
+          <div id="dash-incan-create" style="display:none;margin-bottom:1.25rem">
+            <div class="glass-card" style="border-color:rgba(201,165,42,.35)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+                <span style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold)">✦ Créer une incantation</span>
+                <button class="btn btn-gold btn-sm" onclick="toggleDashCreateForm()">+ Nouvelle</button>
+              </div>
+              <form id="dash-create-form" style="display:none;margin-top:.75rem" onsubmit="creerIncanMembre(event)">
+                <div class="form-group">
+                  <label class="form-label">Nom de l'incantation</label>
+                  <input class="form-control" type="text" id="ci-nom" placeholder="Ex : Ombre Dévorante" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Description / Utilisation</label>
+                  <textarea class="form-control" id="ci-desc" rows="3"
+                    placeholder="Décrivez l'effet, l'utilisation, les conditions…" required></textarea>
+                </div>
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Catégorie</label>
+                    <input class="form-control" type="text" id="ci-cat" placeholder="Combat, Manipulation…">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Grade minimum requis</label>
+                    <select class="form-control" id="ci-grade"></select>
+                  </div>
+                </div>
+                <div id="ci-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
+                <div id="ci-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                  <button type="submit" class="btn btn-primary btn-sm">✦ Créer l'incantation</button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="toggleDashCreateForm()">Annuler</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
           <div class="incan-grid" id="dash-incan-grid"></div>
         </div>
 
@@ -1067,13 +1116,22 @@ function dashPanel(name) {
 }
 
 function loadIncanForRap() {
+    const memberGradeIdx = getGradeIndex(currentMembre.grade);
     db.collection('incantations').orderBy('nom').get().then(snap => {
         const sel = document.getElementById('rap-incan');
         if (!sel) return;
+        // Filtrer selon le grade du membre
+        const accessible = snap.docs.filter(d => {
+            const i = d.data();
+            const reqIdx = (i.gradeOrdre !== undefined) ? i.gradeOrdre : 0;
+            return reqIdx <= memberGradeIdx;
+        });
         sel.innerHTML = '<option value="">— Choisir une incantation —</option>' +
-            snap.docs.map(d => {
+            accessible.map(d => {
                 const i = d.data();
-                return `<option value="${d.id}" data-pts="${i.ptsOcculte || 0}" data-nom="${i.nom}">${i.nom} — +${i.ptsOcculte || 0} occulte</option>`;
+                const pts = i.ptsOcculte || i.pointsOcculte || 0;
+                const grade = GRADES[i.gradeOrdre || 0];
+                return `<option value="${d.id}" data-pts="${pts}" data-nom="${i.nom}">${i.nom} [${grade?.nom || 'Incantateur'}] — +${pts} occulte</option>`;
             }).join('');
     });
 }
@@ -1169,27 +1227,120 @@ function loadMesSoumissions() {
 function loadDashIncantations() {
     const grid = document.getElementById('dash-incan-grid');
     if (!grid) return;
+
+    const memberGradeIdx = getGradeIndex(currentMembre.grade);
+    const canCreate      = memberGradeIdx >= 2; // Collecteur d'Ombre ou plus
+
+    // Afficher / masquer la section de création
+    const createSection = document.getElementById('dash-incan-create');
+    if (createSection) {
+        createSection.style.display = canCreate ? '' : 'none';
+        // Remplir le select grade (min = grade actuel du membre)
+        const sel = document.getElementById('ci-grade');
+        if (sel && !sel.innerHTML.trim()) {
+            sel.innerHTML = GRADES.slice(memberGradeIdx).map(g =>
+                `<option value="${GRADES.indexOf(g)}">${g.nom}</option>`
+            ).join('');
+        }
+    }
+
     grid.innerHTML = '<p style="color:var(--text-muted)">Chargement…</p>';
-    db.collection('incantations').orderBy('cout').get().then(snap => {
-        if (snap.empty) {
-            grid.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Aucune incantation disponible</div></div>';
+
+    db.collection('incantations').get().then(snap => {
+        // Filtrer : seulement les incantations <= grade du membre
+        const accessible = snap.docs.filter(d => {
+            const i   = d.data();
+            const req = (i.gradeOrdre !== undefined) ? i.gradeOrdre : 0;
+            return req <= memberGradeIdx;
+        }).sort((a, b) => {
+            const ao = a.data().gradeOrdre || 0;
+            const bo = b.data().gradeOrdre || 0;
+            return ao !== bo ? ao - bo : (a.data().nom || '').localeCompare(b.data().nom || '');
+        });
+
+        if (!accessible.length) {
+            grid.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Aucune incantation disponible à votre grade</div></div>';
             return;
         }
-        grid.innerHTML = snap.docs.map(d => {
-            const i = d.data();
-            return `<div class="glass-card incan-card" data-tilt>
-                <div style="font-size:1.8rem;text-align:center;color:var(--gold);filter:drop-shadow(0 0 8px rgba(201,165,42,.4))">✦</div>
+
+        // Grouper par grade pour l'affichage
+        let lastGradeOrdre = -1;
+        let html = '';
+        accessible.forEach(d => {
+            const i        = d.data();
+            const gradeIdx = i.gradeOrdre || 0;
+            const gradeDef = GRADES[gradeIdx];
+            const pts      = i.ptsOcculte || i.pointsOcculte || 0;
+            const cout     = i.cout || i.pointsManipulation || 0;
+
+            // Séparateur de grade
+            if (gradeIdx !== lastGradeOrdre) {
+                lastGradeOrdre = gradeIdx;
+                html += `<div style="grid-column:1/-1;margin:${html?'1rem':0} 0 .25rem">
+                    <div class="section-title" style="font-size:.65rem">${gradeDef?.nom || 'Incantateur'}</div>
+                </div>`;
+            }
+
+            html += `<div class="glass-card incan-card" data-tilt>
+                <div style="font-size:1.6rem;text-align:center;color:var(--gold);filter:drop-shadow(0 0 8px rgba(201,165,42,.4))">✦</div>
                 <div class="incan-card-name">${i.nom}</div>
-                ${i.categorie ? `<div class="incan-card-meta"><span class="badge badge-attente">${i.categorie}</span></div>` : ''}
-                <p style="font-size:.8rem;color:var(--text-muted);line-height:1.5;flex:1">${i.description || ''}</p>
+                <div class="incan-card-meta">
+                    <span class="grade-badge ${gradeDef?.css || 'grade-incantateur'}">${gradeDef?.nom || 'Incantateur'}</span>
+                    ${i.categorie ? `<span class="badge badge-attente" style="font-size:.65rem">${i.categorie}</span>` : ''}
+                    ${i.createdBy ? `<span style="font-size:.65rem;color:var(--gold)">✦ Custom</span>` : ''}
+                </div>
+                <p style="font-size:.78rem;color:var(--text-muted);line-height:1.5;flex:1">${i.description || i.utilisation || ''}</p>
                 <div class="incan-card-pts">
-                    <span class="pts pts-manip">Coût : ${i.cout || 0}</span>
-                    <span class="pts pts-occulte">+${i.ptsOcculte || 0} occulte</span>
+                    <span class="pts pts-manip">Coût : ${cout}</span>
+                    <span class="pts pts-occulte">+${pts} occulte</span>
                 </div>
             </div>`;
-        }).join('');
+        });
+
+        grid.innerHTML = html;
         initTilt();
     });
+}
+
+function toggleDashCreateForm() {
+    const form = document.getElementById('dash-create-form');
+    if (!form) return;
+    const isVisible = form.style.display !== 'none';
+    form.style.display = isVisible ? 'none' : '';
+    if (!isVisible) document.getElementById('ci-nom').focus();
+}
+
+async function creerIncanMembre(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span>';
+    hideAlert('ci-alert');
+    hideAlert('ci-success');
+    try {
+        const gradeOrdreVal = parseInt(val('ci-grade')) || getGradeIndex(currentMembre.grade);
+        const gradeDef      = GRADES[gradeOrdreVal];
+        await db.collection('incantations').add({
+            nom:         val('ci-nom').trim(),
+            description: val('ci-desc').trim(),
+            categorie:   val('ci-cat').trim(),
+            gradeRequis: gradeDef.nom,
+            gradeOrdre:  gradeOrdreVal,
+            cout:        0,
+            ptsOcculte:  0,
+            createdBy:   currentMembre.id,
+            createdByNom: displayName(currentMembre),
+            dateCreation: firebase.firestore.Timestamp.now()
+        });
+        showAlert('ci-success', 'Incantation créée et ajoutée au grimoire !', 'success');
+        e.target.reset();
+        // Recharger la liste
+        loadDashIncantations();
+    } catch (err) {
+        showAlert('ci-alert', 'Erreur : ' + err.message, 'danger');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '✦ Créer l\'incantation';
 }
 
 function loadDashClassement() {
@@ -1453,15 +1604,23 @@ function loadAdminIncan() {
             return;
         }
         grid.innerHTML = snap.docs.map(d => {
-            const i = d.data();
+            const i        = d.data();
+            const gradeIdx = i.gradeOrdre || 0;
+            const gradeDef = GRADES[gradeIdx];
+            const pts      = i.ptsOcculte || i.pointsOcculte || 0;
+            const cout     = i.cout || i.pointsManipulation || 0;
             return `<div class="glass-card incan-card" data-tilt>
                 <div style="font-size:1.8rem;text-align:center;color:var(--gold)">✦</div>
                 <div class="incan-card-name">${i.nom}</div>
-                ${i.categorie ? `<div class="incan-card-meta"><span class="badge badge-attente">${i.categorie}</span></div>` : ''}
-                <p style="font-size:.8rem;color:var(--text-muted);flex:1">${i.description || ''}</p>
+                <div class="incan-card-meta">
+                    <span class="grade-badge ${gradeDef?.css || 'grade-incantateur'}">${gradeDef?.nom || 'Incantateur'}</span>
+                    ${i.categorie ? `<span class="badge badge-attente" style="font-size:.65rem">${i.categorie}</span>` : ''}
+                    ${i.createdBy ? `<span style="font-size:.65rem;color:var(--gold)">✦ Custom</span>` : ''}
+                </div>
+                <p style="font-size:.78rem;color:var(--text-muted);flex:1;line-height:1.5">${i.description || i.utilisation || ''}</p>
                 <div class="incan-card-pts">
-                    <span class="pts pts-manip">Coût : ${i.cout || 0}</span>
-                    <span class="pts pts-occulte">+${i.ptsOcculte || 0}</span>
+                    <span class="pts pts-manip">Coût : ${cout}</span>
+                    <span class="pts pts-occulte">+${pts}</span>
                 </div>
                 <div class="incan-card-actions">
                     <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openIncanModal('${d.id}')">✏️ Modifier</button>
@@ -1479,31 +1638,37 @@ function openIncanModal(id) {
         document.getElementById('incan-modal-title').textContent = "Modifier l'incantation";
         db.collection('incantations').doc(id).get().then(d => {
             const i = d.data();
-            document.getElementById('edit-incan-nom').value  = i.nom         || '';
-            document.getElementById('edit-incan-desc').value = i.description || '';
-            document.getElementById('edit-incan-cout').value = i.cout        || 0;
-            document.getElementById('edit-incan-pts').value  = i.ptsOcculte  || 0;
-            document.getElementById('edit-incan-cat').value  = i.categorie   || '';
+            document.getElementById('edit-incan-nom').value   = i.nom         || '';
+            document.getElementById('edit-incan-desc').value  = i.description || i.utilisation || '';
+            document.getElementById('edit-incan-cout').value  = i.cout        || i.pointsManipulation || 0;
+            document.getElementById('edit-incan-pts').value   = i.ptsOcculte  || i.pointsOcculte || 0;
+            document.getElementById('edit-incan-cat').value   = i.categorie   || '';
+            document.getElementById('edit-incan-grade').value = String(i.gradeOrdre || 0);
         });
     } else {
         document.getElementById('incan-modal-title').textContent = 'Nouvelle incantation';
-        ['edit-incan-nom','edit-incan-desc','edit-incan-cat'].forEach(id => {
-            document.getElementById(id).value = '';
+        ['edit-incan-nom','edit-incan-desc','edit-incan-cat'].forEach(fid => {
+            document.getElementById(fid).value = '';
         });
-        document.getElementById('edit-incan-cout').value = '0';
-        document.getElementById('edit-incan-pts').value  = '0';
+        document.getElementById('edit-incan-cout').value  = '0';
+        document.getElementById('edit-incan-pts').value   = '0';
+        document.getElementById('edit-incan-grade').value = '0';
     }
     openModal('modal-incan');
 }
 
 async function sauvegarderIncan() {
-    const id   = val('edit-incan-id');
+    const id         = val('edit-incan-id');
+    const gradeOrdre = parseInt(val('edit-incan-grade')) || 0;
+    const gradeDef   = GRADES[gradeOrdre];
     const data = {
         nom:         val('edit-incan-nom').trim(),
         description: val('edit-incan-desc').trim(),
         cout:        parseInt(val('edit-incan-cout')) || 0,
         ptsOcculte:  parseInt(val('edit-incan-pts'))  || 0,
-        categorie:   val('edit-incan-cat').trim()
+        categorie:   val('edit-incan-cat').trim(),
+        gradeOrdre,
+        gradeRequis: gradeDef?.nom || 'Incantateur'
     };
     if (!data.nom) { alert('Le nom est requis.'); return; }
     if (id) {

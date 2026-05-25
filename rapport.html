@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soumettre un rapport — Sphère Occulte</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.profile-bar {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: .8rem 0;
+}
+.profile-bar .container { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.profile-info { display: flex; align-items: center; gap: 1rem; }
+.profile-avatar {
+    width: 44px; height: 44px; background: var(--bg3);
+    border: 2px solid var(--border2); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--gold);
+}
+.profile-name { font-family: 'Cinzel', serif; font-size: .95rem; }
+.profile-pts  { font-size: .8rem; color: var(--text-dim); margin-top: .1rem; }
+.pts-bar { display: flex; gap: 1rem; }
+.pts-item { text-align: center; }
+.pts-val { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.2rem; }
+.pts-lbl { font-size: .72rem; color: var(--text-dim); letter-spacing: .06em; }
+.layout { display: grid; grid-template-columns: 1fr 1.6fr; gap: 1.5rem; align-items: start; }
+.type-selector { display: flex; gap: .5rem; flex-wrap: wrap; }
+.type-btn {
+    flex: 1; min-width: 110px;
+    background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--text-dim); padding: .7rem .5rem; border-radius: 6px;
+    cursor: pointer; font-family: 'Nunito', sans-serif; font-size: .85rem;
+    text-align: center; transition: all .2s;
+}
+.type-btn.active { border-color: var(--gold-dim); color: var(--gold); background: rgba(100,70,0,.15); }
+.incan-select-wrap { display: none; margin-top: .75rem; }
+.incan-select-wrap.visible { display: block; }
+.upload-area {
+    border: 1.5px dashed var(--border2); border-radius: 6px;
+    padding: 1.2rem; text-align: center; cursor: pointer;
+    color: var(--text-dim); font-size: .85rem; transition: border-color .2s;
+}
+.upload-area:hover { border-color: var(--gold-dim); }
+.upload-area input { display: none; }
+.history-item {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: .9rem 1rem; margin-bottom: .6rem;
+}
+.history-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.history-type { font-size: .78rem; color: var(--text-dim); }
+.history-desc { font-size: .83rem; color: var(--text-dim); margin-top: .35rem; }
+.history-pts  { font-size: .8rem; margin-top: .3rem; }
+.progress-wrap { margin-top: .5rem; }
+.progress-label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--text-dim); margin-bottom: .3rem; }
+.progress-bar { background: var(--bg3); border-radius: 99px; height: 6px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--red), var(--gold-dim)); transition: width .4s; }
+@media (max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- Barre de profil -->
+<div class="profile-bar" id="profile-bar" style="display:none">
+<div class="container">
+    <div class="profile-info">
+        <div class="profile-avatar" id="avatar-initiale">?</div>
+        <div>
+            <div class="profile-name" id="profile-nom">Chargement...</div>
+            <div id="profile-grade"></div>
+        </div>
+    </div>
+    <div class="pts-bar">
+        <div class="pts-item">
+            <div class="pts-val pts-manip" id="pts-manip">—</div>
+            <div class="pts-lbl">MANIPULATION</div>
+        </div>
+        <div class="pts-item">
+            <div class="pts-val pts-occulte" id="pts-occulte">—</div>
+            <div class="pts-lbl">OCCULTE</div>
+        </div>
+    </div>
+    <div style="display:flex; gap:.5rem; align-items:center;">
+        <a href="index.html" class="btn btn-ghost btn-sm">Classement</a>
+        <button class="btn btn-ghost btn-sm" onclick="deconnexion()">Déconnexion</button>
+    </div>
+</div>
+</div>
+
+<div class="page-wrap container" id="page-content" style="display:none">
+<div class="layout">
+
+    <!-- Colonne gauche : progression + historique -->
+    <div>
+        <div class="card mb-2">
+            <div class="card-title">Ma Progression</div>
+            <div id="progression-content">
+                <div class="text-dim text-sm">Chargement...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Mes Soumissions</div>
+            <div id="history-list">
+                <div class="text-dim text-sm">Aucune soumission pour l'instant.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonne droite : formulaire -->
+    <div class="card">
+        <div class="card-title">Soumettre un Rapport</div>
+        <div id="alert-rapport"></div>
+
+        <form id="form-rapport" autocomplete="off">
+            <!-- Type d'action -->
+            <div class="form-group">
+                <label class="form-label">Type d'action</label>
+                <div class="type-selector">
+                    <div class="type-btn active" data-type="scene" onclick="selectType('scene')">⚔️ Scène RP</div>
+                    <div class="type-btn" data-type="incantation" onclick="selectType('incantation')">🔮 Incantation</div>
+                    <div class="type-btn" data-type="autre" onclick="selectType('autre')">✦ Autre</div>
+                </div>
+                <input type="hidden" id="input-type" value="scene">
+            </div>
+
+            <!-- Sélection d'incantation (visible si type = incantation) -->
+            <div class="incan-select-wrap" id="incan-select-wrap">
+                <div class="form-group">
+                    <label class="form-label">Incantation utilisée</label>
+                    <select id="select-incantation" class="form-control" onchange="onIncantationChange()">
+                        <option value="">— Choisir une incantation —</option>
+                    </select>
+                </div>
+                <div id="incan-detail"></div>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+                <label class="form-label">Description de la scène <span style="color:var(--red)">*</span></label>
+                <textarea id="input-description" class="form-control"
+                    placeholder="Décrivez ce qui s'est passé en RP, le contexte, les participants..." rows="5" required></textarea>
+            </div>
+
+            <!-- Screenshots -->
+            <div class="form-group">
+                <label class="form-label">Screenshots (max 3)</label>
+                <div class="upload-area" onclick="document.getElementById('input-files').click()">
+                    <input type="file" id="input-files" accept="image/*" multiple>
+                    📎 Cliquez pour ajouter des captures d'écran
+                </div>
+                <div class="screenshots-preview" id="preview-imgs"></div>
+            </div>
+
+            <!-- Lien Discord -->
+            <div class="form-group">
+                <label class="form-label">Lien Discord (message de preuve)</label>
+                <input type="url" id="input-discord" class="form-control"
+                    placeholder="https://discord.com/channels/...">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full" id="btn-submit">
+                Envoyer le rapport
+            </button>
+        </form>
+    </div>
+</div>
+</div>
+
+<div class="full-center" id="loading-screen">
+    <div style="text-align:center">
+        <span class="loader"></span>
+        <p class="text-dim mt-2">Vérification de l'accès...</p>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+let currentUser = null;
+let currentMembre = null;
+let allIncantations = [];
+let selectedFiles = [];
+
+// ── Auth guard ─────────────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    const doc = await db.collection('membres').doc(user.uid).get();
+    if (!doc.exists) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+    currentMembre = { id: doc.id, ...doc.data() };
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('profile-bar').style.display = '';
+    document.getElementById('page-content').style.display = '';
+    renderProfil();
+    loadIncantations();
+    loadHistorique();
+});
+
+function renderProfil() {
+    const m = currentMembre;
+    const grade = getGrade(m.pointsOcculte);
+    document.getElementById('avatar-initiale').textContent = m.nom[0].toUpperCase();
+    document.getElementById('profile-nom').textContent = m.nom;
+    document.getElementById('profile-grade').innerHTML = badgeGrade(m.grade);
+    document.getElementById('pts-manip').textContent = m.pointsManipulation;
+    document.getElementById('pts-occulte').textContent = m.pointsOcculte;
+
+    // Progression vers prochain grade
+    const gradeIdx = GRADES.findIndex(g => g.nom === m.grade);
+    const prochainGrade = GRADES[gradeIdx + 1];
+    let progHTML = `<div class="mb-2">${badgeGrade(m.grade)}</div>`;
+    if (prochainGrade) {
+        const actuel = m.pointsOcculte - GRADES[gradeIdx].minOcculte;
+        const total  = prochainGrade.minOcculte - GRADES[gradeIdx].minOcculte;
+        const pct    = Math.min(100, Math.round((actuel / total) * 100));
+        progHTML += `
+        <div class="progress-wrap">
+            <div class="progress-label">
+                <span>Vers <strong>${prochainGrade.nom}</strong></span>
+                <span>${m.pointsOcculte} / ${prochainGrade.minOcculte} pts occultes</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="text-dim text-sm mt-1">Manipulation : <span class="pts-manip">${m.pointsManipulation}</span></div>`;
+    } else {
+        progHTML += `<div class="text-dim text-sm mt-1">Grade maximum atteint.</div>`;
+    }
+    document.getElementById('progression-content').innerHTML = progHTML;
+}
+
+// ── Incantations ───────────────────────────────────────────────
+async function loadIncantations() {
+    const snap = await db.collection('incantations').orderBy('gradeOrdre').orderBy('nom').get();
+    allIncantations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    peuplerSelectIncantation();
+}
+
+function peuplerSelectIncantation() {
+    const sel = document.getElementById('select-incantation');
+    const gradeOrdre = GRADES.findIndex(g => g.nom === currentMembre.grade);
+    sel.innerHTML = '<option value="">— Choisir une incantation —</option>';
+    allIncantations
+        .filter(i => i.gradeOrdre <= gradeOrdre)
+        .forEach(i => {
+            const opt = document.createElement('option');
+            opt.value = i.id;
+            opt.textContent = `${i.nom} (${i.gradeRequis})`;
+            sel.appendChild(opt);
+        });
+}
+
+function onIncantationChange() {
+    const id = document.getElementById('select-incantation').value;
+    const detail = document.getElementById('incan-detail');
+    if (!id) { detail.innerHTML = ''; return; }
+    const incan = allIncantations.find(i => i.id === id);
+    if (!incan) return;
+    let ptsHTML = '';
+    if (incan.special) {
+        ptsHTML = `<span class="badge badge-attente">Transfert de points</span>`;
+    } else {
+        ptsHTML = `<span class="pts pts-manip">+${incan.pointsManipulation} Manipulation</span>
+                   &nbsp;&nbsp;<span class="pts pts-occulte">+${incan.pointsOcculte} Occulte</span>`;
+    }
+    detail.innerHTML = `
+    <div class="incantation-detail">
+        <div style="margin-bottom:.5rem">${ptsHTML}</div>
+        ${incan.objetRequis ? `<div class="text-sm text-dim mb-1"><strong>Objet requis :</strong> ${incan.objetRequis}</div>` : ''}
+        ${incan.socle ? `<div class="text-sm mb-1" style="color:var(--gold)">Socle : ${incan.socle}</div>` : ''}
+        <div class="incan-text">${incan.texteIncantation}</div>
+    </div>`;
+}
+
+// ── Type selector ──────────────────────────────────────────────
+function selectType(type) {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+    document.getElementById('input-type').value = type;
+    document.getElementById('incan-select-wrap').classList.toggle('visible', type === 'incantation');
+    if (type !== 'incantation') document.getElementById('incan-detail').innerHTML = '';
+}
+
+// ── Compression d'image (stockage Firestore, sans Storage) ────
+function compresserImage(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                const maxDim = 1100;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    else       { w = Math.round(w * maxDim / h); h = maxDim; }
+                }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                // Réduit la qualité jusqu'à passer sous 200 KB
+                let quality = 0.82;
+                let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                while (dataUrl.length > 200 * 1024 * 1.37 && quality > 0.2) {
+                    quality -= 0.08;
+                    dataUrl = canvas.toDataURL('image/jpeg', quality);
+                }
+                resolve(dataUrl);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// ── Screenshots ────────────────────────────────────────────────
+document.getElementById('input-files').addEventListener('change', async e => {
+    selectedFiles = Array.from(e.target.files).slice(0, 3);
+    const preview = document.getElementById('preview-imgs');
+    preview.innerHTML = '<span class="text-dim text-sm">Compression en cours...</span>';
+    // Compresse et prévisualise
+    selectedFiles = await Promise.all(selectedFiles.map(f => compresserImage(f)));
+    preview.innerHTML = '';
+    selectedFiles.forEach(dataUrl => {
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.onclick = () => window.open(img.src);
+        preview.appendChild(img);
+    });
+});
+
+// ── "Upload" → juste retourner les base64 compressées ─────────
+async function uploadScreenshots() {
+    return selectedFiles; // déjà des base64
+}
+
+// ── Soumission du rapport ──────────────────────────────────────
+document.getElementById('form-rapport').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Envoi en cours...';
+    clearAlert();
+
+    try {
+        const type        = document.getElementById('input-type').value;
+        const description = document.getElementById('input-description').value.trim();
+        const discordLink = document.getElementById('input-discord').value.trim();
+        const incanId     = document.getElementById('select-incantation').value;
+
+        if (!description) { showAlert("Veuillez rédiger une description."); return; }
+        if (type === 'incantation' && !incanId) { showAlert("Veuillez sélectionner l'incantation utilisée."); return; }
+
+        const incan = incanId ? allIncantations.find(i => i.id === incanId) : null;
+
+        // Créer le document soumission
+        const ref = db.collection('soumissions').doc();
+        let screenshotUrls = [];
+        if (selectedFiles.length > 0) screenshotUrls = await uploadScreenshots();
+
+        await ref.set({
+            membreId:           currentUser.uid,
+            membreNom:          currentMembre.nom,
+            membreGrade:        currentMembre.grade,
+            type,
+            incantationId:      incan ? incan.id  : null,
+            incantationNom:     incan ? incan.nom  : null,
+            incantationManip:   incan ? incan.pointsManipulation : 0,
+            incantationOcculte: incan ? incan.pointsOcculte      : 0,
+            incantationSpecial: incan ? (incan.special || false)  : false,
+            description,
+            screenshotUrls,
+            discordLink:        discordLink || null,
+            statut:             'en_attente',
+            pointsManipulation: 0,
+            pointsOcculte:      0,
+            validateurId:       null,
+            validateurNom:      null,
+            commentaire:        null,
+            dateCreation:       firebase.firestore.Timestamp.now(),
+            dateValidation:     null
+        });
+
+        showAlert("Rapport envoyé ! Un haut grade le traitera prochainement.", 'success');
+        document.getElementById('form-rapport').reset();
+        selectedFiles = [];
+        document.getElementById('preview-imgs').innerHTML = '';
+        selectType('scene');
+        loadHistorique();
+    } catch (err) {
+        showAlert("Erreur lors de l'envoi : " + err.message);
+    } finally {
+        btn.disabled = false; btn.innerHTML = 'Envoyer le rapport';
+    }
+});
+
+// ── Historique ─────────────────────────────────────────────────
+async function loadHistorique() {
+    const snap = await db.collection('soumissions')
+        .where('membreId', '==', currentUser.uid)
+        .orderBy('dateCreation', 'desc')
+        .limit(20)
+        .get();
+
+    const list = document.getElementById('history-list');
+    if (snap.empty) {
+        list.innerHTML = '<div class="text-dim text-sm">Aucune soumission pour l\'instant.</div>';
+        return;
+    }
+
+    list.innerHTML = snap.docs.map(doc => {
+        const s = doc.data();
+        const badgeStatut = s.statut === 'valide'
+            ? '<span class="badge badge-valide">Validé</span>'
+            : s.statut === 'refuse'
+            ? '<span class="badge badge-refuse">Refusé</span>'
+            : '<span class="badge badge-attente">En attente</span>';
+        const typeLabel = { scene: '⚔️ Scène RP', incantation: '🔮 Incantation', autre: '✦ Autre' }[s.type] || s.type;
+        let ptsHTML = '';
+        if (s.statut === 'valide' && (s.pointsManipulation || s.pointsOcculte)) {
+            ptsHTML = `<div class="history-pts">
+                <span class="pts pts-manip">+${s.pointsManipulation} Manip</span>
+                &nbsp;<span class="pts pts-occulte">+${s.pointsOcculte} Occulte</span>
+            </div>`;
+        }
+        let incanHTML = '';
+        if (s.incantationNom) incanHTML = `<div class="history-type" style="margin-top:.25rem">🔮 ${s.incantationNom}</div>`;
+        let commentHTML = '';
+        if (s.commentaire) commentHTML = `<div class="history-desc" style="color:#c9a52a80; font-style:italic">${s.commentaire}</div>`;
+        return `<div class="history-item">
+            <div class="history-header">
+                <span>${badgeStatut} <span class="history-type">${typeLabel}</span></span>
+                <span class="text-dim text-sm">${formatDate(s.dateCreation)}</span>
+            </div>
+            ${incanHTML}
+            <div class="history-desc">${s.description.substring(0, 120)}${s.description.length > 120 ? '...' : ''}</div>
+            ${ptsHTML}${commentHTML}
+        </div>`;
+    }).join('');
+}
+
+function showAlert(msg, type = 'danger') {
+    document.getElementById('alert-rapport').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+function clearAlert() { document.getElementById('alert-rapport').innerHTML = ''; }
+function deconnexion() { auth.signOut().then(() => window.location.href = 'login.html'); }
+</script>
+</body>
+</html>

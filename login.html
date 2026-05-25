@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — Sphère Occulte</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.login-bg {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 30% 60%, rgba(80,0,0,.25) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 30%, rgba(40,0,60,.2) 0%, transparent 60%),
+                var(--bg);
+}
+.login-box {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 420px;
+    padding: 1rem;
+}
+.login-logo {
+    text-align: center; margin-bottom: 1.75rem;
+}
+.login-logo h1 {
+    font-size: 1.5rem; color: var(--gold);
+    letter-spacing: .2em; margin-bottom: .25rem;
+}
+.login-logo p { color: var(--text-dim); font-size: .82rem; letter-spacing: .1em; }
+.login-card { padding: 1.75rem; }
+.tab-switch {
+    display: flex; gap: 0;
+    background: var(--bg3);
+    border-radius: 6px; padding: 3px;
+    margin-bottom: 1.5rem;
+}
+.tab-switch button {
+    flex: 1; background: none; border: none; color: var(--text-dim);
+    padding: .5rem; border-radius: 4px; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: .88rem; transition: all .2s;
+}
+.tab-switch button.active { background: var(--bg2); color: var(--text); }
+</style>
+</head>
+<body>
+<div class="login-bg"></div>
+<div class="full-center">
+<div class="login-box">
+    <div class="login-logo">
+        <h1>⬡ SPHÈRE OCCULTE ⬡</h1>
+        <p>PORTAIL D'ACCÈS</p>
+    </div>
+    <div class="card login-card">
+        <div class="tab-switch">
+            <button class="active" onclick="switchTab('connexion')">Connexion</button>
+            <button onclick="switchTab('inscription')">Inscription</button>
+        </div>
+
+        <div id="alert-box"></div>
+
+        <!-- Connexion -->
+        <form id="form-connexion">
+            <div class="form-group">
+                <label class="form-label">Adresse e-mail</label>
+                <input type="email" id="login-email" class="form-control" placeholder="votre@email.com" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="btn-login">
+                Se connecter
+            </button>
+        </form>
+
+        <!-- Inscription -->
+        <form id="form-inscription" style="display:none">
+            <div class="form-group">
+                <label class="form-label">Nom du personnage (RP)</label>
+                <input type="text" id="reg-nom" class="form-control" placeholder="Ex: Hanma Tenchi" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Steam ID 64</label>
+                <input type="text" id="reg-steamid" class="form-control" placeholder="76561198XXXXXXXXX">
+                <div class="form-hint">Trouvable sur steamid.io — optionnel, peut être complété par un haut grade.</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Adresse e-mail</label>
+                <input type="email" id="reg-email" class="form-control" placeholder="votre@email.com" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" id="reg-password" class="form-control" placeholder="Min. 6 caractères" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="btn-register">
+                Créer mon compte
+            </button>
+            <p class="text-dim text-sm mt-2" style="text-align:center">
+                Votre compte sera actif dès validation par un haut grade.
+            </p>
+        </form>
+    </div>
+    <p style="text-align:center; margin-top:1rem">
+        <a href="index.html">← Retour au classement</a>
+    </p>
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+function switchTab(tab) {
+    const isConn = tab === 'connexion';
+    document.getElementById('form-connexion').style.display  = isConn ? '' : 'none';
+    document.getElementById('form-inscription').style.display = isConn ? 'none' : '';
+    document.querySelectorAll('.tab-switch button').forEach((b, i) => {
+        b.classList.toggle('active', isConn ? i === 0 : i === 1);
+    });
+    clearAlert();
+}
+
+function showAlert(msg, type = 'danger') {
+    document.getElementById('alert-box').innerHTML =
+        `<div class="alert alert-${type}">${msg}</div>`;
+}
+function clearAlert() { document.getElementById('alert-box').innerHTML = ''; }
+
+// ── Connexion ──────────────────────────────────────────────────
+document.getElementById('form-connexion').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAlert();
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+    try {
+        const email    = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        const membreDoc = await db.collection('membres').doc(cred.user.uid).get();
+        if (!membreDoc.exists) {
+            await auth.signOut();
+            showAlert("Votre profil n'existe pas encore. Contactez un haut grade.");
+            return;
+        }
+        const role = membreDoc.data().role;
+        if (role === 'haut_grade' || role === 'admin') {
+            window.location.href = 'admin.html';
+        } else {
+            window.location.href = 'rapport.html';
+        }
+    } catch (err) {
+        showAlert(traduitErreur(err.code));
+    } finally {
+        btn.disabled = false; btn.innerHTML = 'Se connecter';
+    }
+});
+
+// ── Inscription ────────────────────────────────────────────────
+document.getElementById('form-inscription').addEventListener('submit', async e => {
+    e.preventDefault();
+    clearAlert();
+    const btn = document.getElementById('btn-register');
+    btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+    try {
+        const nom      = document.getElementById('reg-nom').value.trim();
+        const steamId  = document.getElementById('reg-steamid').value.trim();
+        const email    = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+
+        if (!nom) { showAlert("Veuillez entrer votre nom de personnage."); return; }
+
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        await db.collection('membres').doc(cred.user.uid).set({
+            uid: cred.user.uid,
+            nom,
+            steamId: steamId || '',
+            email,
+            grade: 'Incantateur',
+            pointsManipulation: 0,
+            pointsOcculte: 0,
+            absent: false,
+            projetOcculte: '',
+            nbMembresProjet: 0,
+            dateEvolution: firebase.firestore.Timestamp.now(),
+            role: 'membre',
+            dateCreation: firebase.firestore.Timestamp.now()
+        });
+        showAlert("Compte créé ! Vous pouvez maintenant soumettre vos rapports.", 'success');
+        setTimeout(() => window.location.href = 'rapport.html', 1200);
+    } catch (err) {
+        showAlert(traduitErreur(err.code));
+    } finally {
+        btn.disabled = false; btn.innerHTML = 'Créer mon compte';
+    }
+});
+
+function traduitErreur(code) {
+    const map = {
+        'auth/invalid-email':        "Adresse e-mail invalide.",
+        'auth/user-not-found':       "Aucun compte trouvé avec cet e-mail.",
+        'auth/wrong-password':       "Mot de passe incorrect.",
+        'auth/email-already-in-use': "Cet e-mail est déjà utilisé.",
+        'auth/weak-password':        "Mot de passe trop court (min. 6 caractères).",
+        'auth/invalid-credential':   "E-mail ou mot de passe incorrect.",
+        'auth/too-many-requests':    "Trop de tentatives. Réessayez dans quelques minutes.",
+    };
+    return map[code] || `Erreur : ${code}`;
+}
+
+// Redirige si déjà connecté
+auth.onAuthStateChanged(async user => {
+    if (!user) return;
+    const doc = await db.collection('membres').doc(user.uid).get();
+    if (!doc.exists) return;
+    const role = doc.data().role;
+    window.location.href = (role === 'haut_grade' || role === 'admin') ? 'admin.html' : 'rapport.html';
+});
+</script>
+</body>
+</html>

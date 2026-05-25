@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Fonction utilitaire : est-ce un haut grade ou admin ? ──
+    function isHautGrade() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/membres/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/membres/$(request.auth.uid)).data.role
+          in ['haut_grade', 'admin'];
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // ── Membres ────────────────────────────────────────────────
+    // Lecture publique (classement visible par tous)
+    // Écriture : soi-même (son propre profil) OU haut grade
+    match /membres/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() &&
+        (request.auth.uid == userId || isHautGrade());
+      allow delete: if isHautGrade();
+    }
+
+    // ── Incantations ───────────────────────────────────────────
+    // Lecture publique, écriture réservée aux hauts grades
+    match /incantations/{incantationId} {
+      allow read: if true;
+      allow write: if isHautGrade();
+    }
+
+    // ── Soumissions ────────────────────────────────────────────
+    // Lecture : son propre dossier OU haut grade
+    // Création : membre authentifié (son propre uid dans le doc)
+    // Mise à jour : haut grade uniquement (pour valider/refuser)
+    match /soumissions/{soumissionId} {
+      allow read: if isAuthenticated() &&
+        (request.auth.uid == resource.data.membreId || isHautGrade());
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.membreId;
+      allow update: if isHautGrade();
+      allow delete: if isHautGrade();
+    }
+
+    // ── Logs ───────────────────────────────────────────────────
+    // Lecture et écriture : hauts grades uniquement
+    match /logs/{logId} {
+      allow read:   if isHautGrade();
+      allow create: if isHautGrade();
+      allow update, delete: if false; // logs immuables
+    }
+  }
+}

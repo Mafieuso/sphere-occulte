@@ -1,0 +1,247 @@
+/* ════════════════════════════════════════════════════════════════
+   SPHÈRE OCCULTE — Styles partagés
+   ════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;600&display=swap');
+
+/* ── Variables ─────────────────────────────────────────────────── */
+:root {
+    --bg:        #07070e;
+    --bg2:       #0d0d1a;
+    --bg3:       #12121f;
+    --border:    #1e1e32;
+    --border2:   #2a2a42;
+    --red:       #8b0000;
+    --red-light: #c41e2a;
+    --gold:      #c9a52a;
+    --gold-dim:  #7a6218;
+    --text:      #d4cfc8;
+    --text-dim:  #7a7488;
+    --success:   #1a5c2a;
+    --success-t: rgba(26,92,42,0.15);
+    --danger:    #5c1a1a;
+    --danger-t:  rgba(92,26,26,0.15);
+    --warning:   #5c4a1a;
+    --warning-t: rgba(92,74,26,0.15);
+}
+
+/* ── Reset & base ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4 { font-family: 'Cinzel', serif; letter-spacing: .05em; }
+
+a { color: var(--gold); text-decoration: none; }
+a:hover { color: var(--text); }
+
+/* ── Layout ────────────────────────────────────────────────────── */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 1rem; }
+.page-wrap  { padding: 2rem 0; }
+
+/* ── Header / Navbar ───────────────────────────────────────────── */
+.navbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: .9rem 0;
+    position: sticky; top: 0; z-index: 100;
+}
+.navbar .container { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.navbar-brand { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--gold); letter-spacing: .1em; }
+.navbar-links { display: flex; gap: .75rem; align-items: center; }
+
+/* ── Cards ─────────────────────────────────────────────────────── */
+.card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+.card-title {
+    font-family: 'Cinzel', serif;
+    font-size: .95rem;
+    color: var(--gold);
+    letter-spacing: .08em;
+    margin-bottom: 1rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+.btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .5rem 1.1rem;
+    border: none; border-radius: 5px;
+    font-family: 'Nunito', sans-serif; font-size: .9rem; font-weight: 600;
+    cursor: pointer; transition: opacity .2s, transform .1s;
+}
+.btn:hover { opacity: .85; }
+.btn:active { transform: scale(.97); }
+
+.btn-primary  { background: var(--red);   color: #fff; }
+.btn-gold     { background: var(--gold-dim); color: var(--gold); border: 1px solid var(--gold-dim); }
+.btn-ghost    { background: transparent; color: var(--text-dim); border: 1px solid var(--border2); }
+.btn-success  { background: var(--success); color: #6dff8a; }
+.btn-danger   { background: var(--danger);  color: #ff8a8a; }
+.btn-sm       { padding: .3rem .8rem; font-size: .8rem; }
+.btn-full     { width: 100%; justify-content: center; }
+
+/* ── Forms ─────────────────────────────────────────────────────── */
+.form-group   { margin-bottom: 1.1rem; }
+.form-label   { display: block; font-size: .85rem; color: var(--text-dim); margin-bottom: .4rem; letter-spacing: .04em; }
+.form-control {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: .6rem .9rem;
+    border-radius: 5px;
+    font-family: 'Nunito', sans-serif;
+    font-size: .9rem;
+    transition: border-color .2s;
+}
+.form-control:focus { outline: none; border-color: var(--gold-dim); }
+.form-control option { background: var(--bg3); }
+textarea.form-control { resize: vertical; min-height: 100px; }
+
+.form-hint { font-size: .78rem; color: var(--text-dim); margin-top: .25rem; }
+
+/* ── Grade badges ──────────────────────────────────────────────── */
+.grade-badge {
+    display: inline-block;
+    padding: .2rem .65rem;
+    border-radius: 4px;
+    font-size: .78rem;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    letter-spacing: .05em;
+    white-space: nowrap;
+}
+.grade-incantateur { background: rgba(150,80,80,.15); color: #c4a0a0; border: 1px solid rgba(150,80,80,.3); }
+.grade-marcheur    { background: rgba(150,60,60,.2);  color: #b06060; border: 1px solid rgba(150,60,60,.4); }
+.grade-collecteur  { background: rgba(130,40,40,.25); color: #8b3a3a; border: 1px solid rgba(130,40,40,.5); }
+.grade-marchand    { background: rgba(100,0,0,.3);    color: #c44;    border: 1px solid rgba(100,0,0,.6); }
+
+/* ── Status badges ─────────────────────────────────────────────── */
+.badge {
+    display: inline-block; padding: .15rem .55rem;
+    border-radius: 4px; font-size: .75rem; font-weight: 700;
+}
+.badge-attente { background: var(--warning-t); color: #c9a52a; border: 1px solid var(--warning); }
+.badge-valide  { background: var(--success-t); color: #6ddd80; border: 1px solid var(--success); }
+.badge-refuse  { background: var(--danger-t);  color: #dd6d6d; border: 1px solid var(--danger); }
+.badge-absent  { background: rgba(80,0,0,.3);  color: #ff6b6b; }
+.badge-present { background: rgba(0,60,20,.3); color: #6ddd80; }
+
+/* ── Tables ────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+th {
+    background: var(--bg3); color: var(--gold-dim);
+    font-family: 'Cinzel', serif; font-size: .75rem;
+    letter-spacing: .08em; text-align: left;
+    padding: .7rem .9rem; border-bottom: 1px solid var(--border2);
+}
+td { padding: .65rem .9rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:hover td { background: rgba(255,255,255,.02); }
+tr:last-child td { border-bottom: none; }
+
+/* ── Alerts ────────────────────────────────────────────────────── */
+.alert {
+    padding: .75rem 1rem; border-radius: 5px;
+    font-size: .87rem; margin-bottom: 1rem;
+}
+.alert-danger  { background: var(--danger-t);  color: #ff8a8a; border: 1px solid var(--danger); }
+.alert-success { background: var(--success-t); color: #6ddd80; border: 1px solid var(--success); }
+.alert-info    { background: rgba(30,30,80,.3); color: #8aaaff; border: 1px solid rgba(30,30,100,.5); }
+.alert-warning { background: var(--warning-t); color: #c9a52a; border: 1px solid var(--warning); }
+
+/* ── Tabs ──────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--border2); margin-bottom: 1.5rem; }
+.tab-btn {
+    background: none; border: none; color: var(--text-dim);
+    font-family: 'Nunito', sans-serif; font-size: .88rem;
+    padding: .6rem 1.1rem; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all .2s;
+    margin-bottom: -1px;
+}
+.tab-btn:hover    { color: var(--text); }
+.tab-btn.active   { color: var(--gold); border-bottom-color: var(--gold); }
+.tab-panel        { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Modal ─────────────────────────────────────────────────────── */
+.modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,.75);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 1.75rem;
+    width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto;
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.modal-title  { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1rem; }
+.modal-close  { background: none; border: none; color: var(--text-dim); font-size: 1.4rem; cursor: pointer; line-height: 1; }
+
+/* ── Misc ──────────────────────────────────────────────────────── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+.text-dim { color: var(--text-dim); }
+.text-gold { color: var(--gold); }
+.text-sm { font-size: .82rem; }
+.mt-1 { margin-top: .5rem; } .mt-2 { margin-top: 1rem; } .mt-3 { margin-top: 1.5rem; }
+.mb-1 { margin-bottom: .5rem; } .mb-2 { margin-bottom: 1rem; } .mb-3 { margin-bottom: 1.5rem; }
+.flex { display: flex; } .gap-1 { gap: .5rem; } .gap-2 { gap: 1rem; }
+.items-center { align-items: center; } .justify-between { justify-content: space-between; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.full-center { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+/* Screenshots preview */
+.screenshots-preview { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
+.screenshots-preview img {
+    width: 80px; height: 80px; object-fit: cover;
+    border-radius: 4px; border: 1px solid var(--border2);
+    cursor: pointer;
+}
+
+/* Incantation card in rapport */
+.incantation-detail {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 1rem; margin-top: .75rem; font-size: .85rem;
+}
+.incantation-detail .incan-text {
+    font-style: italic; color: var(--text-dim);
+    white-space: pre-line; font-size: .8rem; margin-top: .5rem;
+    border-left: 2px solid var(--red); padding-left: .75rem;
+}
+
+/* Points display */
+.pts { font-family: 'Cinzel', serif; font-weight: 700; }
+.pts-manip  { color: #9090ff; }
+.pts-occulte { color: var(--gold); }
+
+/* Loader */
+.loader {
+    display: inline-block; width: 18px; height: 18px;
+    border: 2px solid var(--border2); border-top-color: var(--gold);
+    border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .navbar-links .btn-label { display: none; }
+}

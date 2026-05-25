@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sphère Occulte — Classement</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.hero {
+    background: radial-gradient(ellipse at 50% 0%, rgba(100,0,0,.3) 0%, transparent 70%);
+    border-bottom: 1px solid var(--border);
+    padding: 2.5rem 0 1.5rem;
+    text-align: center;
+}
+.hero-title {
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    color: var(--gold);
+    letter-spacing: .2em;
+    margin-bottom: .4rem;
+}
+.hero-sub { color: var(--text-dim); letter-spacing: .1em; font-size: .85rem; }
+
+.stats-row {
+    display: flex; gap: 1rem; justify-content: center;
+    flex-wrap: wrap; margin: 1.25rem 0;
+}
+.stat-box {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1.5rem; text-align: center;
+    min-width: 110px;
+}
+.stat-val { font-family: 'Cinzel', serif; font-size: 1.5rem; color: var(--gold); }
+.stat-lbl { font-size: .72rem; color: var(--text-dim); letter-spacing: .07em; }
+
+.rang-col { font-family: 'Cinzel', serif; font-weight: 700; color: var(--text-dim); }
+.rang-1 { color: #c9a52a; }
+.rang-2 { color: #a8a8b0; }
+.rang-3 { color: #8b5e3c; }
+
+.membre-nom { font-weight: 600; }
+.absent-row td { opacity: .55; }
+
+.grade-legend {
+    display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center;
+    margin: 1.25rem 0 0;
+}
+
+.nav-actions { display: flex; gap: .5rem; justify-content: center; margin-bottom: 1rem; }
+
+.prochaine-evolution {
+    font-size: .75rem; color: var(--text-dim);
+    display: block; margin-top: .15rem;
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="container">
+        <h1 class="hero-title">⬡ SPHÈRE OCCULTE ⬡</h1>
+        <p class="hero-sub">CLASSEMENT DE L'ORDRE DÉMONIAQUE</p>
+
+        <div class="stats-row" id="stats-row">
+            <div class="stat-box"><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">MEMBRES</div></div>
+            <div class="stat-box"><div class="stat-val" id="stat-presents">—</div><div class="stat-lbl">PRÉSENTS</div></div>
+            <div class="stat-box"><div class="stat-val pts-occulte" id="stat-max-occulte">—</div><div class="stat-lbl">MAX OCCULTE</div></div>
+        </div>
+
+        <div class="grade-legend" id="grade-legend"></div>
+
+        <div class="nav-actions" style="margin-top:1.25rem">
+            <a href="login.html" class="btn btn-primary btn-sm">Connexion membre</a>
+            <a href="rapport.html" class="btn btn-ghost btn-sm">Soumettre un rapport</a>
+        </div>
+    </div>
+</div>
+
+<div class="page-wrap container">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+        <h2 style="font-size:1rem; color:var(--gold); letter-spacing:.08em;">CLASSEMENT</h2>
+        <div style="display:flex; gap:.5rem; align-items:center;">
+            <select id="filtre-grade" class="form-control" style="width:auto" onchange="filtrer()">
+                <option value="">Tous les grades</option>
+                <option value="Incantateur">Incantateur</option>
+                <option value="Marcheur des Voiles">Marcheur des Voiles</option>
+                <option value="Collecteur d'Ombre">Collecteur d'Ombre</option>
+                <option value="Marchand des Âmes">Marchand des Âmes</option>
+            </select>
+            <select id="filtre-statut" class="form-control" style="width:auto" onchange="filtrer()">
+                <option value="">Tous</option>
+                <option value="present">Présents seulement</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+    <table id="classement-table">
+        <thead><tr>
+            <th style="width:40px">Rang</th>
+            <th>Nom</th>
+            <th>Grade</th>
+            <th title="Points de Manipulation Occulte">Manipulation</th>
+            <th title="Points de Puissance Occulte">Puissance Occulte</th>
+            <th>Statut</th>
+            <th>Évolution</th>
+        </tr></thead>
+        <tbody id="classement-tbody">
+            <tr><td colspan="7" class="text-dim" style="text-align:center; padding:2rem">Chargement...</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <div class="divider"></div>
+    <div style="text-align:center">
+        <p class="text-dim text-sm">
+            Sphère Occulte · Demon Slayer RP · Garry's Mod<br>
+            <span style="font-size:.72rem">Mis à jour en temps réel</span>
+        </p>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+let tousMembres = [];
+
+// Légende des grades
+document.getElementById('grade-legend').innerHTML = GRADES.map(g =>
+    `<span class="grade-badge ${g.css}" style="font-size:.72rem">
+        ${g.nom} <span style="opacity:.6; font-size:.68rem">≥${g.minOcculte} pts</span>
+    </span>`
+).join('');
+
+// Chargement en temps réel
+db.collection('membres').orderBy('pointsOcculte', 'desc').onSnapshot(snap => {
+    tousMembres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    mettreAJourStats();
+    filtrer();
+});
+
+function mettreAJourStats() {
+    const presents = tousMembres.filter(m => !m.absent).length;
+    const maxOcculte = tousMembres.length > 0 ? Math.max(...tousMembres.map(m => m.pointsOcculte)) : 0;
+    document.getElementById('stat-total').textContent   = tousMembres.length;
+    document.getElementById('stat-presents').textContent = presents;
+    document.getElementById('stat-max-occulte').textContent = maxOcculte;
+}
+
+function filtrer() {
+    const filtreGrade  = document.getElementById('filtre-grade').value;
+    const filtreStatut = document.getElementById('filtre-statut').value;
+
+    let membres = [...tousMembres];
+    if (filtreGrade)            membres = membres.filter(m => m.grade === filtreGrade);
+    if (filtreStatut === 'present') membres = membres.filter(m => !m.absent);
+
+    renderClassement(membres);
+}
+
+function renderClassement(membres) {
+    const tbody = document.getElementById('classement-tbody');
+    if (membres.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-dim" style="text-align:center; padding:2rem">Aucun membre correspondant.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = membres.map((m, idx) => {
+        const rang = idx + 1;
+        const rangClass = rang === 1 ? 'rang-1' : rang === 2 ? 'rang-2' : rang === 3 ? 'rang-3' : '';
+        const rangLabel = rang <= 3 ? ['🥇', '🥈', '🥉'][rang - 1] : rang;
+
+        // Prochain grade
+        const gradeIdx = GRADES.findIndex(g => g.nom === m.grade);
+        const prochainGrade = GRADES[gradeIdx + 1];
+        let evolutionHTML = '';
+        if (prochainGrade) {
+            const reste = prochainGrade.minOcculte - m.pointsOcculte;
+            evolutionHTML = `<span class="prochaine-evolution">encore ${reste} pts → ${prochainGrade.nom}</span>`;
+        }
+
+        return `<tr class="${m.absent ? 'absent-row' : ''}">
+            <td class="rang-col ${rangClass}" style="text-align:center">${rangLabel}</td>
+            <td class="membre-nom">${m.nom}</td>
+            <td>${badgeGrade(m.grade)}</td>
+            <td><span class="pts pts-manip">${m.pointsManipulation}</span></td>
+            <td>
+                <span class="pts pts-occulte">${m.pointsOcculte}</span>
+                ${evolutionHTML}
+            </td>
+            <td>${m.absent
+                ? '<span class="badge badge-absent">Absent</span>'
+                : '<span class="badge badge-present">Présent</span>'
+            }</td>
+            <td class="text-dim text-sm">${formatDate(m.dateEvolution)}</td>
+        </tr>`;
+    }).join('');
+}
+</script>
+</body>
+</html>

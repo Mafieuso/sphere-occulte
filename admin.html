@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel Hauts Grades — Sphère Occulte</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.admin-header {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: .8rem 0;
+}
+.admin-header .container { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
+.admin-title { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1rem; letter-spacing: .1em; }
+.admin-user  { font-size: .82rem; color: var(--text-dim); }
+
+.soum-card {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 8px; margin-bottom: .75rem; overflow: hidden;
+}
+.soum-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .8rem 1rem; gap: .75rem; flex-wrap: wrap; cursor: pointer;
+}
+.soum-header:hover { background: rgba(255,255,255,.02); }
+.soum-body { padding: .75rem 1rem 1rem; border-top: 1px solid var(--border); display: none; }
+.soum-body.open { display: block; }
+.soum-meta { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .82rem; color: var(--text-dim); margin-bottom: .75rem; }
+.soum-desc { background: var(--bg2); border-radius: 5px; padding: .75rem; font-size: .85rem; margin-bottom: .75rem; white-space: pre-wrap; }
+.soum-screens { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.soum-screens img { width: 90px; height: 90px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid var(--border2); }
+.soum-incan { background: rgba(100,60,0,.1); border: 1px solid var(--gold-dim); border-radius: 6px; padding: .75rem; margin-bottom: .75rem; font-size: .84rem; }
+.val-row { display: flex; gap: .75rem; align-items: flex-end; flex-wrap: wrap; margin-top: .5rem; }
+.val-row .form-group { margin: 0; flex: 1; min-width: 100px; }
+.membre-row td { vertical-align: middle; }
+.membre-actions { display: flex; gap: .4rem; }
+.pts-input { width: 80px !important; }
+
+/* Membre modal */
+.role-select option { background: var(--bg3); }
+.transfer-section { background: rgba(100,50,0,.1); border: 1px solid var(--gold-dim); border-radius: 6px; padding: 1rem; margin-top: .75rem; }
+.absent-toggle {
+    display: flex; align-items: center; gap: .6rem;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 5px; padding: .5rem .9rem; cursor: pointer;
+    font-size: .88rem; user-select: none; width: fit-content;
+}
+.absent-toggle input { accent-color: var(--red); }
+</style>
+</head>
+<body>
+
+<div class="admin-header">
+<div class="container">
+    <div>
+        <div class="admin-title">⬡ SPHÈRE OCCULTE — Panel Hauts Grades</div>
+        <div class="admin-user" id="admin-user-label">Chargement...</div>
+    </div>
+    <div style="display:flex; gap:.5rem;">
+        <a href="index.html" class="btn btn-ghost btn-sm">Classement public</a>
+        <button class="btn btn-ghost btn-sm" onclick="auth.signOut().then(()=>location.href='login.html')">Déconnexion</button>
+    </div>
+</div>
+</div>
+
+<div class="page-wrap container" id="page-content" style="display:none">
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('soumissions')">
+            En attente <span id="badge-attente" class="badge badge-attente" style="display:none">0</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('membres')">Membres</button>
+        <button class="tab-btn" onclick="switchTab('incantations')">Incantations</button>
+        <button class="tab-btn" onclick="switchTab('logs')">Logs</button>
+    </div>
+
+    <!-- ─── Tab : Soumissions ─────────────────────────────────── -->
+    <div class="tab-panel active" id="tab-soumissions">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+            <div>
+                <select id="filtre-statut" class="form-control" style="width:auto; display:inline-block" onchange="loadSoumissions()">
+                    <option value="en_attente">En attente</option>
+                    <option value="valide">Validées</option>
+                    <option value="refuse">Refusées</option>
+                </select>
+            </div>
+        </div>
+        <div id="soumissions-list">
+            <div class="text-dim text-sm">Chargement...</div>
+        </div>
+    </div>
+
+    <!-- ─── Tab : Membres ────────────────────────────────────── -->
+    <div class="tab-panel" id="tab-membres">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+            <div class="text-dim text-sm" id="membres-count"></div>
+            <button class="btn btn-gold btn-sm" onclick="ouvrirModalMembre(null)">+ Ajouter un membre</button>
+        </div>
+        <div class="table-wrap">
+        <table id="membres-table">
+            <thead><tr>
+                <th>Nom</th><th>Grade</th><th>Manip.</th><th>Occulte</th>
+                <th>Steam ID</th><th>Statut</th><th>Rôle</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="membres-tbody"></tbody>
+        </table>
+        </div>
+    </div>
+
+    <!-- ─── Tab : Incantations ───────────────────────────────── -->
+    <div class="tab-panel" id="tab-incantations">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+            <div class="text-dim text-sm" id="incan-count"></div>
+            <div style="display:flex; gap:.5rem;">
+                <button class="btn btn-ghost btn-sm" onclick="seedIncantations()">⬆ Importer les incantations de base</button>
+                <button class="btn btn-gold btn-sm" onclick="ouvrirModalIncan(null)">+ Ajouter une incantation</button>
+            </div>
+        </div>
+        <div class="table-wrap">
+        <table>
+            <thead><tr>
+                <th>Nom</th><th>Grade requis</th><th>Manip.</th><th>Occulte</th><th>Socle</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="incantations-tbody"></tbody>
+        </table>
+        </div>
+    </div>
+
+    <!-- ─── Tab : Logs ───────────────────────────────────────── -->
+    <div class="tab-panel" id="tab-logs">
+        <div class="table-wrap">
+        <table>
+            <thead><tr>
+                <th>Date</th><th>Action</th><th>Par</th><th>Sur</th><th>Détail</th><th>Points</th>
+            </tr></thead>
+            <tbody id="logs-tbody">
+                <tr><td colspan="6" class="text-dim">Chargement...</td></tr>
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+
+<div class="full-center" id="loading-screen">
+    <span class="loader"></span>
+</div>
+
+<!-- ══ Modal Membre ══════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-membre">
+<div class="modal">
+    <div class="modal-header">
+        <div class="modal-title" id="modal-membre-title">Modifier le membre</div>
+        <button class="modal-close" onclick="fermerModal('modal-membre')">×</button>
+    </div>
+    <div id="alert-modal-membre"></div>
+    <form id="form-membre" autocomplete="off">
+        <input type="hidden" id="m-uid">
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Nom du personnage *</label>
+                <input type="text" id="m-nom" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Steam ID 64</label>
+                <input type="text" id="m-steamid" class="form-control">
+            </div>
+        </div>
+
+        <!-- Création uniquement -->
+        <div id="m-creation-fields">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">E-mail *</label>
+                    <input type="email" id="m-email" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mot de passe initial *</label>
+                    <input type="password" id="m-password" class="form-control" placeholder="Min. 6 caractères">
+                </div>
+            </div>
+            <div class="alert alert-info">
+                Le compte sera créé avec cet e-mail et ce mot de passe. Partagez-les au membre via Discord.
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Points Manipulation</label>
+                <input type="number" id="m-manip" class="form-control" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Points Occulte</label>
+                <input type="number" id="m-occulte" class="form-control" min="0" value="0">
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Rôle</label>
+                <select id="m-role" class="form-control role-select">
+                    <option value="membre">Membre</option>
+                    <option value="haut_grade">Haut Grade</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Projet Occulte</label>
+                <input type="text" id="m-projet" class="form-control">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="absent-toggle">
+                <input type="checkbox" id="m-absent">
+                Marquer comme Absent
+            </label>
+        </div>
+
+        <!-- Transfert de points (visible si uid existant) -->
+        <div class="transfer-section" id="m-transfer-section" style="display:none">
+            <div class="card-title" style="font-size:.85rem; margin-bottom:.75rem">Transfert de points (Moisson du Souffle Éteint)</div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Destinataire</label>
+                    <select id="m-transfer-dest" class="form-control">
+                        <option value="">— Choisir le membre —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pts Occulte à transférer</label>
+                    <input type="number" id="m-transfer-pts" class="form-control" min="1" value="1">
+                </div>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="effectuerTransfert()">Effectuer le transfert</button>
+        </div>
+
+        <hr class="divider">
+        <div style="display:flex; gap:.75rem; justify-content:flex-end;">
+            <button type="button" class="btn btn-ghost" onclick="fermerModal('modal-membre')">Annuler</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-membre">Enregistrer</button>
+        </div>
+    </form>
+</div>
+</div>
+
+<!-- ══ Modal Incantation ══════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-incan">
+<div class="modal" style="max-width:640px">
+    <div class="modal-header">
+        <div class="modal-title" id="modal-incan-title">Nouvelle incantation</div>
+        <button class="modal-close" onclick="fermerModal('modal-incan')">×</button>
+    </div>
+    <div id="alert-modal-incan"></div>
+    <form id="form-incan" autocomplete="off">
+        <input type="hidden" id="i-id">
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Nom *</label>
+                <input type="text" id="i-nom" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Grade requis *</label>
+                <select id="i-grade" class="form-control" onchange="syncGradeOrdre()">
+                    <option value="Incantateur">Incantateur</option>
+                    <option value="Marcheur des Voiles">Marcheur des Voiles</option>
+                    <option value="Collecteur d'Ombre">Collecteur d'Ombre</option>
+                    <option value="Marchand des Âmes">Marchand des Âmes</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Dans quel cas elle s'utilise</label>
+            <textarea id="i-utilisation" class="form-control" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Objet requis</label>
+            <input type="text" id="i-objet" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Explication du fonctionnement</label>
+            <textarea id="i-explication" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Texte de l'incantation</label>
+            <textarea id="i-texte" class="form-control" rows="5"></textarea>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Socle (optionnel)</label>
+                <input type="text" id="i-socle" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description du socle</label>
+                <input type="text" id="i-socle-desc" class="form-control">
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">Points Manipulation</label>
+                <input type="number" id="i-manip" class="form-control" min="0" value="0">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Points Occulte</label>
+                <input type="number" id="i-occulte" class="form-control" min="0" value="0">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="absent-toggle">
+                <input type="checkbox" id="i-special">
+                Incantation spéciale (transfert de points)
+            </label>
+        </div>
+        <hr class="divider">
+        <div style="display:flex; gap:.75rem; justify-content:flex-end;">
+            <button type="button" class="btn btn-ghost" onclick="fermerModal('modal-incan')">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+    </form>
+</div>
+</div>
+
+<!-- ══ Modal Validation ══════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-validation">
+<div class="modal" style="max-width:460px">
+    <div class="modal-header">
+        <div class="modal-title" id="modal-val-title">Valider la soumission</div>
+        <button class="modal-close" onclick="fermerModal('modal-validation')">×</button>
+    </div>
+    <input type="hidden" id="val-soum-id">
+    <div class="form-group">
+        <label class="form-label">Points Manipulation à attribuer</label>
+        <input type="number" id="val-manip" class="form-control" min="0" value="0">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Points Occulte à attribuer</label>
+        <input type="number" id="val-occulte" class="form-control" min="0" value="0">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Commentaire (optionnel)</label>
+        <textarea id="val-commentaire" class="form-control" rows="2" placeholder="Message pour le membre..."></textarea>
+    </div>
+    <div style="display:flex; gap:.75rem; justify-content:flex-end; margin-top:1rem;">
+        <button class="btn btn-ghost" onclick="fermerModal('modal-validation')">Annuler</button>
+        <button class="btn btn-success" onclick="confirmerValidation()">✓ Valider</button>
+    </div>
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+// App secondaire pour créer des comptes sans déconnecter l'admin
+const secondaryApp  = firebase.initializeApp(firebase.app().options, 'secondary');
+const secondaryAuth = secondaryApp.auth();
+
+let currentAdmin = null;
+let currentAdminMembre = null;
+let allMembres = [];
+let activeTab = 'soumissions';
+
+// ── Auth guard ─────────────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    const doc = await db.collection('membres').doc(user.uid).get();
+    if (!doc.exists) { window.location.href = 'login.html'; return; }
+    const data = doc.data();
+    if (!['haut_grade', 'admin'].includes(data.role)) { window.location.href = 'rapport.html'; return; }
+    currentAdmin = user;
+    currentAdminMembre = data;
+    document.getElementById('admin-user-label').textContent = `Connecté en tant que ${data.nom} (${data.role})`;
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('page-content').style.display = '';
+    loadSoumissions();
+    loadMembres();
+    loadIncantations();
+    loadLogs();
+});
+
+// ── Tabs ───────────────────────────────────────────────────────
+function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        const tabs = ['soumissions', 'membres', 'incantations', 'logs'];
+        b.classList.toggle('active', tabs[i] === tab);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SOUMISSIONS
+// ════════════════════════════════════════════════════════════════
+async function loadSoumissions() {
+    const statut = document.getElementById('filtre-statut').value;
+    const snap = await db.collection('soumissions')
+        .where('statut', '==', statut)
+        .orderBy('dateCreation', 'desc')
+        .limit(50)
+        .get();
+
+    if (statut === 'en_attente') {
+        const n = snap.size;
+        const badge = document.getElementById('badge-attente');
+        badge.style.display = n > 0 ? '' : 'none';
+        badge.textContent = n;
+    }
+
+    const list = document.getElementById('soumissions-list');
+    if (snap.empty) {
+        list.innerHTML = '<div class="text-dim text-sm">Aucune soumission dans cette catégorie.</div>';
+        return;
+    }
+
+    list.innerHTML = snap.docs.map(doc => {
+        const s = doc.data(); const id = doc.id;
+        const typeLabel = { scene: '⚔️ Scène RP', incantation: '🔮 Incantation', autre: '✦ Autre' }[s.type] || s.type;
+        const badgeStatut = s.statut === 'valide'
+            ? '<span class="badge badge-valide">Validé</span>'
+            : s.statut === 'refuse'
+            ? '<span class="badge badge-refuse">Refusé</span>'
+            : '<span class="badge badge-attente">En attente</span>';
+
+        let screensHTML = '';
+        if (s.screenshotUrls && s.screenshotUrls.length > 0) {
+            screensHTML = `<div class="soum-screens">${s.screenshotUrls.map(u =>
+                `<img src="${u}" alt="screenshot" onclick="window.open('${u}')">`).join('')}</div>`;
+        }
+
+        let incanHTML = '';
+        if (s.incantationNom) {
+            incanHTML = `<div class="soum-incan">
+                🔮 <strong>${s.incantationNom}</strong>
+                ${s.incantationSpecial
+                    ? '<span class="badge badge-attente" style="margin-left:.5rem">Transfert de points</span>'
+                    : `— <span class="pts pts-manip">+${s.incantationManip} Manip</span>
+                       <span class="pts pts-occulte" style="margin-left:.5rem">+${s.incantationOcculte} Occulte</span>`
+                }
+            </div>`;
+        }
+
+        let discordHTML = s.discordLink ? `<a href="${s.discordLink}" target="_blank" class="btn btn-ghost btn-sm" style="margin-bottom:.75rem">🔗 Voir le message Discord</a>` : '';
+
+        let actionsHTML = '';
+        if (s.statut === 'en_attente') {
+            actionsHTML = `
+            <div class="val-row">
+                <button class="btn btn-success btn-sm" onclick="ouvrirValidation('${id}', ${s.incantationManip || 0}, ${s.incantationOcculte || 0})">✓ Valider</button>
+                <button class="btn btn-danger btn-sm" onclick="refuserSoumission('${id}')">✗ Refuser</button>
+            </div>`;
+        } else if (s.statut === 'valide') {
+            actionsHTML = `<div class="text-sm" style="color:#6ddd80">
+                ✓ Validé le ${formatDate(s.dateValidation)} par ${s.validateurNom || '?'}
+                — +${s.pointsManipulation} Manip / +${s.pointsOcculte} Occulte</div>`;
+        } else {
+            actionsHTML = `<div class="text-sm" style="color:#dd6d6d">✗ Refusé le ${formatDate(s.dateValidation)} par ${s.validateurNom || '?'}</div>`;
+        }
+
+        return `<div class="soum-card">
+            <div class="soum-header" onclick="toggleSoum('soum-body-${id}')">
+                <div style="display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;">
+                    ${badgeStatut}
+                    <strong>${s.membreNom}</strong>
+                    ${badgeGrade(s.membreGrade)}
+                    <span class="text-dim text-sm">${typeLabel}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:.75rem;">
+                    <span class="text-dim text-sm">${formatDate(s.dateCreation)}</span>
+                    <span class="text-dim">▾</span>
+                </div>
+            </div>
+            <div class="soum-body" id="soum-body-${id}">
+                ${incanHTML}
+                <div class="soum-desc">${s.description}</div>
+                ${screensHTML}
+                ${discordHTML}
+                ${actionsHTML}
+                ${s.commentaire ? `<div class="text-dim text-sm mt-1" style="font-style:italic">${s.commentaire}</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleSoum(id) {
+    document.getElementById(id).classList.toggle('open');
+}
+
+function ouvrirValidation(soumId, manip, occulte) {
+    document.getElementById('val-soum-id').value = soumId;
+    document.getElementById('val-manip').value   = manip;
+    document.getElementById('val-occulte').value = occulte;
+    document.getElementById('val-commentaire').value = '';
+    document.getElementById('modal-val-title').textContent = 'Valider la soumission';
+    document.getElementById('modal-validation').classList.remove('hidden');
+}
+
+async function confirmerValidation() {
+    const soumId    = document.getElementById('val-soum-id').value;
+    const manip     = parseInt(document.getElementById('val-manip').value) || 0;
+    const occulte   = parseInt(document.getElementById('val-occulte').value) || 0;
+    const commentaire = document.getElementById('val-commentaire').value.trim();
+
+    const soumDoc = await db.collection('soumissions').doc(soumId).get();
+    if (!soumDoc.exists) return;
+    const soum = soumDoc.data();
+
+    const batch = db.batch();
+
+    // Mettre à jour la soumission
+    batch.update(db.collection('soumissions').doc(soumId), {
+        statut: 'valide',
+        pointsManipulation: manip,
+        pointsOcculte: occulte,
+        validateurId:  currentAdmin.uid,
+        validateurNom: currentAdminMembre.nom,
+        commentaire:   commentaire || null,
+        dateValidation: firebase.firestore.Timestamp.now()
+    });
+
+    // Ajouter les points au membre
+    const membreRef = db.collection('membres').doc(soum.membreId);
+    batch.update(membreRef, {
+        pointsManipulation: firebase.firestore.FieldValue.increment(manip),
+        pointsOcculte:      firebase.firestore.FieldValue.increment(occulte)
+    });
+
+    await batch.commit();
+
+    // Recalculer le grade après la mise à jour
+    const membreDoc = await membreRef.get();
+    const nouveauGrade = getGrade(membreDoc.data().pointsOcculte);
+    if (nouveauGrade.nom !== membreDoc.data().grade) {
+        await membreRef.update({
+            grade: nouveauGrade.nom,
+            dateEvolution: firebase.firestore.Timestamp.now()
+        });
+    }
+
+    // Log
+    await db.collection('logs').add({
+        action: 'validation_soumission',
+        par: currentAdmin.uid, parNom: currentAdminMembre.nom,
+        sur: soum.membreId, surNom: soum.membreNom,
+        detail: `Validation : ${soum.incantationNom || soum.type} — ${soum.description.substring(0, 60)}`,
+        pointsManip: manip, pointsOcculte: occulte,
+        date: firebase.firestore.Timestamp.now()
+    });
+
+    fermerModal('modal-validation');
+    loadSoumissions();
+    loadMembres();
+}
+
+async function refuserSoumission(soumId) {
+    const raison = prompt("Raison du refus (optionnel) :");
+    if (raison === null) return;
+    const soumDoc = await db.collection('soumissions').doc(soumId).get();
+    const soum = soumDoc.data();
+    await db.collection('soumissions').doc(soumId).update({
+        statut: 'refuse',
+        validateurId: currentAdmin.uid, validateurNom: currentAdminMembre.nom,
+        commentaire: raison || null,
+        dateValidation: firebase.firestore.Timestamp.now()
+    });
+    await db.collection('logs').add({
+        action: 'refus_soumission',
+        par: currentAdmin.uid, parNom: currentAdminMembre.nom,
+        sur: soum.membreId, surNom: soum.membreNom,
+        detail: `Refus : ${soum.incantationNom || soum.type}`,
+        pointsManip: 0, pointsOcculte: 0,
+        date: firebase.firestore.Timestamp.now()
+    });
+    loadSoumissions();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MEMBRES
+// ════════════════════════════════════════════════════════════════
+async function loadMembres() {
+    const snap = await db.collection('membres').orderBy('pointsOcculte', 'desc').get();
+    allMembres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('membres-count').textContent = `${allMembres.length} membre(s)`;
+
+    const tbody = document.getElementById('membres-tbody');
+    tbody.innerHTML = allMembres.map(m => `
+        <tr class="membre-row">
+            <td><strong>${m.nom}</strong></td>
+            <td>${badgeGrade(m.grade)}</td>
+            <td class="pts pts-manip">${m.pointsManipulation}</td>
+            <td class="pts pts-occulte">${m.pointsOcculte}</td>
+            <td class="text-dim text-sm">${m.steamId || '—'}</td>
+            <td>${m.absent ? '<span class="badge badge-absent">Absent</span>' : '<span class="badge badge-present">Présent</span>'}</td>
+            <td><span class="text-dim text-sm">${m.role}</span></td>
+            <td><div class="membre-actions">
+                <button class="btn btn-ghost btn-sm" onclick="ouvrirModalMembre('${m.id}')">Modifier</button>
+                <button class="btn btn-danger btn-sm" onclick="supprimerMembre('${m.id}', '${m.nom}')">✕</button>
+            </div></td>
+        </tr>
+    `).join('');
+}
+
+function ouvrirModalMembre(uid) {
+    const isNew = !uid;
+    document.getElementById('modal-membre-title').textContent = isNew ? 'Ajouter un membre' : 'Modifier le membre';
+    document.getElementById('m-creation-fields').style.display = isNew ? '' : 'none';
+    document.getElementById('m-transfer-section').style.display = isNew ? 'none' : '';
+    document.getElementById('alert-modal-membre').innerHTML = '';
+
+    if (isNew) {
+        document.getElementById('m-uid').value = '';
+        document.getElementById('m-nom').value = '';
+        document.getElementById('m-steamid').value = '';
+        document.getElementById('m-email').value = '';
+        document.getElementById('m-password').value = '';
+        document.getElementById('m-manip').value = 0;
+        document.getElementById('m-occulte').value = 0;
+        document.getElementById('m-role').value = 'membre';
+        document.getElementById('m-projet').value = '';
+        document.getElementById('m-absent').checked = false;
+    } else {
+        const m = allMembres.find(x => x.id === uid);
+        if (!m) return;
+        document.getElementById('m-uid').value = uid;
+        document.getElementById('m-nom').value = m.nom;
+        document.getElementById('m-steamid').value = m.steamId || '';
+        document.getElementById('m-manip').value = m.pointsManipulation;
+        document.getElementById('m-occulte').value = m.pointsOcculte;
+        document.getElementById('m-role').value = m.role;
+        document.getElementById('m-projet').value = m.projetOcculte || '';
+        document.getElementById('m-absent').checked = m.absent;
+
+        // Peupler destinataires transfer
+        const sel = document.getElementById('m-transfer-dest');
+        sel.innerHTML = '<option value="">— Choisir le membre —</option>';
+        allMembres.filter(x => x.id !== uid).forEach(x => {
+            const opt = document.createElement('option');
+            opt.value = x.id; opt.textContent = `${x.nom} (${x.grade})`;
+            sel.appendChild(opt);
+        });
+    }
+    document.getElementById('modal-membre').classList.remove('hidden');
+}
+
+document.getElementById('form-membre').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-save-membre');
+    btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+    const alertBox = document.getElementById('alert-modal-membre');
+    alertBox.innerHTML = '';
+
+    try {
+        const uid    = document.getElementById('m-uid').value;
+        const nom    = document.getElementById('m-nom').value.trim();
+        const steamId = document.getElementById('m-steamid').value.trim();
+        const manip  = parseInt(document.getElementById('m-manip').value) || 0;
+        const occulte = parseInt(document.getElementById('m-occulte').value) || 0;
+        const role   = document.getElementById('m-role').value;
+        const projet = document.getElementById('m-projet').value.trim();
+        const absent = document.getElementById('m-absent').checked;
+        const grade  = getGrade(occulte).nom;
+
+        if (!uid) {
+            // Création
+            const email    = document.getElementById('m-email').value.trim();
+            const password = document.getElementById('m-password').value;
+            if (!email || !password) { alertBox.innerHTML = '<div class="alert alert-danger">E-mail et mot de passe requis.</div>'; return; }
+
+            const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+            const newUid = cred.user.uid;
+            await secondaryAuth.signOut();
+
+            await db.collection('membres').doc(newUid).set({
+                uid: newUid, nom, steamId, email, grade, role, absent,
+                projetOcculte: projet, nbMembresProjet: 0,
+                pointsManipulation: manip, pointsOcculte: occulte,
+                dateEvolution: firebase.firestore.Timestamp.now(),
+                dateCreation: firebase.firestore.Timestamp.now()
+            });
+        } else {
+            // Mise à jour
+            await db.collection('membres').doc(uid).update({
+                nom, steamId, grade, role, absent,
+                projetOcculte: projet,
+                pointsManipulation: manip, pointsOcculte: occulte,
+                dateEvolution: firebase.firestore.Timestamp.now()
+            });
+            await db.collection('logs').add({
+                action: 'modification_membre',
+                par: currentAdmin.uid, parNom: currentAdminMembre.nom,
+                sur: uid, surNom: nom,
+                detail: `Manip: ${manip} / Occulte: ${occulte} / Grade: ${grade}`,
+                pointsManip: 0, pointsOcculte: 0,
+                date: firebase.firestore.Timestamp.now()
+            });
+        }
+
+        fermerModal('modal-membre');
+        loadMembres();
+    } catch (err) {
+        alertBox.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+    } finally {
+        btn.disabled = false; btn.innerHTML = 'Enregistrer';
+    }
+});
+
+async function supprimerMembre(uid, nom) {
+    if (!confirm(`Supprimer le profil de ${nom} ? (Le compte Firebase Auth reste intact.)`)) return;
+    await db.collection('membres').doc(uid).delete();
+    await db.collection('logs').add({
+        action: 'suppression_membre',
+        par: currentAdmin.uid, parNom: currentAdminMembre.nom,
+        sur: uid, surNom: nom, detail: 'Profil supprimé',
+        pointsManip: 0, pointsOcculte: 0,
+        date: firebase.firestore.Timestamp.now()
+    });
+    loadMembres();
+}
+
+async function effectuerTransfert() {
+    const srcId  = document.getElementById('m-uid').value;
+    const destId = document.getElementById('m-transfer-dest').value;
+    const pts    = parseInt(document.getElementById('m-transfer-pts').value) || 0;
+    if (!destId || pts <= 0) { alert("Sélectionnez un destinataire et un nombre de points valide."); return; }
+
+    const src  = allMembres.find(m => m.id === srcId);
+    const dest = allMembres.find(m => m.id === destId);
+    if (!src || !dest) return;
+    if (src.pointsOcculte < pts) { alert("Le membre source n'a pas assez de points occultes."); return; }
+    if (!confirm(`Transférer ${pts} pts occultes de ${src.nom} vers ${dest.nom} ?`)) return;
+
+    const batch = db.batch();
+    batch.update(db.collection('membres').doc(srcId),  { pointsOcculte: firebase.firestore.FieldValue.increment(-pts) });
+    batch.update(db.collection('membres').doc(destId), { pointsOcculte: firebase.firestore.FieldValue.increment(pts)  });
+    await batch.commit();
+
+    // Recalculer les grades
+    for (const [id, membre] of [[srcId, src], [destId, dest]]) {
+        const doc = await db.collection('membres').doc(id).get();
+        const g = getGrade(doc.data().pointsOcculte);
+        if (g.nom !== doc.data().grade) await db.collection('membres').doc(id).update({ grade: g.nom, dateEvolution: firebase.firestore.Timestamp.now() });
+    }
+
+    await db.collection('logs').add({
+        action: 'transfert_points',
+        par: currentAdmin.uid, parNom: currentAdminMembre.nom,
+        sur: destId, surNom: dest.nom,
+        detail: `Transfert de ${pts} pts occultes depuis ${src.nom}`,
+        pointsManip: 0, pointsOcculte: pts,
+        date: firebase.firestore.Timestamp.now()
+    });
+
+    fermerModal('modal-membre');
+    loadMembres();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  INCANTATIONS
+// ════════════════════════════════════════════════════════════════
+let allIncantations = [];
+
+async function loadIncantations() {
+    const snap = await db.collection('incantations').orderBy('gradeOrdre').orderBy('nom').get();
+    allIncantations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('incan-count').textContent = `${allIncantations.length} incantation(s)`;
+    const tbody = document.getElementById('incantations-tbody');
+    tbody.innerHTML = allIncantations.map(i => `
+        <tr>
+            <td><strong>${i.nom}</strong>${i.special ? ' <span class="badge badge-attente">Spéciale</span>' : ''}</td>
+            <td>${badgeGrade(i.gradeRequis)}</td>
+            <td class="pts pts-manip">${i.pointsManipulation}</td>
+            <td class="pts pts-occulte">${i.pointsOcculte}</td>
+            <td class="text-dim text-sm">${i.socle || '—'}</td>
+            <td><div class="membre-actions">
+                <button class="btn btn-ghost btn-sm" onclick="ouvrirModalIncan('${i.id}')">Modifier</button>
+                <button class="btn btn-danger btn-sm" onclick="supprimerIncan('${i.id}', '${i.nom}')">✕</button>
+            </div></td>
+        </tr>
+    `).join('');
+}
+
+function ouvrirModalIncan(id) {
+    const isNew = !id;
+    document.getElementById('modal-incan-title').textContent = isNew ? 'Nouvelle incantation' : 'Modifier l\'incantation';
+    document.getElementById('alert-modal-incan').innerHTML = '';
+    document.getElementById('i-id').value = '';
+
+    if (!isNew) {
+        const i = allIncantations.find(x => x.id === id);
+        if (!i) return;
+        document.getElementById('i-id').value = id;
+        document.getElementById('i-nom').value = i.nom;
+        document.getElementById('i-grade').value = i.gradeRequis;
+        document.getElementById('i-utilisation').value = i.utilisation || '';
+        document.getElementById('i-objet').value = i.objetRequis || '';
+        document.getElementById('i-explication').value = i.explication || '';
+        document.getElementById('i-texte').value = i.texteIncantation || '';
+        document.getElementById('i-socle').value = i.socle || '';
+        document.getElementById('i-socle-desc').value = i.descriptionSocle || '';
+        document.getElementById('i-manip').value = i.pointsManipulation;
+        document.getElementById('i-occulte').value = i.pointsOcculte;
+        document.getElementById('i-special').checked = i.special || false;
+    } else {
+        document.getElementById('form-incan').reset();
+    }
+    document.getElementById('modal-incan').classList.remove('hidden');
+}
+
+function syncGradeOrdre() {} // gradeOrdre calculé à l'enregistrement
+
+document.getElementById('form-incan').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('i-id').value;
+    const gradeRequis = document.getElementById('i-grade').value;
+    const data = {
+        nom:             document.getElementById('i-nom').value.trim(),
+        gradeRequis,
+        gradeOrdre:      GRADES.findIndex(g => g.nom === gradeRequis),
+        utilisation:     document.getElementById('i-utilisation').value.trim(),
+        objetRequis:     document.getElementById('i-objet').value.trim(),
+        explication:     document.getElementById('i-explication').value.trim(),
+        texteIncantation: document.getElementById('i-texte').value.trim(),
+        socle:           document.getElementById('i-socle').value.trim() || null,
+        descriptionSocle: document.getElementById('i-socle-desc').value.trim() || null,
+        pointsManipulation: parseInt(document.getElementById('i-manip').value) || 0,
+        pointsOcculte:   parseInt(document.getElementById('i-occulte').value) || 0,
+        special:         document.getElementById('i-special').checked
+    };
+    if (id) { await db.collection('incantations').doc(id).update(data); }
+    else     { await db.collection('incantations').add(data); }
+    fermerModal('modal-incan');
+    loadIncantations();
+});
+
+async function supprimerIncan(id, nom) {
+    if (!confirm(`Supprimer l'incantation "${nom}" ?`)) return;
+    await db.collection('incantations').doc(id).delete();
+    loadIncantations();
+}
+
+async function seedIncantations() {
+    const snap = await db.collection('incantations').get();
+    if (snap.size > 0) {
+        if (!confirm(`Il y a déjà ${snap.size} incantation(s). Importer quand même les incantations manquantes ?`)) return;
+    }
+    const existingNames = snap.docs.map(d => d.data().nom);
+    let added = 0;
+    for (const i of INCANTATIONS_SEED) {
+        if (!existingNames.includes(i.nom)) {
+            await db.collection('incantations').add(i);
+            added++;
+        }
+    }
+    alert(`${added} incantation(s) importée(s).`);
+    loadIncantations();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  LOGS
+// ════════════════════════════════════════════════════════════════
+async function loadLogs() {
+    const snap = await db.collection('logs').orderBy('date', 'desc').limit(100).get();
+    const tbody = document.getElementById('logs-tbody');
+    if (snap.empty) { tbody.innerHTML = '<tr><td colspan="6" class="text-dim">Aucun log.</td></tr>'; return; }
+    tbody.innerHTML = snap.docs.map(doc => {
+        const l = doc.data();
+        return `<tr>
+            <td class="text-sm text-dim">${formatDate(l.date)}</td>
+            <td class="text-sm">${l.action}</td>
+            <td class="text-sm">${l.parNom || '?'}</td>
+            <td class="text-sm">${l.surNom || '?'}</td>
+            <td class="text-dim text-sm">${l.detail || ''}</td>
+            <td class="text-sm"><span class="pts pts-manip">${l.pointsManip > 0 ? '+' + l.pointsManip : ''}</span> <span class="pts pts-occulte">${l.pointsOcculte > 0 ? '+' + l.pointsOcculte : ''}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Modals ─────────────────────────────────────────────────────
+function fermerModal(id) { document.getElementById(id).classList.add('hidden'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); });
+});
+</script>
+</body>
+</html>

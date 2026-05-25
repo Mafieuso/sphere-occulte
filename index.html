@@ -108,6 +108,48 @@
   </div>
 </div>
 
+<!-- Modal Savoir Unique -->
+<div class="modal-overlay hidden" id="modal-savoir">
+  <div class="modal-box" style="max-width:540px">
+    <div class="modal-head">
+      <span class="modal-head-title" id="savoir-modal-title">Savoir Unique</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-savoir')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-savoir-id">
+      <div class="form-group">
+        <label class="form-label">Nom du Savoir</label>
+        <input class="form-control" type="text" id="edit-savoir-nom" placeholder="Ex : Vision des Ombres Latentes">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catégorie</label>
+        <input class="form-control" type="text" id="edit-savoir-cat" placeholder="Ex : Perception, Rituel, Combat…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Grade requis</label>
+        <select class="form-control" id="edit-savoir-grade">
+          <option value="0">Incantateur</option>
+          <option value="1">Marcheur des Voiles</option>
+          <option value="2">Collecteur d'Ombre</option>
+          <option value="3">Marchand des Âmes</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description courte</label>
+        <textarea class="form-control" id="edit-savoir-desc" rows="2" placeholder="Résumé visible dans la liste…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contenu détaillé</label>
+        <textarea class="form-control" id="edit-savoir-contenu" rows="5" placeholder="Explication complète du savoir…"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
+        <button class="btn btn-ghost" onclick="closeModal('modal-savoir')">Annuler</button>
+        <button class="btn btn-primary" onclick="sauvegarderSavoir()">Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Édition Incantation -->
 <div class="modal-overlay hidden" id="modal-incan">
   <div class="modal-box">
@@ -386,6 +428,12 @@
           <button class="dash-nav-item" onclick="dashPanel('incantations')" data-panel="incantations">
             <span class="nav-icon">✦</span> Incantations
           </button>
+          <button class="dash-nav-item" onclick="dashPanel('savoirs')" data-panel="savoirs">
+            <span class="nav-icon">📖</span> Savoirs Uniques
+          </button>
+          <button class="dash-nav-item" onclick="dashPanel('reglement')" data-panel="reglement">
+            <span class="nav-icon">⚖</span> Règlement
+          </button>
           <button class="dash-nav-item" onclick="dashPanel('classement')" data-panel="classement">
             <span class="nav-icon">⬡</span> Classement
           </button>
@@ -408,19 +456,66 @@
           </div>
           <div class="glass-card">
             <form onsubmit="soumettreRapport(event)">
+
+              <!-- Incantateur (auto-rempli) -->
               <div class="form-group">
-                <label class="form-label">Incantation utilisée</label>
-                <select class="form-control" id="rap-incan" required>
+                <label class="form-label">Incantateur</label>
+                <input class="form-control" type="text" id="rap-incantateur" disabled
+                       style="opacity:.6;cursor:default" placeholder="Chargement…">
+              </div>
+
+              <!-- Demande d'accès salle occulte -->
+              <div class="form-group">
+                <label class="form-label">Demande d'accès salle occulte</label>
+                <input class="form-control" type="text" id="rap-acces"
+                       placeholder="Ex : Salle des Murmures Éternels" required>
+              </div>
+
+              <!-- Date -->
+              <div class="form-group">
+                <label class="form-label">Date</label>
+                <input class="form-control" type="date" id="rap-date" required>
+              </div>
+
+              <!-- Incantation -->
+              <div class="form-group">
+                <label class="form-label">Incantation</label>
+                <select class="form-control" id="rap-incan" required onchange="onRapIncanChange()">
                   <option value="">— Choisir une incantation —</option>
                 </select>
               </div>
+
+              <!-- Socle Utilisé (auto-rempli depuis l'incantation sélectionnée) -->
               <div class="form-group">
-                <label class="form-label">Description de l'activité</label>
-                <textarea class="form-control" id="rap-desc" rows="4"
-                  placeholder="Décrivez en détail votre activité occulte…" required></textarea>
+                <label class="form-label">Socle Utilisé</label>
+                <input class="form-control" type="text" id="rap-socle"
+                       placeholder="Sélectionnez d'abord une incantation…">
               </div>
+
+              <!-- Cible -->
               <div class="form-group">
-                <label class="form-label">Capture d'écran (preuve)</label>
+                <label class="form-label">Cible</label>
+                <input class="form-control" type="text" id="rap-cible"
+                       placeholder="Pseudo Steam de la cible" required>
+              </div>
+
+              <!-- Usage -->
+              <div class="form-group">
+                <label class="form-label">Usage</label>
+                <textarea class="form-control" id="rap-usage" rows="3"
+                  placeholder="Décrivez l'usage de l'incantation et son contexte…" required></textarea>
+              </div>
+
+              <!-- Points (calculé automatiquement) -->
+              <div class="form-group">
+                <label class="form-label">Nombre de Points à Rapporter</label>
+                <input class="form-control" type="number" id="rap-pts" readonly
+                       placeholder="Auto-calculé depuis l'incantation" style="opacity:.6;cursor:default">
+              </div>
+
+              <!-- Preuve -->
+              <div class="form-group">
+                <label class="form-label">Preuve (screen)</label>
                 <div class="upload-zone" id="screen-zone"
                      onclick="document.getElementById('rap-screen').click()">
                   <div class="upload-zone-text" id="screen-placeholder">🖼 Cliquer pour ajouter une capture</div>
@@ -431,6 +526,7 @@
                 </div>
                 <input type="file" id="rap-screen" accept="image/*" style="display:none" onchange="previewScreen(event)">
               </div>
+
               <div id="rap-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
               <div id="rap-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
               <button type="submit" class="btn btn-primary" id="rap-btn">⬡ Soumettre le Rapport</button>
@@ -495,6 +591,113 @@
           <div class="incan-grid" id="dash-incan-grid"></div>
         </div>
 
+        <!-- Panel : Savoirs Uniques -->
+        <div class="panel" id="p-savoirs">
+          <div class="panel-hdr">
+            <div class="panel-title">📖 Savoirs Uniques</div>
+          </div>
+          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1.25rem">
+            Connaissances occultes rares, réservées aux membres selon leur grade.
+          </p>
+          <div id="dash-savoirs-list"></div>
+        </div>
+
+        <!-- Panel : Règlement -->
+        <div class="panel" id="p-reglement">
+          <div class="panel-hdr">
+            <div class="panel-title">⚖ Règlement de la Sphère Occulte</div>
+          </div>
+          <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem;font-style:italic">
+            Ce règlement peut être modifié à tout moment. Consultez-le régulièrement.
+          </p>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE I — Accès à la Salle de la Sphère Occulte</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              Aucun démon n'est autorisé à pénétrer au sein de la Salle de la Sphère Occulte.<br>
+              Tout accès est strictement soumis à l'autorisation préalable d'un <strong>Marcheur des Voiles</strong> ou d'un rang supérieur.
+            </p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE II — Usage du Pentacle lors des Incantations</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              À l'issue de toute incantation, le pentacle utilisé doit impérativement être <strong>retiré</strong>.<br>
+              Tout manquement à cette obligation entraînera des sanctions immédiates.
+            </p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE III — Déplacements en Zone</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              Les Incantateurs ne sont pas autorisés à sortir en Zone.<br>
+              Une exception ne peut être accordée que sur ordre explicite d'une <strong>Excellence</strong> ou d'une <strong>Excellence Suprême</strong>, et uniquement sous leur escorte directe.
+            </p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE IV — Accès à la Salle du Pentacle</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              Toute entrée dans la Salle du Pentacle exige :
+            </p>
+            <ul style="font-size:.84rem;color:var(--text-light);line-height:1.8;margin:.4rem 0 0 1rem;list-style:disc">
+              <li>Le port complet de la <strong>tenue incantatoire réglementaire</strong></li>
+              <li>Un <strong>masque correctement ajusté</strong> (modificateur de voix actif)</li>
+              <li>Un <strong>pentacle positionné</strong> conformément aux protocoles en vigueur</li>
+            </ul>
+            <p style="font-size:.8rem;color:#dd6d6d;margin-top:.5rem;font-style:italic">Aucun écart ne sera toléré.</p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE V — Incantateurs en Formation</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              Tout Incantateur comptabilisant moins de <strong>six (6) incantations réussies</strong> devra, sauf ordre contraire formel, être obligatoirement accompagné d'un <strong>Marcheur des Voiles</strong> ou plus lors de chaque incantation.
+            </p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VI — Doute et Discipline</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              En cas de doute, <strong>n'agissez pas</strong>.<br>
+              Il est impératif de se référer à un Marcheur des Voiles, ou à toute autorité supérieure compétente.<br>
+              Notre rôle est de vous guider vers la puissance maîtrisée, jamais vers la défaite.
+            </p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VII — Archivage des Incantations</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              Toute incantation doit être rigoureusement répertoriée dans la catégorie <strong>Incantations Réussies</strong> du Parchemin Discord.<br>
+              À défaut, elle ne sera ni comptabilisée, ni prise en compte dans votre évolution hiérarchique.
+            </p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VIII — Temps de Repos</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              Les incantations ne peuvent être utilisées <strong>qu'une fois par jour</strong>.<br>
+              Si vous réalisez deux fois la même incantation dans la même journée, cela n'améliorera pas vos capacités.
+            </p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid #c0392b">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:#e74c3c;margin-bottom:.4rem">RÈGLE IX — Obligation d'Évolution</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              Si vous n'évoluez pas pendant <strong>une semaine</strong>, vous serez marqué.<br>
+              Si la semaine d'après toujours rien n'est fait, une <strong>sanction</strong> sera appliquée à la hauteur des capacités de cette Sphère.
+            </p>
+          </div>
+
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
+            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE X — Appel aux Initiés</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
+              Lorsque vous réalisez une incantation ou une manipulation de l'énergie occulte pouvant être montrée au grand public, vous devrez <strong>appeler les Initiés en priorité</strong>.<br>
+              Ils sont potentiellement de futurs membres de la Sphère et doivent être traités avec précaution et exemplarité.
+            </p>
+          </div>
+
+        </div>
+
         <!-- Panel : Classement -->
         <div class="panel" id="p-classement">
           <div class="panel-hdr">
@@ -546,6 +749,9 @@
           </div>
           <div class="sidebar-nav-item" onclick="adminPanel('incantations')" data-panel="incantations" style="cursor:pointer">
             <span class="nav-icon">✦</span> Incantations
+          </div>
+          <div class="sidebar-nav-item" onclick="adminPanel('savoirs')" data-panel="savoirs" style="cursor:pointer">
+            <span class="nav-icon">📖</span> Savoirs Uniques
           </div>
           <div class="sidebar-nav-item" onclick="adminPanel('logs')" data-panel="logs" style="cursor:pointer">
             <span class="nav-icon">📜</span> Logs
@@ -615,6 +821,15 @@
             </div>
           </div>
           <div class="incan-grid" id="admin-incan-grid"></div>
+        </div>
+
+        <!-- Panel : Savoirs Uniques (Admin) -->
+        <div class="panel" id="ap-savoirs">
+          <div class="panel-hdr">
+            <div class="panel-title">📖 Savoirs Uniques</div>
+            <button class="btn btn-primary btn-sm" onclick="openSavoirModal()">+ Nouveau Savoir</button>
+          </div>
+          <div class="incan-grid" id="admin-savoirs-grid"></div>
         </div>
 
         <!-- Panel : Logs -->
@@ -1112,11 +1327,21 @@ function dashPanel(name) {
 
     if (name === 'soumissions')  loadMesSoumissions();
     if (name === 'incantations') loadDashIncantations();
+    if (name === 'savoirs')      loadDashSavoirs();
     if (name === 'classement')   loadDashClassement();
 }
 
 function loadIncanForRap() {
     const memberGradeIdx = getGradeIndex(currentMembre.grade);
+
+    // Auto-remplir le champ Incantateur
+    const rapIncantateurEl = document.getElementById('rap-incantateur');
+    if (rapIncantateurEl) rapIncantateurEl.value = displayName(currentMembre);
+
+    // Auto-remplir la date avec aujourd'hui
+    const rapDateEl = document.getElementById('rap-date');
+    if (rapDateEl && !rapDateEl.value) rapDateEl.value = new Date().toISOString().split('T')[0];
+
     db.collection('incantations').orderBy('nom').get().then(snap => {
         const sel = document.getElementById('rap-incan');
         if (!sel) return;
@@ -1128,12 +1353,25 @@ function loadIncanForRap() {
         });
         sel.innerHTML = '<option value="">— Choisir une incantation —</option>' +
             accessible.map(d => {
-                const i = d.data();
-                const pts = i.ptsOcculte || i.pointsOcculte || 0;
+                const i     = d.data();
+                const pts   = i.ptsOcculte || i.pointsOcculte || 0;
                 const grade = GRADES[i.gradeOrdre || 0];
-                return `<option value="${d.id}" data-pts="${pts}" data-nom="${i.nom}">${i.nom} [${grade?.nom || 'Incantateur'}] — +${pts} occulte</option>`;
+                const socle = (i.socle || '').replace(/"/g, '&quot;');
+                return `<option value="${d.id}" data-pts="${pts}" data-nom="${i.nom}" data-socle="${socle}">${i.nom} [${grade?.nom || 'Incantateur'}] — +${pts} occulte</option>`;
             }).join('');
     });
+}
+
+function onRapIncanChange() {
+    const sel = document.getElementById('rap-incan');
+    if (!sel || !sel.value) return;
+    const opt = sel.options[sel.selectedIndex];
+    const pts   = opt.dataset.pts   || '';
+    const socle = opt.dataset.socle || '';
+    const ptsEl   = document.getElementById('rap-pts');
+    const socleEl = document.getElementById('rap-socle');
+    if (ptsEl)   ptsEl.value   = pts;
+    if (socleEl) socleEl.value = socle;
 }
 
 function previewScreen(e) {
@@ -1150,7 +1388,7 @@ function previewScreen(e) {
 async function soumettreRapport(e) {
     e.preventDefault();
     if (!rapScreenB64) {
-        showAlert('rap-alert', "Veuillez joindre une capture d'écran.", 'danger');
+        showAlert('rap-alert', "Veuillez joindre une capture d'écran (preuve).", 'danger');
         return;
     }
     const btn = document.getElementById('rap-btn');
@@ -1161,24 +1399,32 @@ async function soumettreRapport(e) {
     try {
         const sel = document.getElementById('rap-incan');
         if (!sel.value) throw new Error('Choisissez une incantation.');
-        const opt       = sel.options[sel.selectedIndex];
-        const incanId   = sel.value;
-        const incanNom  = opt.dataset.nom || opt.text;
-        const ptsGagnes = parseInt(opt.dataset.pts) || 0;
+        const opt        = sel.options[sel.selectedIndex];
+        const incanId    = sel.value;
+        const incanNom   = opt.dataset.nom || opt.text;
+        const ptsGagnes  = parseInt(opt.dataset.pts) || 0;
 
         await db.collection('soumissions').add({
-            membreId:    currentMembre.id,
-            membreNom:   displayName(currentMembre),
-            incanId, incanNom,
-            description: val('rap-desc'),
-            screenshot:  rapScreenB64,
+            membreId:     currentMembre.id,
+            membreNom:    displayName(currentMembre),
+            incanId,      incanNom,
+            accesSalle:   val('rap-acces'),
+            dateRap:      val('rap-date'),
+            socleUtilise: val('rap-socle'),
+            cible:        val('rap-cible'),
+            usage:        val('rap-usage'),
+            screenshot:   rapScreenB64,
             ptsGagnes,
-            statut:      'attente',
+            statut:       'attente',
             dateCreation: firebase.firestore.Timestamp.now()
         });
 
-        showAlert('rap-success', 'Rapport soumis ! En attente de validation.', 'success');
-        document.getElementById('rap-desc').value = '';
+        showAlert('rap-success', 'Rapport soumis avec succès ! En attente de validation.', 'success');
+        ['rap-acces','rap-cible','rap-usage','rap-socle','rap-pts'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        document.getElementById('rap-incan').value = '';
         rapScreenB64 = null;
         document.getElementById('screen-placeholder').style.display  = '';
         document.getElementById('screen-preview-wrap').style.display = 'none';
@@ -1207,18 +1453,31 @@ function loadMesSoumissions() {
             const sCls   = s.statut === 'valide' ? 'valide' : s.statut === 'refuse' ? 'refuse' : 'pending';
             const sBadge = s.statut === 'valide' ? 'badge-valide' : s.statut === 'refuse' ? 'badge-refuse' : 'badge-attente';
             const sLabel = s.statut === 'valide' ? 'Validée ✓' : s.statut === 'refuse' ? 'Refusée ✗' : 'En attente…';
+            const dateRapStr = s.dateRap ? `<span style="color:var(--text-muted);font-size:.78rem">📅 ${s.dateRap}</span>` : '';
             return `<div class="glass-card soum-card ${sCls}" style="margin-bottom:.6rem">
-                <div class="soum-head">
+                <div class="soum-head" style="cursor:pointer" onclick="this.closest('.soum-card').classList.toggle('open')">
                     <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
                         <span class="badge ${sBadge}">${sLabel}</span>
                         <strong style="color:var(--gold);font-size:.85rem">${s.incanNom || ''}</strong>
-                        <span style="color:var(--text-muted);font-size:.78rem">${formatDate(s.dateCreation)}</span>
+                        ${dateRapStr}
+                        <span style="color:var(--text-muted);font-size:.75rem">${formatDate(s.dateCreation)}</span>
                     </div>
-                    ${s.statut === 'valide' ? `<span class="pts pts-occulte">+${s.ptsGagnes} occulte</span>` : ''}
+                    <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+                        ${s.statut === 'valide' ? `<span class="pts pts-occulte">+${s.ptsGagnes} occulte</span>` : ''}
+                        <span class="soum-chev">▼</span>
+                    </div>
                 </div>
-                <p style="color:var(--text-muted);font-size:.83rem;margin-top:.5rem">${s.description || ''}</p>
-                ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.35rem">Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
-                ${s.screenshot ? `<details style="margin-top:.6rem"><summary style="cursor:pointer;color:var(--gold);font-size:.8rem">▼ Capture d'écran</summary><img src="${s.screenshot}" loading="lazy" style="max-width:100%;border-radius:8px;margin-top:.5rem"></details>` : ''}
+                <div class="soum-body">
+                    <table style="width:100%;font-size:.82rem;border-collapse:collapse">
+                        ${s.accesSalle   ? `<tr><td style="color:var(--text-muted);width:42%;padding:.2rem 0">Accès salle :</td><td style="color:var(--text-light)">${s.accesSalle}</td></tr>` : ''}
+                        ${s.socleUtilise ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Socle :</td><td style="color:var(--text-light)">${s.socleUtilise}</td></tr>` : ''}
+                        ${s.cible        ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Cible :</td><td style="color:var(--text-light)">${s.cible}</td></tr>` : ''}
+                        ${s.ptsGagnes    ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Points :</td><td style="color:var(--gold);font-weight:600">+${s.ptsGagnes} pts occulte</td></tr>` : ''}
+                    </table>
+                    ${s.usage ? `<p style="color:var(--text-muted);font-size:.82rem;margin-top:.5rem;border-top:1px solid rgba(255,255,255,.06);padding-top:.5rem">${s.usage}</p>` : ''}
+                    ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.4rem">⚠ Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
+                    ${s.screenshot ? `<div class="soum-screens" style="margin-top:.6rem"><img src="${s.screenshot}" loading="lazy" style="max-width:100%;border-radius:8px"></div>` : ''}
+                </div>
             </div>`;
         }).join('');
     });
@@ -1350,6 +1609,50 @@ function loadDashClassement() {
     });
 }
 
+function loadDashSavoirs() {
+    const list = document.getElementById('dash-savoirs-list');
+    if (!list) return;
+    list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    const memberGradeIdx = getGradeIndex(currentMembre.grade);
+    db.collection('savoirsUniques').orderBy('gradeOrdre').get().then(snap => {
+        if (snap.empty) {
+            list.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">Aucun Savoir Unique disponible pour votre grade</div></div>';
+            return;
+        }
+        // Filtrer par grade
+        const accessible = snap.docs.filter(d => {
+            const s = d.data();
+            return (s.gradeOrdre !== undefined ? s.gradeOrdre : 0) <= memberGradeIdx;
+        });
+        if (!accessible.length) {
+            list.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">Aucun Savoir Unique disponible à votre grade</div></div>';
+            return;
+        }
+        let lastGradeOrdre = -1;
+        let html = '';
+        accessible.forEach(d => {
+            const s        = d.data();
+            const gradeIdx = s.gradeOrdre || 0;
+            const gradeDef = GRADES[gradeIdx];
+            if (gradeIdx !== lastGradeOrdre) {
+                lastGradeOrdre = gradeIdx;
+                html += `<div style="font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.1em;color:${gradeDef?.couleur || 'var(--gold)'};margin:1rem 0 .5rem;text-transform:uppercase">✦ ${gradeDef?.nom || 'Niveau ' + gradeIdx}</div>`;
+            }
+            html += `<div class="glass-card incan-card" style="margin-bottom:.6rem">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+                    <strong style="color:var(--gold);font-size:.9rem">${s.nom || 'Savoir Inconnu'}</strong>
+                    ${s.categorie ? `<span class="badge badge-attente" style="font-size:.68rem">${s.categorie}</span>` : ''}
+                </div>
+                ${s.description ? `<p style="color:var(--text-muted);font-size:.82rem;margin:.5rem 0 0">${s.description}</p>` : ''}
+                ${s.contenu ? `<div style="font-size:.82rem;color:var(--text-light);margin-top:.75rem;padding:.6rem;background:rgba(0,0,0,.25);border-radius:6px;line-height:1.7">${s.contenu.replace(/\n/g, '<br>')}</div>` : ''}
+            </div>`;
+        });
+        list.innerHTML = html;
+    }).catch(() => {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">Aucun Savoir Unique disponible pour le moment</div></div>';
+    });
+}
+
 /* ═══════════════════════════════════════════════════════
    7. ADMIN
 ═══════════════════════════════════════════════════════ */
@@ -1410,6 +1713,7 @@ function adminPanel(name) {
 
     if (name === 'membres')     renderMembres();
     if (name === 'incantations') loadAdminIncan();
+    if (name === 'savoirs')     loadAdminSavoirs();
     if (name === 'logs')        loadLogs();
 }
 
@@ -1456,8 +1760,14 @@ function renderSoumissions() {
                 </div>
             </div>
             <div class="soum-body">
-                <div class="soum-desc-box">${s.description || ''}</div>
-                ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.4rem">Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
+                <table style="width:100%;font-size:.82rem;border-collapse:collapse;margin-bottom:.5rem">
+                    ${s.accesSalle   ? `<tr><td style="color:var(--text-muted);width:38%;padding:.2rem 0">Accès salle :</td><td style="color:var(--text-light)">${s.accesSalle}</td></tr>` : ''}
+                    ${s.dateRap      ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Date :</td><td style="color:var(--text-light)">${s.dateRap}</td></tr>` : ''}
+                    ${s.socleUtilise ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Socle :</td><td style="color:var(--text-light)">${s.socleUtilise}</td></tr>` : ''}
+                    ${s.cible        ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Cible :</td><td style="color:var(--text-light)">${s.cible}</td></tr>` : ''}
+                </table>
+                ${s.usage       ? `<div class="soum-desc-box">${s.usage}</div>` : (s.description ? `<div class="soum-desc-box">${s.description}</div>` : '')}
+                ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.4rem">⚠ Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
                 ${s.screenshot ? `<div class="soum-screens"><img src="${s.screenshot}" loading="lazy" onclick="this.style.width=this.style.width?'':'100%'" title="Cliquer pour agrandir"></div>` : ''}
             </div>
         </div>`;
@@ -1693,6 +2003,86 @@ async function seedIncantations() {
     await batch.commit();
     alert('Incantations importées avec succès !');
     loadAdminIncan();
+}
+
+// Savoirs Uniques (admin)
+function loadAdminSavoirs() {
+    const grid = document.getElementById('admin-savoirs-grid');
+    if (!grid) return;
+    grid.innerHTML = '<p style="color:var(--text-muted)">Chargement…</p>';
+    db.collection('savoirsUniques').orderBy('gradeOrdre').get().then(snap => {
+        if (snap.empty) {
+            grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">Aucun Savoir Unique — créez le premier !</div></div>';
+            return;
+        }
+        grid.innerHTML = snap.docs.map(d => {
+            const s    = d.data();
+            const gIdx = s.gradeOrdre || 0;
+            const gDef = GRADES[gIdx];
+            return `<div class="incan-card glass-card" style="position:relative">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+                    <strong style="color:var(--gold)">${s.nom || 'Sans nom'}</strong>
+                    <span class="badge" style="background:${gDef?.couleur || 'var(--gold)'}22;color:${gDef?.couleur || 'var(--gold)'};">${gDef?.nom || 'Incantateur'}</span>
+                </div>
+                ${s.categorie ? `<span style="font-size:.72rem;color:var(--text-muted)">${s.categorie}</span>` : ''}
+                ${s.description ? `<p style="color:var(--text-muted);font-size:.8rem;margin:.4rem 0 0">${s.description}</p>` : ''}
+                <div style="display:flex;gap:.4rem;margin-top:.75rem">
+                    <button class="btn btn-ghost btn-sm" onclick="openSavoirModal('${d.id}')">✎ Éditer</button>
+                    <button class="btn btn-danger btn-sm" onclick="supprimerSavoir('${d.id}')">✕</button>
+                </div>
+            </div>`;
+        }).join('');
+    });
+}
+
+function openSavoirModal(id) {
+    document.getElementById('edit-savoir-id').value      = id || '';
+    document.getElementById('edit-savoir-nom').value     = '';
+    document.getElementById('edit-savoir-cat').value     = '';
+    document.getElementById('edit-savoir-desc').value    = '';
+    document.getElementById('edit-savoir-contenu').value = '';
+    document.getElementById('edit-savoir-grade').value   = '0';
+    document.getElementById('savoir-modal-title').textContent = id ? 'Modifier le Savoir' : 'Nouveau Savoir Unique';
+
+    if (id) {
+        db.collection('savoirsUniques').doc(id).get().then(doc => {
+            if (!doc.exists) return;
+            const s = doc.data();
+            document.getElementById('edit-savoir-nom').value     = s.nom     || '';
+            document.getElementById('edit-savoir-cat').value     = s.categorie || '';
+            document.getElementById('edit-savoir-desc').value    = s.description || '';
+            document.getElementById('edit-savoir-contenu').value = s.contenu   || '';
+            document.getElementById('edit-savoir-grade').value   = String(s.gradeOrdre || 0);
+        });
+    }
+    openModal('modal-savoir');
+}
+
+async function sauvegarderSavoir() {
+    const id         = val('edit-savoir-id');
+    const gradeOrdre = parseInt(val('edit-savoir-grade')) || 0;
+    const gradeDef   = GRADES[gradeOrdre];
+    const data = {
+        nom:        val('edit-savoir-nom').trim(),
+        categorie:  val('edit-savoir-cat').trim(),
+        description: val('edit-savoir-desc').trim(),
+        contenu:    val('edit-savoir-contenu').trim(),
+        gradeOrdre, gradeRequis: gradeDef?.nom || 'Incantateur'
+    };
+    if (!data.nom) return alert('Le nom est requis.');
+    if (id) {
+        await db.collection('savoirsUniques').doc(id).update(data);
+    } else {
+        await db.collection('savoirsUniques').add(data);
+    }
+    closeModal('modal-savoir');
+    loadAdminSavoirs();
+}
+
+async function supprimerSavoir(id) {
+    if (!confirm('Supprimer ce Savoir Unique ?')) return;
+    await db.collection('savoirsUniques').doc(id).delete();
+    loadAdminSavoirs();
 }
 
 // Logs

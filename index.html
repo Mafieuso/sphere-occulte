@@ -2,201 +2,1697 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sphère Occulte — Classement</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sphère Occulte — Ordre Démoniaque</title>
 <link rel="stylesheet" href="styles.css">
-<style>
-.hero {
-    background: radial-gradient(ellipse at 50% 0%, rgba(100,0,0,.3) 0%, transparent 70%);
-    border-bottom: 1px solid var(--border);
-    padding: 2.5rem 0 1.5rem;
-    text-align: center;
-}
-.hero-title {
-    font-size: clamp(1.4rem, 4vw, 2.2rem);
-    color: var(--gold);
-    letter-spacing: .2em;
-    margin-bottom: .4rem;
-}
-.hero-sub { color: var(--text-dim); letter-spacing: .1em; font-size: .85rem; }
-
-.stats-row {
-    display: flex; gap: 1rem; justify-content: center;
-    flex-wrap: wrap; margin: 1.25rem 0;
-}
-.stat-box {
-    background: var(--bg2); border: 1px solid var(--border);
-    border-radius: 8px; padding: .75rem 1.5rem; text-align: center;
-    min-width: 110px;
-}
-.stat-val { font-family: 'Cinzel', serif; font-size: 1.5rem; color: var(--gold); }
-.stat-lbl { font-size: .72rem; color: var(--text-dim); letter-spacing: .07em; }
-
-.rang-col { font-family: 'Cinzel', serif; font-weight: 700; color: var(--text-dim); }
-.rang-1 { color: #c9a52a; }
-.rang-2 { color: #a8a8b0; }
-.rang-3 { color: #8b5e3c; }
-
-.membre-nom { font-weight: 600; }
-.absent-row td { opacity: .55; }
-
-.grade-legend {
-    display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center;
-    margin: 1.25rem 0 0;
-}
-
-.nav-actions { display: flex; gap: .5rem; justify-content: center; margin-bottom: 1rem; }
-
-.prochaine-evolution {
-    font-size: .75rem; color: var(--text-dim);
-    display: block; margin-top: .15rem;
-}
-</style>
 </head>
 <body>
 
-<div class="hero">
-    <div class="container">
-        <h1 class="hero-title">⬡ SPHÈRE OCCULTE ⬡</h1>
-        <p class="hero-sub">CLASSEMENT DE L'ORDRE DÉMONIAQUE</p>
+<!-- ═══ EFFETS GLOBAUX ═══ -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+<canvas id="glyphs-canvas"></canvas>
+<div class="scanline"></div>
 
-        <div class="stats-row" id="stats-row">
-            <div class="stat-box"><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">MEMBRES</div></div>
-            <div class="stat-box"><div class="stat-val" id="stat-presents">—</div><div class="stat-lbl">PRÉSENTS</div></div>
-            <div class="stat-box"><div class="stat-val pts-occulte" id="stat-max-occulte">—</div><div class="stat-lbl">MAX OCCULTE</div></div>
-        </div>
-
-        <div class="grade-legend" id="grade-legend"></div>
-
-        <div class="nav-actions" style="margin-top:1.25rem">
-            <a href="login.html" class="btn btn-primary btn-sm">Connexion membre</a>
-            <a href="rapport.html" class="btn btn-ghost btn-sm">Soumettre un rapport</a>
-        </div>
-    </div>
+<!-- Voile de transition -->
+<div id="veil">
+  <div class="veil-sigil">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-center">⬡</div>
+  </div>
 </div>
 
-<div class="page-wrap container">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
-        <h2 style="font-size:1rem; color:var(--gold); letter-spacing:.08em;">CLASSEMENT</h2>
-        <div style="display:flex; gap:.5rem; align-items:center;">
-            <select id="filtre-grade" class="form-control" style="width:auto" onchange="filtrer()">
-                <option value="">Tous les grades</option>
-                <option value="Incantateur">Incantateur</option>
-                <option value="Marcheur des Voiles">Marcheur des Voiles</option>
-                <option value="Collecteur d'Ombre">Collecteur d'Ombre</option>
-                <option value="Marchand des Âmes">Marchand des Âmes</option>
-            </select>
-            <select id="filtre-statut" class="form-control" style="width:auto" onchange="filtrer()">
-                <option value="">Tous</option>
-                <option value="present">Présents seulement</option>
-            </select>
-        </div>
-    </div>
+<!-- ═══ MODALES (hors #app pour z-index correct) ═══ -->
 
-    <div class="table-wrap">
-    <table id="classement-table">
-        <thead><tr>
-            <th style="width:40px">Rang</th>
-            <th>Nom</th>
-            <th>Grade</th>
-            <th title="Points de Manipulation Occulte">Manipulation</th>
-            <th title="Points de Puissance Occulte">Puissance Occulte</th>
-            <th>Statut</th>
-            <th>Évolution</th>
-        </tr></thead>
-        <tbody id="classement-tbody">
-            <tr><td colspan="7" class="text-dim" style="text-align:center; padding:2rem">Chargement...</td></tr>
-        </tbody>
-    </table>
+<!-- Modal Refus -->
+<div class="modal-overlay hidden" id="modal-refus">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-head-title">Refuser la Soumission</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-refus')">✕</button>
     </div>
-
-    <div class="divider"></div>
-    <div style="text-align:center">
-        <p class="text-dim text-sm">
-            Sphère Occulte · Demon Slayer RP · Garry's Mod<br>
-            <span style="font-size:.72rem">Mis à jour en temps réel</span>
-        </p>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Raison du refus</label>
+        <select class="form-control" id="refus-raison">
+          <option value="Preuve insuffisante">Preuve insuffisante</option>
+          <option value="Activité non conforme">Activité non conforme</option>
+          <option value="Doublon détecté">Doublon détecté</option>
+          <option value="Incantation incorrecte">Incantation incorrecte</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Commentaire (optionnel)</label>
+        <textarea class="form-control" id="refus-comment" rows="3" placeholder="Précisions…"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1rem">
+        <button class="btn btn-ghost" onclick="closeModal('modal-refus')">Annuler</button>
+        <button class="btn btn-danger" onclick="confirmerRefus()">Refuser</button>
+      </div>
     </div>
+  </div>
 </div>
 
+<!-- Modal Édition Membre -->
+<div class="modal-overlay hidden" id="modal-membre">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-head-title" id="modal-membre-title">Modifier le membre</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-membre')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-membre-id">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Prénom RP</label>
+          <input class="form-control" type="text" id="edit-prenom">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom RP</label>
+          <input class="form-control" type="text" id="edit-nom">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Steam ID</label>
+        <input class="form-control" type="text" id="edit-steam">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Pts Manipulation</label>
+          <input class="form-control" type="number" id="edit-manip" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pts Occulte</label>
+          <input class="form-control" type="number" id="edit-occulte" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rôle</label>
+        <select class="form-control" id="edit-role">
+          <option value="membre">Membre</option>
+          <option value="haut_grade">Haut Grade</option>
+          <option value="admin">Administrateur</option>
+        </select>
+      </div>
+      <label class="absent-toggle">
+        <input type="checkbox" id="edit-absent"> Marquer comme absent
+      </label>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
+        <button class="btn btn-ghost" onclick="closeModal('modal-membre')">Annuler</button>
+        <button class="btn btn-primary" onclick="sauvegarderMembre()">Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Édition Incantation -->
+<div class="modal-overlay hidden" id="modal-incan">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-head-title" id="incan-modal-title">Incantation</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-incan')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-incan-id">
+      <div class="form-group">
+        <label class="form-label">Nom</label>
+        <input class="form-control" type="text" id="edit-incan-nom" placeholder="Nom de l'incantation">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" id="edit-incan-desc" rows="3" placeholder="Effet de l'incantation…"></textarea>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Coût (Manipulation)</label>
+          <input class="form-control" type="number" id="edit-incan-cout" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pts Occulte gagnés</label>
+          <input class="form-control" type="number" id="edit-incan-pts" min="0" value="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catégorie</label>
+        <input class="form-control" type="text" id="edit-incan-cat" placeholder="Combat, Manipulation…">
+      </div>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
+        <button class="btn btn-ghost" onclick="closeModal('modal-incan')">Annuler</button>
+        <button class="btn btn-primary" onclick="sauvegarderIncan()">Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+
+<!-- Navigation fixe -->
+<nav class="spa-nav">
+  <div class="spa-nav-brand" style="cursor:pointer" onclick="goTo('home')">⬡ Sphère Occulte</div>
+  <div class="spa-nav-links">
+    <a class="btn btn-ghost btn-sm" id="nl-home" onclick="goTo('home')" style="cursor:pointer">Classement</a>
+    <a class="btn btn-ghost btn-sm" id="nl-auth" onclick="goTo('auth')" style="cursor:pointer">Connexion</a>
+    <a class="btn btn-ghost btn-sm" id="nl-dash" style="display:none;cursor:pointer" onclick="goTo('dashboard')">Mon Espace</a>
+    <a class="btn btn-ghost btn-sm" id="nl-admin" style="display:none;cursor:pointer" onclick="goTo('admin')">⚙ Admin</a>
+    <a class="btn btn-danger btn-sm" id="nl-logout" style="display:none;cursor:pointer" onclick="doLogout()">Déconnexion</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     VUE : CHARGEMENT
+══════════════════════════════════════ -->
+<div class="view" id="v-loading">
+  <div class="sigil-wrap" style="width:100px;height:100px;margin:0 auto">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="ring-center" style="font-size:2rem">⬡</div>
+  </div>
+  <p style="font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.3em;color:var(--text-muted);text-transform:uppercase;margin-top:1.5rem">
+    INITIALISATION DU NEXUS OCCULTE…
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════
+     VUE : ACCUEIL / CLASSEMENT
+══════════════════════════════════════ -->
+<div class="view" id="v-home">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div style="max-width:820px;margin:0 auto">
+      <h1 class="hero-title">⬡ SPHÈRE OCCULTE ⬡</h1>
+      <p class="hero-sub">ORDRE DÉMONIAQUE — CLASSEMENT</p>
+      <div class="hero-stats">
+        <div class="hero-stat" data-tilt>
+          <span id="hs-total">—</span>
+          <small>MEMBRES</small>
+        </div>
+        <div class="hero-stat" data-tilt>
+          <span id="hs-presents">—</span>
+          <small>PRÉSENTS</small>
+        </div>
+        <div class="hero-stat" data-tilt>
+          <span class="pts-occulte" id="hs-maxpts">—</span>
+          <small>MAX OCCULTE</small>
+        </div>
+      </div>
+      <div id="home-grade-legend" style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin:1.5rem 0"></div>
+      <button class="btn btn-primary" onclick="goTo('auth')">⬡ Rejoindre l'Ordre</button>
+    </div>
+  </section>
+
+  <!-- Grade showcase -->
+  <div class="grade-showcase" id="grade-showcase"></div>
+
+  <!-- Classement -->
+  <div style="max-width:1100px;margin:0 auto;padding:0 1.25rem 4rem">
+    <div class="section-header">
+      <div class="section-title">CLASSEMENT DE L'ORDRE</div>
+    </div>
+    <div class="lb-filters">
+      <div class="lb-filter-pills" id="grade-pills">
+        <button class="pill active" onclick="filtrerGrade('')" data-grade="">Tous</button>
+        <button class="pill" onclick="filtrerGrade('Incantateur')" data-grade="Incantateur">Incantateur</button>
+        <button class="pill" onclick="filtrerGrade('Marcheur des Voiles')" data-grade="Marcheur des Voiles">Marcheur</button>
+        <button class="pill" onclick="filtrerGrade('Collecteur d\'Ombre')" data-grade="Collecteur d'Ombre">Collecteur</button>
+        <button class="pill" onclick="filtrerGrade('Marchand des Âmes')" data-grade="Marchand des Âmes">Marchand</button>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button class="pill" id="pill-presents" onclick="togglePresents()">Présents</button>
+        <select class="form-control" id="lb-sort" style="width:auto;font-size:.75rem" onchange="filtrerHome()">
+          <option value="occulte">Puissance Occulte</option>
+          <option value="manip">Manipulation</option>
+        </select>
+      </div>
+    </div>
+    <div id="lb-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VUE : AUTHENTIFICATION
+══════════════════════════════════════ -->
+<div class="view" id="v-auth">
+  <div class="auth-box">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="sigil-wrap sm" style="margin:0 auto .75rem">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <div class="ring-center">⬡</div>
+        </div>
+        <div class="auth-title">SPHÈRE OCCULTE</div>
+        <div class="auth-sub">ORDRE DÉMONIAQUE</div>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Connexion</button>
+        <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Inscription</button>
+      </div>
+      <div class="auth-body">
+
+        <!-- Login -->
+        <form id="form-login" onsubmit="doLogin(event)">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-control" type="email" id="login-email" placeholder="votre@email.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mot de passe</label>
+            <input class="form-control" type="password" id="login-pw" placeholder="••••••••" required>
+          </div>
+          <div id="login-alert" class="alert alert-danger" style="display:none"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="login-btn">Entrer dans l'Ordre</button>
+        </form>
+
+        <!-- Register -->
+        <form id="form-register" onsubmit="doRegister(event)" style="display:none">
+          <div class="photo-row">
+            <div class="photo-upload" id="photo-upload-zone"
+                 onclick="document.getElementById('reg-photo').click()"
+                 title="Cliquer pour choisir une photo">
+              <img id="photo-preview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
+              <div class="photo-upload-placeholder" id="photo-placeholder">
+                <span>📷</span>
+                <span>Photo</span>
+              </div>
+            </div>
+            <div class="photo-row-labels">
+              <div class="form-label">Photo de profil *</div>
+              <div class="photo-hint">200×200 · JPEG · obligatoire</div>
+            </div>
+          </div>
+          <input type="file" id="reg-photo" accept="image/*" style="display:none" onchange="previewPhoto(event)">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Prénom RP</label>
+              <input class="form-control" type="text" id="reg-prenom" placeholder="Kira" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom RP</label>
+              <input class="form-control" type="text" id="reg-nom" placeholder="Ombrenoir" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Steam ID</label>
+            <input class="form-control" type="text" id="reg-steam" placeholder="STEAM_0:0:000000000" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-control" type="email" id="reg-email" placeholder="votre@email.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mot de passe</label>
+            <input class="form-control" type="password" id="reg-pw" placeholder="Minimum 6 caractères" required>
+          </div>
+          <div id="reg-alert" class="alert alert-danger" style="display:none"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="reg-btn">Rejoindre l'Ordre</button>
+        </form>
+
+        <a class="back-link" onclick="goTo('home')" style="cursor:pointer">← Retour au classement</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VUE : DASHBOARD MEMBRE
+══════════════════════════════════════ -->
+<div class="view" id="v-dashboard">
+  <div style="padding-top:55px">
+    <div class="dash-layout">
+
+      <!-- Sidebar -->
+      <aside class="dash-sidebar">
+        <div class="sigil-wrap xs" style="margin:0 auto">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <div class="ring-center">⬡</div>
+        </div>
+
+        <!-- Profil -->
+        <div class="profile-card">
+          <div class="profile-photo" id="dash-profile-photo">
+            <div class="profile-photo-init" id="dash-avatar-init">?</div>
+          </div>
+          <div class="profile-name" id="dash-name">—</div>
+          <div id="dash-grade-badge" style="margin:.35rem 0 .5rem"></div>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <div class="profile-stat-val pts-manip" id="dash-manip">0</div>
+              <div class="profile-stat-lbl">Manip</div>
+            </div>
+            <div class="profile-stat">
+              <div class="profile-stat-val pts-occulte" id="dash-occulte">0</div>
+              <div class="profile-stat-lbl">Occulte</div>
+            </div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span id="dash-grade-current" style="font-size:.65rem">—</span>
+              <span id="dash-grade-next" style="font-size:.65rem;color:var(--gold)">—</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="dash-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nav -->
+        <nav class="dash-nav">
+          <button class="dash-nav-item active" onclick="dashPanel('rapport')" data-panel="rapport">
+            <span class="nav-icon">📜</span> Rapport
+          </button>
+          <button class="dash-nav-item" onclick="dashPanel('soumissions')" data-panel="soumissions">
+            <span class="nav-icon">📋</span> Mes Soumissions
+          </button>
+          <button class="dash-nav-item" onclick="dashPanel('incantations')" data-panel="incantations">
+            <span class="nav-icon">✦</span> Incantations
+          </button>
+          <button class="dash-nav-item" onclick="dashPanel('classement')" data-panel="classement">
+            <span class="nav-icon">⬡</span> Classement
+          </button>
+        </nav>
+
+        <div style="margin-top:auto;padding-top:1rem;border-top:1px solid rgba(255,255,255,.04)">
+          <button class="sidebar-footer-btn danger" onclick="doLogout()" style="width:100%">
+            ⤴ Déconnexion
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <div class="dash-main">
+
+        <!-- Panel : Rapport -->
+        <div class="panel active" id="p-rapport">
+          <div class="panel-hdr">
+            <div class="panel-title">📜 Soumettre un Rapport Occulte</div>
+          </div>
+          <div class="glass-card">
+            <form onsubmit="soumettreRapport(event)">
+              <div class="form-group">
+                <label class="form-label">Incantation utilisée</label>
+                <select class="form-control" id="rap-incan" required>
+                  <option value="">— Choisir une incantation —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Description de l'activité</label>
+                <textarea class="form-control" id="rap-desc" rows="4"
+                  placeholder="Décrivez en détail votre activité occulte…" required></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Capture d'écran (preuve)</label>
+                <div class="upload-zone" id="screen-zone"
+                     onclick="document.getElementById('rap-screen').click()">
+                  <div class="upload-zone-text" id="screen-placeholder">🖼 Cliquer pour ajouter une capture</div>
+                  <div id="screen-preview-wrap" style="display:none">
+                    <img id="screen-preview-img" src="" alt="Capture"
+                         style="max-width:100%;max-height:220px;object-fit:contain;border-radius:6px">
+                  </div>
+                </div>
+                <input type="file" id="rap-screen" accept="image/*" style="display:none" onchange="previewScreen(event)">
+              </div>
+              <div id="rap-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
+              <div id="rap-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
+              <button type="submit" class="btn btn-primary" id="rap-btn">⬡ Soumettre le Rapport</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Panel : Mes Soumissions -->
+        <div class="panel" id="p-soumissions">
+          <div class="panel-hdr">
+            <div class="panel-title">📋 Mes Soumissions</div>
+          </div>
+          <div id="mes-soum-list"></div>
+        </div>
+
+        <!-- Panel : Incantations -->
+        <div class="panel" id="p-incantations">
+          <div class="panel-hdr">
+            <div class="panel-title">✦ Grimoire des Incantations</div>
+          </div>
+          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem">
+            Dépensez vos points de Manipulation pour découvrir les incantations et gagner des points Occulte.
+          </p>
+          <div class="incan-grid" id="dash-incan-grid"></div>
+        </div>
+
+        <!-- Panel : Classement -->
+        <div class="panel" id="p-classement">
+          <div class="panel-hdr">
+            <div class="panel-title">⬡ Classement de l'Ordre</div>
+          </div>
+          <div id="dash-lb-list"></div>
+        </div>
+
+      </div><!-- /dash-main -->
+    </div><!-- /dash-layout -->
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VUE : ADMIN
+══════════════════════════════════════ -->
+<div class="view" id="v-admin">
+  <div style="padding-top:55px">
+    <div class="admin-layout">
+
+      <!-- Sidebar admin -->
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-brand">
+          <div class="sigil-wrap xs" style="margin:0 auto .5rem">
+            <div class="ring ring-1"></div>
+            <div class="ring ring-2"></div>
+            <div class="ring ring-3"></div>
+            <div class="ring-center">⬡</div>
+          </div>
+          <div style="font-family:'Cinzel Decorative',serif;font-size:.55rem;color:var(--gold);letter-spacing:.18em">PANNEAU ADMIN</div>
+        </div>
+        <div class="admin-sidebar-user">
+          <div id="adm-avatar-sm"
+               style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(139,0,0,.4);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--crimson),var(--blood));font-family:'Cinzel',serif;color:var(--gold);font-size:.85rem">
+            A
+          </div>
+          <div>
+            <div style="font-family:'Cinzel',serif;font-size:.78rem;color:var(--text)" id="adm-username">Admin</div>
+            <div style="font-size:.62rem;color:var(--text-muted);letter-spacing:.07em">ADMINISTRATEUR</div>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <div class="sidebar-nav-item active" onclick="adminPanel('soumissions')" data-panel="soumissions" style="cursor:pointer">
+            <span class="nav-icon">📋</span> Soumissions
+            <span class="sidebar-nav-badge" id="badge-soum" style="display:none">0</span>
+          </div>
+          <div class="sidebar-nav-item" onclick="adminPanel('membres')" data-panel="membres" style="cursor:pointer">
+            <span class="nav-icon">👥</span> Membres
+          </div>
+          <div class="sidebar-nav-item" onclick="adminPanel('incantations')" data-panel="incantations" style="cursor:pointer">
+            <span class="nav-icon">✦</span> Incantations
+          </div>
+          <div class="sidebar-nav-item" onclick="adminPanel('logs')" data-panel="logs" style="cursor:pointer">
+            <span class="nav-icon">📜</span> Logs
+          </div>
+          <div class="sidebar-nav-item" onclick="adminPanel('creer')" data-panel="creer" style="cursor:pointer">
+            <span class="nav-icon">➕</span> Créer Membre
+          </div>
+        </nav>
+        <div class="sidebar-footer">
+          <button class="sidebar-footer-btn" onclick="goTo('home')">⬡ Classement public</button>
+          <button class="sidebar-footer-btn danger" onclick="doLogout()">⤴ Déconnexion</button>
+        </div>
+      </aside>
+
+      <!-- Admin main -->
+      <div class="admin-main">
+
+        <!-- Stats row -->
+        <div class="stats-row" style="margin-bottom:1.25rem">
+          <div class="stat-card" data-tilt>
+            <div class="stat-card-val" id="as-total">—</div>
+            <div class="stat-card-lbl">MEMBRES</div>
+          </div>
+          <div class="stat-card" data-tilt>
+            <div class="stat-card-val" id="as-pending">—</div>
+            <div class="stat-card-lbl">EN ATTENTE</div>
+          </div>
+          <div class="stat-card" data-tilt>
+            <div class="stat-card-val pts-occulte" id="as-validated">—</div>
+            <div class="stat-card-lbl">VALIDÉES</div>
+          </div>
+          <div class="stat-card" data-tilt>
+            <div class="stat-card-val pts-manip" id="as-totalpts">—</div>
+            <div class="stat-card-lbl">TOTAL OCCULTE</div>
+          </div>
+        </div>
+
+        <!-- Panel : Soumissions -->
+        <div class="panel active" id="ap-soumissions">
+          <div class="panel-hdr">
+            <div class="panel-title">📋 Soumissions</div>
+            <div class="lb-filter-pills">
+              <button class="pill active" onclick="filterSoum('attente')" id="psoum-attente">En attente</button>
+              <button class="pill" onclick="filterSoum('valide')" id="psoum-valide">Validées</button>
+              <button class="pill" onclick="filterSoum('refuse')" id="psoum-refuse">Refusées</button>
+              <button class="pill" onclick="filterSoum('')" id="psoum-all">Toutes</button>
+            </div>
+          </div>
+          <div id="soum-list"></div>
+        </div>
+
+        <!-- Panel : Membres -->
+        <div class="panel" id="ap-membres">
+          <div class="panel-hdr">
+            <div class="panel-title">👥 Membres de l'Ordre</div>
+          </div>
+          <div id="membres-list"></div>
+        </div>
+
+        <!-- Panel : Incantations -->
+        <div class="panel" id="ap-incantations">
+          <div class="panel-hdr">
+            <div class="panel-title">✦ Incantations</div>
+            <div style="display:flex;gap:.5rem">
+              <button class="btn btn-ghost btn-sm" onclick="seedIncantations()">🌱 Seed</button>
+              <button class="btn btn-primary btn-sm" onclick="openIncanModal(null)">+ Nouvelle</button>
+            </div>
+          </div>
+          <div class="incan-grid" id="admin-incan-grid"></div>
+        </div>
+
+        <!-- Panel : Logs -->
+        <div class="panel" id="ap-logs">
+          <div class="panel-hdr">
+            <div class="panel-title">📜 Journal des Actions</div>
+          </div>
+          <div id="logs-list"></div>
+        </div>
+
+        <!-- Panel : Créer membre -->
+        <div class="panel" id="ap-creer">
+          <div class="panel-hdr">
+            <div class="panel-title">➕ Créer un Compte Membre</div>
+          </div>
+          <div style="max-width:480px">
+            <div class="glass-card">
+              <form onsubmit="creerMembre(event)">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Prénom RP</label>
+                    <input class="form-control" type="text" id="c-prenom" placeholder="Kira" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Nom RP</label>
+                    <input class="form-control" type="text" id="c-nom" placeholder="Ombrenoir" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Steam ID</label>
+                  <input class="form-control" type="text" id="c-steam" placeholder="STEAM_0:0:…" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email</label>
+                  <input class="form-control" type="email" id="c-email" placeholder="membre@email.com" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Mot de passe</label>
+                  <input class="form-control" type="password" id="c-pw" placeholder="Minimum 6 caractères" required>
+                </div>
+                <div id="creer-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
+                <div id="creer-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
+                <button type="submit" class="btn btn-primary" id="creer-btn">Créer le compte</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /admin-main -->
+    </div><!-- /admin-layout -->
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- ═══ SCRIPTS ═══ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-let tousMembres = [];
+'use strict';
 
-// Légende des grades
-document.getElementById('grade-legend').innerHTML = GRADES.map(g =>
-    `<span class="grade-badge ${g.css}" style="font-size:.72rem">
-        ${g.nom} <span style="opacity:.6; font-size:.68rem">≥${g.minOcculte} pts</span>
-    </span>`
-).join('');
+/* ═══════════════════════════════════════════════════════
+   1. EFFETS WOW
+═══════════════════════════════════════════════════════ */
 
-// Chargement en temps réel
-db.collection('membres').orderBy('pointsOcculte', 'desc').onSnapshot(snap => {
-    tousMembres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    mettreAJourStats();
-    filtrer();
+// ── Curseur personnalisé + traînée ──
+const cursorDot  = document.getElementById('cursor-dot');
+const cursorRing = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursorDot.style.transform = `translate(${mx}px,${my}px)`;
+    const t = document.createElement('div');
+    t.className = 'trail';
+    t.style.left = mx + 'px';
+    t.style.top  = my + 'px';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 500);
 });
 
-function mettreAJourStats() {
-    const presents = tousMembres.filter(m => !m.absent).length;
-    const maxOcculte = tousMembres.length > 0 ? Math.max(...tousMembres.map(m => m.pointsOcculte)) : 0;
-    document.getElementById('stat-total').textContent   = tousMembres.length;
-    document.getElementById('stat-presents').textContent = presents;
-    document.getElementById('stat-max-occulte').textContent = maxOcculte;
-}
+(function animRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    cursorRing.style.transform = `translate(${rx}px,${ry}px)`;
+    requestAnimationFrame(animRing);
+})();
 
-function filtrer() {
-    const filtreGrade  = document.getElementById('filtre-grade').value;
-    const filtreStatut = document.getElementById('filtre-statut').value;
+// ── Glyphes flottants canvas ──
+(function initGlyphs() {
+    const cv = document.getElementById('glyphs-canvas');
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const SYMS = ['⬡','✦','☽','⛧','✧','◈','⟁','⌖','⊕','✵','⛣','☿','♄','⚸','⚔','⚗','✺','⚶'];
+    let W, H, glyphs = [];
 
-    let membres = [...tousMembres];
-    if (filtreGrade)            membres = membres.filter(m => m.grade === filtreGrade);
-    if (filtreStatut === 'present') membres = membres.filter(m => !m.absent);
+    function resize() { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
 
-    renderClassement(membres);
-}
-
-function renderClassement(membres) {
-    const tbody = document.getElementById('classement-tbody');
-    if (membres.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-dim" style="text-align:center; padding:2rem">Aucun membre correspondant.</td></tr>';
-        return;
+    function spawn(randY) {
+        return {
+            x: Math.random() * W,
+            y: randY ? Math.random() * H : H + 20,
+            s: Math.random() * 12 + 8,
+            a: Math.random() * .12 + .02,
+            sp: Math.random() * .35 + .1,
+            dx: (Math.random() - .5) * .4,
+            g: SYMS[Math.floor(Math.random() * SYMS.length)],
+            rot: 0,
+            rs: (Math.random() - .5) * .008
+        };
     }
 
-    tbody.innerHTML = membres.map((m, idx) => {
-        const rang = idx + 1;
-        const rangClass = rang === 1 ? 'rang-1' : rang === 2 ? 'rang-2' : rang === 3 ? 'rang-3' : '';
-        const rangLabel = rang <= 3 ? ['🥇', '🥈', '🥉'][rang - 1] : rang;
+    for (let i = 0; i < 18; i++) glyphs.push(spawn(true));
 
-        // Prochain grade
-        const gradeIdx = GRADES.findIndex(g => g.nom === m.grade);
-        const prochainGrade = GRADES[gradeIdx + 1];
-        let evolutionHTML = '';
-        if (prochainGrade) {
-            const reste = prochainGrade.minOcculte - m.pointsOcculte;
-            evolutionHTML = `<span class="prochaine-evolution">encore ${reste} pts → ${prochainGrade.nom}</span>`;
+    (function draw() {
+        ctx.clearRect(0, 0, W, H);
+        glyphs.forEach((g, i) => {
+            g.y -= g.sp; g.x += g.dx; g.rot += g.rs;
+            if (g.y < -30) glyphs[i] = spawn(false);
+            ctx.save();
+            ctx.translate(g.x, g.y);
+            ctx.rotate(g.rot);
+            ctx.globalAlpha = g.a;
+            ctx.fillStyle = (i % 3 === 0) ? '#c9a52a' : '#8b0000';
+            ctx.font = `${g.s}px 'Cinzel', serif`;
+            ctx.fillText(g.g, 0, 0);
+            ctx.restore();
+        });
+        requestAnimationFrame(draw);
+    })();
+})();
+
+// ── Tilt 3D ──
+function initTilt() {
+    document.querySelectorAll('[data-tilt]:not([data-tilt-done])').forEach(el => {
+        el.setAttribute('data-tilt-done', '1');
+        el.addEventListener('mousemove', e => {
+            const r = el.getBoundingClientRect();
+            const x = (e.clientX - r.left) / r.width  - .5;
+            const y = (e.clientY - r.top)  / r.height - .5;
+            el.style.transform = `perspective(800px) rotateY(${x * 12}deg) rotateX(${-y * 12}deg) translateZ(6px)`;
+        });
+        el.addEventListener('mouseleave', () => {
+            el.style.transform = 'perspective(800px) rotateY(0) rotateX(0) translateZ(0)';
+        });
+    });
+}
+
+// ── Transitions cinématiques ──
+const VEIL = document.getElementById('veil');
+let _transitioning = false;
+
+function goTo(target) {
+    if (_transitioning) return;
+    if ((target === 'dashboard' || target === 'admin') && !auth.currentUser) target = 'auth';
+    if (target === 'admin' && (!currentMembre || currentMembre.role !== 'admin')) target = 'dashboard';
+
+    _transitioning = true;
+    VEIL.classList.add('open');
+    setTimeout(() => {
+        showView(target);
+        setTimeout(() => { VEIL.classList.remove('open'); _transitioning = false; }, 80);
+    }, 360);
+}
+
+/* ═══════════════════════════════════════════════════════
+   2. SPA ROUTING
+═══════════════════════════════════════════════════════ */
+const VIEWS = ['loading', 'home', 'auth', 'dashboard', 'admin'];
+
+function showView(name) {
+    VIEWS.forEach(v => {
+        const el = document.getElementById('v-' + v);
+        if (el) el.classList.toggle('active', v === name);
+    });
+    updateNavLinks();
+    initTilt();
+    if (name === 'home')      loadHome();
+    if (name === 'dashboard') loadDashboard();
+    if (name === 'admin')     loadAdminData();
+}
+
+function updateNavLinks() {
+    const user    = auth.currentUser;
+    const isAdmin = currentMembre && currentMembre.role === 'admin';
+    setDisplay('nl-auth',   user ? 'none' : '');
+    setDisplay('nl-dash',   user ? '' : 'none');
+    setDisplay('nl-admin',  (user && isAdmin) ? '' : 'none');
+    setDisplay('nl-logout', user ? '' : 'none');
+}
+
+/* ═══════════════════════════════════════════════════════
+   3. FIREBASE AUTH STATE
+═══════════════════════════════════════════════════════ */
+let currentUser   = null;
+let currentMembre = null;
+let secondaryApp  = null;
+let secondaryAuth = null;
+
+try {
+    secondaryApp  = firebase.initializeApp(firebase.app().options, 'secondary');
+    secondaryAuth = firebase.auth(secondaryApp);
+} catch (e) { /* app 'secondary' already initialized */ }
+
+auth.onAuthStateChanged(async user => {
+    currentUser = user;
+    if (user) {
+        try {
+            const doc = await db.collection('membres').doc(user.uid).get();
+            if (doc.exists) {
+                currentMembre = { id: doc.id, ...doc.data() };
+                updateNavLinks();
+                showView(currentMembre.role === 'admin' ? 'admin' : 'dashboard');
+            } else {
+                currentMembre = null;
+                updateNavLinks();
+                showView('home');
+            }
+        } catch (e) {
+            currentMembre = null;
+            updateNavLinks();
+            showView('home');
         }
+    } else {
+        currentMembre = null;
+        updateNavLinks();
+        showView('home');
+    }
+});
 
-        return `<tr class="${m.absent ? 'absent-row' : ''}">
-            <td class="rang-col ${rangClass}" style="text-align:center">${rangLabel}</td>
-            <td class="membre-nom">${m.nom}</td>
-            <td>${badgeGrade(m.grade)}</td>
-            <td><span class="pts pts-manip">${m.pointsManipulation}</span></td>
-            <td>
-                <span class="pts pts-occulte">${m.pointsOcculte}</span>
-                ${evolutionHTML}
-            </td>
-            <td>${m.absent
-                ? '<span class="badge badge-absent">Absent</span>'
-                : '<span class="badge badge-present">Présent</span>'
-            }</td>
-            <td class="text-dim text-sm">${formatDate(m.dateEvolution)}</td>
-        </tr>`;
+/* ═══════════════════════════════════════════════════════
+   4. HOME VIEW
+═══════════════════════════════════════════════════════ */
+let homeMembers  = [];
+let homeLive     = null;
+let filterGrade  = '';
+let filterPres   = false;
+
+function loadHome() {
+    // Légende grades
+    const legend = document.getElementById('home-grade-legend');
+    if (legend && !legend.innerHTML.trim()) {
+        legend.innerHTML = GRADES.map(g =>
+            `<span class="grade-badge ${g.css}">${g.nom} <span style="opacity:.5;font-size:.65rem">≥${g.minOcculte}</span></span>`
+        ).join('');
+    }
+    // Grade showcase
+    const showcase = document.getElementById('grade-showcase');
+    if (showcase && !showcase.innerHTML.trim()) {
+        const icons = ['🌑','🌘','🌗','🔴'];
+        showcase.innerHTML = GRADES.map((g, i) =>
+            `<div class="grade-card-3d" data-tilt>
+                <div class="grade-card-icon">${icons[i]}</div>
+                <div class="grade-card-name">${g.nom}</div>
+                <div class="grade-card-pts">≥ ${g.minOcculte} pts Occulte</div>
+            </div>`
+        ).join('');
+        initTilt();
+    }
+    if (homeLive) return;
+    homeLive = db.collection('membres').orderBy('pointsOcculte', 'desc').onSnapshot(snap => {
+        homeMembers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        updateHomeStats();
+        filtrerHome();
+    });
+}
+
+function updateHomeStats() {
+    const total    = homeMembers.length;
+    const presents = homeMembers.filter(m => !m.absent).length;
+    const maxO     = total ? Math.max(...homeMembers.map(m => m.pointsOcculte || 0)) : 0;
+    setText('hs-total', total);
+    setText('hs-presents', presents);
+    setText('hs-maxpts', maxO);
+}
+
+function filtrerGrade(g) {
+    filterGrade = g;
+    document.querySelectorAll('[data-grade]').forEach(p =>
+        p.classList.toggle('active', p.dataset.grade === g));
+    filtrerHome();
+}
+
+function togglePresents() {
+    filterPres = !filterPres;
+    const btn = document.getElementById('pill-presents');
+    if (btn) btn.classList.toggle('active', filterPres);
+    filtrerHome();
+}
+
+function filtrerHome() {
+    let m = [...homeMembers];
+    const sort = val('lb-sort') || 'occulte';
+    if (filterGrade) m = m.filter(x => x.grade === filterGrade);
+    if (filterPres)  m = m.filter(x => !x.absent);
+    if (sort === 'manip') m.sort((a, b) => (b.pointsManipulation || 0) - (a.pointsManipulation || 0));
+    renderLbRows('lb-list', m);
+}
+
+function renderLbRows(containerId, membres) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!membres.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">Aucun membre</div></div>';
+        return;
+    }
+    el.innerHTML = membres.map((m, i) => {
+        const rank   = i + 1;
+        const medal  = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+        const topCls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+        const name   = displayName(m);
+        const init   = (m.prenom || m.nom || '?')[0].toUpperCase();
+        const gradeIdx = GRADES.findIndex(g => g.nom === m.grade);
+        const next     = GRADES[gradeIdx + 1];
+        const evoText  = next
+            ? `${next.minOcculte - (m.pointsOcculte || 0)} pts → ${next.nom}`
+            : '✦ Rang max';
+        const avatarHtml = m.photoURL
+            ? `<div class="lb-avatar"><img src="${m.photoURL}" alt="${name}" loading="lazy"></div>`
+            : `<div class="lb-avatar"><div class="lb-avatar-init">${init}</div></div>`;
+        return `<div class="lb-row ${topCls} ${m.absent ? 'lb-absent' : ''}" data-tilt>
+            <div class="lb-rank">${medal}</div>
+            <div style="display:flex;align-items:center;gap:.6rem;min-width:0">
+                ${avatarHtml}
+                <div class="lb-name-block">
+                    <div class="lb-name">${name}</div>
+                    <div style="font-size:.68rem;color:var(--text-muted)">${evoText}</div>
+                </div>
+            </div>
+            <div>${badgeGrade(m.grade)}</div>
+            <div class="lb-pts-col"><span class="pts pts-manip">${m.pointsManipulation || 0}</span></div>
+            <div class="lb-pts-col"><span class="pts pts-occulte">${m.pointsOcculte || 0}</span></div>
+        </div>`;
+    }).join('');
+    initTilt();
+}
+
+/* ═══════════════════════════════════════════════════════
+   5. AUTH
+═══════════════════════════════════════════════════════ */
+let regPhotoB64  = null;
+let rapScreenB64 = null;
+
+function switchTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('form-login').style.display    = isLogin ? '' : 'none';
+    document.getElementById('form-register').style.display = isLogin ? 'none' : '';
+    document.getElementById('tab-login').classList.toggle('active', isLogin);
+    document.getElementById('tab-register').classList.toggle('active', !isLogin);
+}
+
+function previewPhoto(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    compressPhoto(f, 200, 200, .78).then(b64 => {
+        regPhotoB64 = b64;
+        const img = document.getElementById('photo-preview');
+        img.src = b64;
+        img.style.display = 'block';
+        document.getElementById('photo-placeholder').style.display = 'none';
+    });
+}
+
+async function doLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span>';
+    hideAlert('login-alert');
+    try {
+        await auth.signInWithEmailAndPassword(val('login-email'), val('login-pw'));
+    } catch (err) {
+        showAlert('login-alert', authErrMsg(err.code), 'danger');
+        btn.disabled = false;
+        btn.textContent = "Entrer dans l'Ordre";
+    }
+}
+
+async function doRegister(e) {
+    e.preventDefault();
+    if (!regPhotoB64) {
+        showAlert('reg-alert', 'Veuillez choisir une photo de profil.', 'danger');
+        return;
+    }
+    const btn = document.getElementById('reg-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span> Création…';
+    hideAlert('reg-alert');
+    try {
+        const cred = await auth.createUserWithEmailAndPassword(val('reg-email'), val('reg-pw'));
+        await db.collection('membres').doc(cred.user.uid).set({
+            uid:      cred.user.uid,
+            prenom:   val('reg-prenom').trim(),
+            nom:      val('reg-nom').trim(),
+            steamId:  val('reg-steam').trim(),
+            email:    val('reg-email').trim(),
+            photoURL: regPhotoB64,
+            grade:    'Incantateur',
+            pointsManipulation: 0,
+            pointsOcculte:      0,
+            absent:          false,
+            projetOcculte:   '',
+            nbMembresProjet: 0,
+            role:            'membre',
+            dateEvolution:   firebase.firestore.Timestamp.now(),
+            dateCreation:    firebase.firestore.Timestamp.now()
+        });
+        // auth.onAuthStateChanged prend le relais
+    } catch (err) {
+        showAlert('reg-alert', authErrMsg(err.code), 'danger');
+        btn.disabled = false;
+        btn.textContent = "Rejoindre l'Ordre";
+    }
+}
+
+function authErrMsg(code) {
+    const map = {
+        'auth/invalid-email':        'Email invalide.',
+        'auth/user-not-found':       'Aucun compte avec cet email.',
+        'auth/wrong-password':       'Mot de passe incorrect.',
+        'auth/invalid-credential':   'Identifiants invalides.',
+        'auth/email-already-in-use': 'Cet email est déjà utilisé.',
+        'auth/weak-password':        'Mot de passe trop faible (min. 6 caractères).',
+        'auth/too-many-requests':    'Trop de tentatives. Réessayez plus tard.'
+    };
+    return map[code] || 'Erreur : ' + code;
+}
+
+/* ═══════════════════════════════════════════════════════
+   6. DASHBOARD
+═══════════════════════════════════════════════════════ */
+let dashLive = null;
+
+function loadDashboard() {
+    if (!currentMembre) return;
+    renderDashProfile(currentMembre);
+    loadIncanForRap();
+    if (!dashLive) {
+        dashLive = db.collection('membres').doc(currentMembre.id).onSnapshot(snap => {
+            if (snap.exists) {
+                currentMembre = { id: snap.id, ...snap.data() };
+                renderDashProfile(currentMembre);
+            }
+        });
+    }
+}
+
+function renderDashProfile(m) {
+    const photoWrap = document.getElementById('dash-profile-photo');
+    if (photoWrap) {
+        if (m.photoURL) {
+            photoWrap.innerHTML = `<img src="${m.photoURL}" alt="Photo" style="width:100%;height:100%;object-fit:cover">`;
+        } else {
+            const init = ((m.prenom || m.nom || '?')[0]).toUpperCase();
+            photoWrap.innerHTML = `<div class="profile-photo-init">${init}</div>`;
+        }
+    }
+    setText('dash-name', displayName(m));
+    const badgeEl = document.getElementById('dash-grade-badge');
+    if (badgeEl) badgeEl.innerHTML = badgeGrade(m.grade);
+    setText('dash-manip',   m.pointsManipulation || 0);
+    setText('dash-occulte', m.pointsOcculte      || 0);
+
+    // Progress bar
+    const gradeIdx = GRADES.findIndex(g => g.nom === m.grade);
+    const prev = GRADES[gradeIdx];
+    const next = GRADES[gradeIdx + 1];
+    if (prev && next) {
+        const range    = next.minOcculte - prev.minOcculte;
+        const progress = Math.max(0, Math.min(100,
+            ((m.pointsOcculte || 0) - prev.minOcculte) / range * 100));
+        const fill = document.getElementById('dash-progress-fill');
+        if (fill) fill.style.width = progress + '%';
+        setText('dash-grade-current', m.grade);
+        setText('dash-grade-next',    next.nom);
+    } else {
+        setText('dash-grade-current', m.grade);
+        setText('dash-grade-next',    '✦ Rang Max');
+        const fill = document.getElementById('dash-progress-fill');
+        if (fill) fill.style.width = '100%';
+    }
+    updateNavLinks();
+}
+
+function dashPanel(name) {
+    document.querySelectorAll('#v-dashboard .panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.dash-nav-item[data-panel]').forEach(b =>
+        b.classList.toggle('active', b.dataset.panel === name));
+    const p = document.getElementById('p-' + name);
+    if (p) p.classList.add('active');
+
+    if (name === 'soumissions')  loadMesSoumissions();
+    if (name === 'incantations') loadDashIncantations();
+    if (name === 'classement')   loadDashClassement();
+}
+
+function loadIncanForRap() {
+    db.collection('incantations').orderBy('nom').get().then(snap => {
+        const sel = document.getElementById('rap-incan');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— Choisir une incantation —</option>' +
+            snap.docs.map(d => {
+                const i = d.data();
+                return `<option value="${d.id}" data-pts="${i.ptsOcculte || 0}" data-nom="${i.nom}">${i.nom} — +${i.ptsOcculte || 0} occulte</option>`;
+            }).join('');
+    });
+}
+
+function previewScreen(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    compressScreen(f).then(b64 => {
+        rapScreenB64 = b64;
+        document.getElementById('screen-placeholder').style.display   = 'none';
+        document.getElementById('screen-preview-wrap').style.display  = '';
+        document.getElementById('screen-preview-img').src = b64;
+    });
+}
+
+async function soumettreRapport(e) {
+    e.preventDefault();
+    if (!rapScreenB64) {
+        showAlert('rap-alert', "Veuillez joindre une capture d'écran.", 'danger');
+        return;
+    }
+    const btn = document.getElementById('rap-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span> Envoi…';
+    hideAlert('rap-alert');
+    hideAlert('rap-success');
+    try {
+        const sel = document.getElementById('rap-incan');
+        if (!sel.value) throw new Error('Choisissez une incantation.');
+        const opt       = sel.options[sel.selectedIndex];
+        const incanId   = sel.value;
+        const incanNom  = opt.dataset.nom || opt.text;
+        const ptsGagnes = parseInt(opt.dataset.pts) || 0;
+
+        await db.collection('soumissions').add({
+            membreId:    currentMembre.id,
+            membreNom:   displayName(currentMembre),
+            incanId, incanNom,
+            description: val('rap-desc'),
+            screenshot:  rapScreenB64,
+            ptsGagnes,
+            statut:      'attente',
+            dateCreation: firebase.firestore.Timestamp.now()
+        });
+
+        showAlert('rap-success', 'Rapport soumis ! En attente de validation.', 'success');
+        document.getElementById('rap-desc').value = '';
+        rapScreenB64 = null;
+        document.getElementById('screen-placeholder').style.display  = '';
+        document.getElementById('screen-preview-wrap').style.display = 'none';
+        document.getElementById('rap-screen').value = '';
+    } catch (err) {
+        showAlert('rap-alert', 'Erreur : ' + err.message, 'danger');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '⬡ Soumettre le Rapport';
+}
+
+function loadMesSoumissions() {
+    const list = document.getElementById('mes-soum-list');
+    if (!list) return;
+    list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    db.collection('soumissions')
+      .where('membreId', '==', currentMembre.id)
+      .orderBy('dateCreation', 'desc')
+      .get().then(snap => {
+        if (snap.empty) {
+            list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Aucune soumission</div></div>';
+            return;
+        }
+        list.innerHTML = snap.docs.map(d => {
+            const s = d.data();
+            const sCls   = s.statut === 'valide' ? 'valide' : s.statut === 'refuse' ? 'refuse' : 'pending';
+            const sBadge = s.statut === 'valide' ? 'badge-valide' : s.statut === 'refuse' ? 'badge-refuse' : 'badge-attente';
+            const sLabel = s.statut === 'valide' ? 'Validée ✓' : s.statut === 'refuse' ? 'Refusée ✗' : 'En attente…';
+            return `<div class="glass-card soum-card ${sCls}" style="margin-bottom:.6rem">
+                <div class="soum-head">
+                    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+                        <span class="badge ${sBadge}">${sLabel}</span>
+                        <strong style="color:var(--gold);font-size:.85rem">${s.incanNom || ''}</strong>
+                        <span style="color:var(--text-muted);font-size:.78rem">${formatDate(s.dateCreation)}</span>
+                    </div>
+                    ${s.statut === 'valide' ? `<span class="pts pts-occulte">+${s.ptsGagnes} occulte</span>` : ''}
+                </div>
+                <p style="color:var(--text-muted);font-size:.83rem;margin-top:.5rem">${s.description || ''}</p>
+                ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.35rem">Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
+                ${s.screenshot ? `<details style="margin-top:.6rem"><summary style="cursor:pointer;color:var(--gold);font-size:.8rem">▼ Capture d'écran</summary><img src="${s.screenshot}" loading="lazy" style="max-width:100%;border-radius:8px;margin-top:.5rem"></details>` : ''}
+            </div>`;
+        }).join('');
+    });
+}
+
+function loadDashIncantations() {
+    const grid = document.getElementById('dash-incan-grid');
+    if (!grid) return;
+    grid.innerHTML = '<p style="color:var(--text-muted)">Chargement…</p>';
+    db.collection('incantations').orderBy('cout').get().then(snap => {
+        if (snap.empty) {
+            grid.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Aucune incantation disponible</div></div>';
+            return;
+        }
+        grid.innerHTML = snap.docs.map(d => {
+            const i = d.data();
+            return `<div class="glass-card incan-card" data-tilt>
+                <div style="font-size:1.8rem;text-align:center;color:var(--gold);filter:drop-shadow(0 0 8px rgba(201,165,42,.4))">✦</div>
+                <div class="incan-card-name">${i.nom}</div>
+                ${i.categorie ? `<div class="incan-card-meta"><span class="badge badge-attente">${i.categorie}</span></div>` : ''}
+                <p style="font-size:.8rem;color:var(--text-muted);line-height:1.5;flex:1">${i.description || ''}</p>
+                <div class="incan-card-pts">
+                    <span class="pts pts-manip">Coût : ${i.cout || 0}</span>
+                    <span class="pts pts-occulte">+${i.ptsOcculte || 0} occulte</span>
+                </div>
+            </div>`;
+        }).join('');
+        initTilt();
+    });
+}
+
+function loadDashClassement() {
+    db.collection('membres').orderBy('pointsOcculte', 'desc').get().then(snap => {
+        const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderLbRows('dash-lb-list', membres);
+    });
+}
+
+/* ═══════════════════════════════════════════════════════
+   7. ADMIN
+═══════════════════════════════════════════════════════ */
+let adminSoumLive  = null;
+let adminMemLive   = null;
+let allSoumissions = [];
+let allMembres     = [];
+let soumRefusId       = null;
+let soumRefusMembreId = null;
+let soumRefusPts      = null;
+let soumFilter        = 'attente';
+
+function loadAdminData() {
+    if (!currentMembre || currentMembre.role !== 'admin') return;
+
+    // Sidebar avatar
+    const av = document.getElementById('adm-avatar-sm');
+    if (av) {
+        if (currentMembre.photoURL) {
+            av.innerHTML = `<img src="${currentMembre.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+        } else {
+            const init = ((currentMembre.prenom || 'A')[0] + (currentMembre.nom || 'D')[0]).toUpperCase();
+            av.textContent = init;
+        }
+    }
+    setText('adm-username', displayName(currentMembre));
+
+    if (!adminSoumLive) {
+        adminSoumLive = db.collection('soumissions').orderBy('dateCreation', 'desc').onSnapshot(snap => {
+            allSoumissions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const pending  = allSoumissions.filter(s => s.statut === 'attente').length;
+            const validated = allSoumissions.filter(s => s.statut === 'valide').length;
+            setText('as-pending',   pending);
+            setText('as-validated', validated);
+            const badge = document.getElementById('badge-soum');
+            if (badge) { badge.textContent = pending; badge.style.display = pending ? '' : 'none'; }
+            renderSoumissions();
+        });
+    }
+
+    if (!adminMemLive) {
+        adminMemLive = db.collection('membres').orderBy('pointsOcculte', 'desc').onSnapshot(snap => {
+            allMembres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setText('as-total', allMembres.length);
+            const tot = allMembres.reduce((s, m) => s + (m.pointsOcculte || 0), 0);
+            setText('as-totalpts', tot);
+            if (document.getElementById('ap-membres').classList.contains('active')) renderMembres();
+        });
+    }
+}
+
+function adminPanel(name) {
+    document.querySelectorAll('#v-admin .panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar-nav-item[data-panel]').forEach(b =>
+        b.classList.toggle('active', b.dataset.panel === name));
+    const el = document.getElementById('ap-' + name);
+    if (el) el.classList.add('active');
+
+    if (name === 'membres')     renderMembres();
+    if (name === 'incantations') loadAdminIncan();
+    if (name === 'logs')        loadLogs();
+}
+
+// Filtre soumissions admin
+function filterSoum(statut) {
+    soumFilter = statut;
+    ['attente', 'valide', 'refuse'].forEach(k => {
+        const p = document.getElementById('psoum-' + k);
+        if (p) p.classList.toggle('active', k === statut);
+    });
+    const pAll = document.getElementById('psoum-all');
+    if (pAll) pAll.classList.toggle('active', statut === '');
+    renderSoumissions();
+}
+
+function renderSoumissions() {
+    const list = document.getElementById('soum-list');
+    if (!list) return;
+    const filtered = soumFilter
+        ? allSoumissions.filter(s => s.statut === soumFilter)
+        : allSoumissions;
+    if (!filtered.length) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Aucune soumission</div></div>';
+        return;
+    }
+    list.innerHTML = filtered.map(s => {
+        const sCls   = s.statut === 'valide' ? 'valide' : s.statut === 'refuse' ? 'refuse' : 'pending';
+        const sBadge = s.statut === 'valide' ? 'badge-valide' : s.statut === 'refuse' ? 'badge-refuse' : 'badge-attente';
+        const sLabel = s.statut === 'valide' ? 'Validée ✓' : s.statut === 'refuse' ? 'Refusée ✗' : 'En attente…';
+        return `<div class="glass-card soum-card ${sCls}" style="margin-bottom:.6rem" id="sc-${s.id}">
+            <div class="soum-head">
+                <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+                    <span class="badge ${sBadge}">${sLabel}</span>
+                    <strong style="color:var(--gold)">${s.membreNom || ''}</strong>
+                    <span style="color:var(--text-muted);font-size:.82rem">— ${s.incanNom || ''}</span>
+                    <span style="color:var(--text-muted);font-size:.75rem">${formatDate(s.dateCreation)}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+                    <span class="pts pts-occulte">+${s.ptsGagnes || 0} pts</span>
+                    ${s.statut === 'attente' ? `
+                    <button class="btn btn-success btn-sm" onclick="validerSoum('${s.id}','${s.membreId}',${s.ptsGagnes || 0})">✓ Valider</button>
+                    <button class="btn btn-danger btn-sm"  onclick="ouvrirRefus('${s.id}','${s.membreId}',${s.ptsGagnes || 0})">✗ Refuser</button>` : ''}
+                    <span class="soum-chev">▼</span>
+                </div>
+            </div>
+            <div class="soum-body">
+                <div class="soum-desc-box">${s.description || ''}</div>
+                ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.4rem">Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
+                ${s.screenshot ? `<div class="soum-screens"><img src="${s.screenshot}" loading="lazy" onclick="this.style.width=this.style.width?'':'100%'" title="Cliquer pour agrandir"></div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+    // Expand/collapse
+    document.querySelectorAll('#soum-list .soum-head').forEach(h => {
+        h.addEventListener('click', e => {
+            if (e.target.tagName === 'BUTTON') return;
+            h.closest('.soum-card').classList.toggle('open');
+        });
+    });
+}
+
+async function validerSoum(soumId, membreId, pts) {
+    if (!confirm(`Valider et attribuer ${pts} points occulte ?`)) return;
+    const batch   = db.batch();
+    const soumRef = db.collection('soumissions').doc(soumId);
+    const memRef  = db.collection('membres').doc(membreId);
+    const memDoc  = await memRef.get();
+    const m       = memDoc.data();
+    const newOcculte = (m.pointsOcculte || 0) + pts;
+    const newGrade   = getGrade(newOcculte);
+    batch.update(soumRef, { statut: 'valide', dateValidation: firebase.firestore.Timestamp.now() });
+    batch.update(memRef,  {
+        pointsOcculte: newOcculte,
+        grade: newGrade,
+        ...(newGrade !== m.grade ? { dateEvolution: firebase.firestore.Timestamp.now() } : {})
+    });
+    await batch.commit();
+    await logAction('validation', `+${pts} pts → ${displayName(m)} (${newGrade})`, pts);
+}
+
+function ouvrirRefus(soumId, membreId, pts) {
+    soumRefusId       = soumId;
+    soumRefusMembreId = membreId;
+    soumRefusPts      = pts;
+    document.getElementById('refus-raison').value  = 'Preuve insuffisante';
+    document.getElementById('refus-comment').value = '';
+    openModal('modal-refus');
+}
+
+async function confirmerRefus() {
+    const raison  = val('refus-raison');
+    const comment = val('refus-comment');
+    await db.collection('soumissions').doc(soumRefusId).update({
+        statut: 'refuse',
+        raisonRefus: raison,
+        commentaireRefus: comment,
+        dateRefus: firebase.firestore.Timestamp.now()
+    });
+    const memDoc = await db.collection('membres').doc(soumRefusMembreId).get();
+    await logAction('refus', `Refus (${raison}) → ${displayName(memDoc.data())}`, 0);
+    closeModal('modal-refus');
+}
+
+// Membres
+function renderMembres() {
+    const list = document.getElementById('membres-list');
+    if (!list) return;
+    if (!allMembres.length) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">Aucun membre</div></div>';
+        return;
+    }
+    list.innerHTML = allMembres.map(m => {
+        const name = displayName(m);
+        const init = ((m.prenom || m.nom || '?')[0]).toUpperCase();
+        const avatarHtml = m.photoURL
+            ? `<div class="membre-card-avatar"><img src="${m.photoURL}" alt="${name}" loading="lazy"></div>`
+            : `<div class="membre-card-avatar"><div class="membre-card-avatar-init">${init}</div></div>`;
+        return `<div class="glass-card membre-card" data-tilt style="margin-bottom:.5rem">
+            ${avatarHtml}
+            <div class="membre-card-info">
+                <div class="membre-card-name">${name}</div>
+                <div class="membre-card-sub">
+                    ${badgeGrade(m.grade)}
+                    ${m.absent ? ' <span class="badge badge-absent">Absent</span>' : ''}
+                </div>
+                <div class="membre-card-pts">
+                    <span class="pts pts-manip">${m.pointsManipulation || 0} manip</span>
+                    <span class="pts pts-occulte">${m.pointsOcculte || 0} occulte</span>
+                </div>
+            </div>
+            <div class="membre-card-actions">
+                <button class="btn btn-ghost btn-sm" onclick="openMembreEdit('${m.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="supprimerMembre('${m.id}','${name.replace(/'/g,"\\'")}')">🗑</button>
+            </div>
+        </div>`;
+    }).join('');
+    initTilt();
+}
+
+function openMembreEdit(membreId) {
+    const m = allMembres.find(x => x.id === membreId);
+    if (!m) return;
+    document.getElementById('modal-membre-title').textContent = 'Modifier : ' + displayName(m);
+    document.getElementById('edit-membre-id').value  = m.id;
+    document.getElementById('edit-prenom').value     = m.prenom  || '';
+    document.getElementById('edit-nom').value        = m.nom     || '';
+    document.getElementById('edit-steam').value      = m.steamId || '';
+    document.getElementById('edit-manip').value      = m.pointsManipulation || 0;
+    document.getElementById('edit-occulte').value    = m.pointsOcculte      || 0;
+    document.getElementById('edit-role').value       = m.role    || 'membre';
+    document.getElementById('edit-absent').checked   = !!m.absent;
+    openModal('modal-membre');
+}
+
+async function sauvegarderMembre() {
+    const id = val('edit-membre-id');
+    if (!id) return;
+    const newOcculte = parseInt(val('edit-occulte')) || 0;
+    const newManip   = parseInt(val('edit-manip'))   || 0;
+    const m          = allMembres.find(x => x.id === id);
+    const data = {
+        prenom:  val('edit-prenom').trim(),
+        nom:     val('edit-nom').trim(),
+        steamId: val('edit-steam').trim(),
+        pointsManipulation: newManip,
+        pointsOcculte:      newOcculte,
+        grade:   getGrade(newOcculte),
+        role:    val('edit-role'),
+        absent:  document.getElementById('edit-absent').checked
+    };
+    if (m && getGrade(newOcculte) !== m.grade)
+        data.dateEvolution = firebase.firestore.Timestamp.now();
+    await db.collection('membres').doc(id).update(data);
+    await logAction('modif', `Modification de ${data.prenom} ${data.nom}`, 0);
+    closeModal('modal-membre');
+}
+
+async function supprimerMembre(id, nom) {
+    if (!confirm(`Supprimer ${nom} ? Cette action est irréversible.`)) return;
+    await db.collection('membres').doc(id).delete();
+    await logAction('suppression', `Suppression de ${nom}`, 0);
+}
+
+// Incantations admin
+function loadAdminIncan() {
+    const grid = document.getElementById('admin-incan-grid');
+    if (!grid) return;
+    grid.innerHTML = '<p style="color:var(--text-muted)">Chargement…</p>';
+    db.collection('incantations').orderBy('cout').get().then(snap => {
+        if (snap.empty) {
+            grid.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Aucune incantation — utilisez 🌱 Seed</div></div>';
+            return;
+        }
+        grid.innerHTML = snap.docs.map(d => {
+            const i = d.data();
+            return `<div class="glass-card incan-card" data-tilt>
+                <div style="font-size:1.8rem;text-align:center;color:var(--gold)">✦</div>
+                <div class="incan-card-name">${i.nom}</div>
+                ${i.categorie ? `<div class="incan-card-meta"><span class="badge badge-attente">${i.categorie}</span></div>` : ''}
+                <p style="font-size:.8rem;color:var(--text-muted);flex:1">${i.description || ''}</p>
+                <div class="incan-card-pts">
+                    <span class="pts pts-manip">Coût : ${i.cout || 0}</span>
+                    <span class="pts pts-occulte">+${i.ptsOcculte || 0}</span>
+                </div>
+                <div class="incan-card-actions">
+                    <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openIncanModal('${d.id}')">✏️ Modifier</button>
+                    <button class="btn btn-danger btn-sm" onclick="supprimerIncan('${d.id}','${i.nom.replace(/'/g,"\\'")}')">🗑</button>
+                </div>
+            </div>`;
+        }).join('');
+        initTilt();
+    });
+}
+
+function openIncanModal(id) {
+    document.getElementById('edit-incan-id').value = id || '';
+    if (id) {
+        document.getElementById('incan-modal-title').textContent = "Modifier l'incantation";
+        db.collection('incantations').doc(id).get().then(d => {
+            const i = d.data();
+            document.getElementById('edit-incan-nom').value  = i.nom         || '';
+            document.getElementById('edit-incan-desc').value = i.description || '';
+            document.getElementById('edit-incan-cout').value = i.cout        || 0;
+            document.getElementById('edit-incan-pts').value  = i.ptsOcculte  || 0;
+            document.getElementById('edit-incan-cat').value  = i.categorie   || '';
+        });
+    } else {
+        document.getElementById('incan-modal-title').textContent = 'Nouvelle incantation';
+        ['edit-incan-nom','edit-incan-desc','edit-incan-cat'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('edit-incan-cout').value = '0';
+        document.getElementById('edit-incan-pts').value  = '0';
+    }
+    openModal('modal-incan');
+}
+
+async function sauvegarderIncan() {
+    const id   = val('edit-incan-id');
+    const data = {
+        nom:         val('edit-incan-nom').trim(),
+        description: val('edit-incan-desc').trim(),
+        cout:        parseInt(val('edit-incan-cout')) || 0,
+        ptsOcculte:  parseInt(val('edit-incan-pts'))  || 0,
+        categorie:   val('edit-incan-cat').trim()
+    };
+    if (!data.nom) { alert('Le nom est requis.'); return; }
+    if (id) {
+        await db.collection('incantations').doc(id).update(data);
+    } else {
+        await db.collection('incantations').add(data);
+    }
+    closeModal('modal-incan');
+    loadAdminIncan();
+}
+
+async function supprimerIncan(id, nom) {
+    if (!confirm(`Supprimer l'incantation "${nom}" ?`)) return;
+    await db.collection('incantations').doc(id).delete();
+    loadAdminIncan();
+}
+
+async function seedIncantations() {
+    if (!confirm(`Importer ${INCANTATIONS_SEED.length} incantations de base ?`)) return;
+    const batch = db.batch();
+    INCANTATIONS_SEED.forEach(i => batch.set(db.collection('incantations').doc(), i));
+    await batch.commit();
+    alert('Incantations importées avec succès !');
+    loadAdminIncan();
+}
+
+// Logs
+async function loadLogs() {
+    const list = document.getElementById('logs-list');
+    if (!list) return;
+    list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    const snap = await db.collection('logs').orderBy('date', 'desc').limit(100).get();
+    if (snap.empty) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📜</div><div class="empty-text">Aucun log</div></div>';
+        return;
+    }
+    list.innerHTML = snap.docs.map(d => {
+        const l = d.data();
+        return `<div class="log-row">
+            <span class="log-action">${l.action || ''}</span>
+            <span class="log-detail">${l.detail || ''}</span>
+            ${l.pts ? `<div class="log-pts"><span class="pts pts-occulte">+${l.pts}</span></div>` : ''}
+            <span class="log-date">${formatDate(l.date)}</span>
+        </div>`;
     }).join('');
 }
+
+async function logAction(action, detail, pts) {
+    try {
+        await db.collection('logs').add({
+            action, detail,
+            pts:   pts || 0,
+            admin: currentUser ? currentUser.uid : 'system',
+            date:  firebase.firestore.Timestamp.now()
+        });
+    } catch (e) { /* non-bloquant */ }
+}
+
+// Créer membre (admin)
+async function creerMembre(e) {
+    e.preventDefault();
+    const btn = document.getElementById('creer-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span> Création…';
+    hideAlert('creer-alert');
+    hideAlert('creer-success');
+    try {
+        if (!secondaryAuth) throw new Error('secondaryAuth non disponible');
+        const cred = await secondaryAuth.createUserWithEmailAndPassword(val('c-email'), val('c-pw'));
+        await db.collection('membres').doc(cred.user.uid).set({
+            uid:      cred.user.uid,
+            prenom:   val('c-prenom').trim(),
+            nom:      val('c-nom').trim(),
+            steamId:  val('c-steam').trim(),
+            email:    val('c-email').trim(),
+            photoURL: '',
+            grade:    'Incantateur',
+            pointsManipulation: 0,
+            pointsOcculte:      0,
+            absent:          false,
+            projetOcculte:   '',
+            nbMembresProjet: 0,
+            role:            'membre',
+            dateEvolution:   firebase.firestore.Timestamp.now(),
+            dateCreation:    firebase.firestore.Timestamp.now()
+        });
+        await secondaryAuth.signOut();
+        await logAction('creation', `Nouveau membre : ${val('c-prenom')} ${val('c-nom')}`, 0);
+        showAlert('creer-success', `Compte créé pour ${val('c-prenom')} ${val('c-nom')} !`, 'success');
+        e.target.reset();
+    } catch (err) {
+        showAlert('creer-alert', 'Erreur : ' + err.message, 'danger');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Créer le compte';
+}
+
+/* ═══════════════════════════════════════════════════════
+   8. UTILITAIRES
+═══════════════════════════════════════════════════════ */
+function displayName(m) {
+    if (!m) return '—';
+    return (m.prenom && m.nom) ? m.prenom + ' ' + m.nom : m.nom || m.prenom || '—';
+}
+
+function val(id)      { const el = document.getElementById(id); return el ? el.value : ''; }
+function setText(id, t) { const el = document.getElementById(id); if (el) el.textContent = t; }
+function setDisplay(id, d) { const el = document.getElementById(id); if (el) el.style.display = d; }
+
+function showAlert(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className  = 'alert alert-' + (type || 'danger');
+    el.textContent = msg;
+    el.style.display = '';
+    if (type === 'success') setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+function hideAlert(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+function openModal(id)  { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); }
+function closeModal(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden');    }
+
+// Fermer modales — Échap ou clic extérieur
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape')
+        document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => m.classList.add('hidden'));
+});
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+    ov.addEventListener('click', e => { if (e.target === ov) ov.classList.add('hidden'); });
+});
+
+async function doLogout() {
+    if (dashLive)      { dashLive();      dashLive = null; }
+    if (adminSoumLive) { adminSoumLive(); adminSoumLive = null; }
+    if (adminMemLive)  { adminMemLive();  adminMemLive  = null; }
+    currentMembre = null;
+    await auth.signOut();
+    goTo('home');
+}
+
+// ── Compression photo avatar (200×200, crop centré) ──
+function compressPhoto(file, w, h, q) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const img = new Image();
+            img.onload = () => {
+                const c   = document.createElement('canvas');
+                c.width = w; c.height = h;
+                const ctx = c.getContext('2d');
+                const ar  = img.width / img.height;
+                let sw = img.width, sh = img.height, sx = 0, sy = 0;
+                if (ar > 1) { sw = img.height; sx = (img.width - sw) / 2; }
+                else        { sh = img.width;  sy = (img.height - sh) / 2; }
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+                resolve(c.toDataURL('image/jpeg', q));
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// ── Compression screenshot (max 1100px, <200KB) ──
+function compressScreen(file) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const img = new Image();
+            img.onload = () => {
+                const MAX = 1100;
+                let w = img.width, h = img.height;
+                if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+                const c = document.createElement('canvas');
+                c.width = w; c.height = h;
+                c.getContext('2d').drawImage(img, 0, 0, w, h);
+                let q = .82, b64;
+                do { b64 = c.toDataURL('image/jpeg', q); q -= .05; }
+                while (b64.length > 200 * 1024 * 1.37 && q > .2);
+                resolve(b64);
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Démarrage : loading en attendant onAuthStateChanged
+showView('loading');
 </script>
 </body>
 </html>

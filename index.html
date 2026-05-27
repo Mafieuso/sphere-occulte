@@ -1947,7 +1947,7 @@ function renderMembres() {
         const avatarHtml = m.photoURL
             ? `<div class="membre-card-avatar"><img src="${m.photoURL}" alt="${name}" loading="lazy"></div>`
             : `<div class="membre-card-avatar"><div class="membre-card-avatar-init">${init}</div></div>`;
-        return `<div class="glass-card membre-card" data-tilt style="margin-bottom:.5rem">
+        return `<div class="glass-card membre-card" style="margin-bottom:.5rem">
             ${avatarHtml}
             <div class="membre-card-info">
                 <div class="membre-card-name">${name}</div>
@@ -1966,7 +1966,6 @@ function renderMembres() {
             </div>
         </div>`;
     }).join('');
-    initTilt();
 }
 
 function openMembreEdit(membreId) {

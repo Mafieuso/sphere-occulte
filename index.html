@@ -81,11 +81,11 @@
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Pts Manipulation</label>
+          <label class="form-label">Manipulation Occulte</label>
           <input class="form-control" type="number" id="edit-manip" min="0">
         </div>
         <div class="form-group">
-          <label class="form-label">Pts Occulte</label>
+          <label class="form-label">Puissance Occulte</label>
           <input class="form-control" type="number" id="edit-occulte" min="0">
         </div>
       </div>
@@ -204,11 +204,11 @@
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Coût (Manipulation)</label>
+          <label class="form-label">Coût (Manipulation Occulte)</label>
           <input class="form-control" type="number" id="edit-incan-cout" min="0" value="0">
         </div>
         <div class="form-group">
-          <label class="form-label">Pts Occulte gagnés</label>
+          <label class="form-label">Puissance Occulte gagnée</label>
           <input class="form-control" type="number" id="edit-incan-pts" min="0" value="0">
         </div>
       </div>
@@ -286,7 +286,7 @@
         </div>
         <div class="hero-stat" data-tilt>
           <span class="pts-occulte" id="hs-maxpts">—</span>
-          <small>MAX OCCULTE</small>
+          <small>MAX PUISSANCE OCC.</small>
         </div>
       </div>
       <div id="home-grade-legend" style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin:1.5rem 0"></div>
@@ -314,7 +314,7 @@
         <button class="pill" id="pill-presents" onclick="togglePresents()">Présents</button>
         <select class="form-control" id="lb-sort" style="width:auto;font-size:.75rem" onchange="filtrerHome()">
           <option value="occulte">Puissance Occulte</option>
-          <option value="manip">Manipulation</option>
+          <option value="manip">Manipulation Occulte</option>
         </select>
       </div>
     </div>
@@ -413,11 +413,11 @@
           <div class="profile-stats">
             <div class="profile-stat">
               <div class="profile-stat-val pts-manip" id="dash-manip">0</div>
-              <div class="profile-stat-lbl">Manip</div>
+              <div class="profile-stat-lbl">Manip. Occ.</div>
             </div>
             <div class="profile-stat">
               <div class="profile-stat-val pts-occulte" id="dash-occulte">0</div>
-              <div class="profile-stat-lbl">Occulte</div>
+              <div class="profile-stat-lbl">Puiss. Occ.</div>
             </div>
           </div>
           <div class="progress-wrap">
@@ -813,7 +813,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-card-val pts-manip" id="as-totalpts">—</div>
-            <div class="stat-card-lbl">TOTAL OCCULTE</div>
+            <div class="stat-card-lbl">PUISSANCE OCC. TOTALE</div>
           </div>
         </div>
 
@@ -1128,7 +1128,7 @@ function loadHome() {
             `<div class="grade-card-3d" data-tilt>
                 <div class="grade-card-icon">${icons[i]}</div>
                 <div class="grade-card-name">${g.nom}</div>
-                <div class="grade-card-pts">≥ ${g.minOcculte} pts Occulte</div>
+                <div class="grade-card-pts">≥ ${g.minOcculte} pts Puissance Occulte</div>
             </div>`
         ).join('');
         initTilt();
@@ -1333,8 +1333,8 @@ function viewIncan(data) {
             <span class="grade-badge ${gDef?.css || 'grade-incantateur'}">${gDef?.nom || 'Incantateur'}</span>
             ${data.categorie ? `<span class="badge badge-attente">${data.categorie}</span>` : ''}
             <div style="margin-left:auto;display:flex;gap:.45rem">
-                ${cout ? `<span class="pts pts-manip">Coût : ${cout} manip</span>` : ''}
-                ${pts  ? `<span class="pts pts-occulte">+${pts} occulte</span>` : ''}
+                ${cout ? `<span class="pts pts-manip">Coût : ${cout} Manip. Occ.</span>` : ''}
+                ${pts  ? `<span class="pts pts-occulte">+${pts} Puiss. Occ.</span>` : ''}
             </div>
         </div>
 
@@ -1362,8 +1362,8 @@ function viewIncan(data) {
         ${(data.pointsManipulation || data.pointsOcculte || data.special) ? `
         <div style="margin-top:1rem;padding:.6rem .75rem;background:rgba(255,255,255,.025);border-radius:7px;border:1px solid rgba(255,255,255,.06)">
             <div style="font-size:.7rem;color:var(--text-muted);letter-spacing:.1em;margin-bottom:.35rem;text-transform:uppercase">Amélioration</div>
-            ${data.pointsManipulation ? `<span class="pts pts-manip" style="margin-right:.4rem">+${data.pointsManipulation} manip</span>` : ''}
-            ${data.pointsOcculte      ? `<span class="pts pts-occulte">+${data.pointsOcculte} occulte</span>` : ''}
+            ${data.pointsManipulation ? `<span class="pts pts-manip" style="margin-right:.4rem">+${data.pointsManipulation} Manip. Occ.</span>` : ''}
+            ${data.pointsOcculte      ? `<span class="pts pts-occulte">+${data.pointsOcculte} Puiss. Occ.</span>` : ''}
             ${data.special ? `<p style="font-size:.8rem;color:var(--gold);margin-top:.4rem">${data.special}${data.specialDescription ? ' — ' + data.specialDescription : ''}</p>` : ''}
         </div>` : ''}
     `;
@@ -1486,7 +1486,7 @@ function loadIncanForRap() {
                 const pts   = i.ptsOcculte || i.pointsOcculte || 0;
                 const grade = GRADES[i.gradeOrdre || 0];
                 const socle = (i.socle || '').replace(/"/g, '&quot;');
-                return `<option value="${d.id}" data-pts="${pts}" data-nom="${i.nom}" data-socle="${socle}">${i.nom} [${grade?.nom || 'Incantateur'}] — +${pts} occulte</option>`;
+                return `<option value="${d.id}" data-pts="${pts}" data-nom="${i.nom}" data-socle="${socle}">${i.nom} [${grade?.nom || 'Incantateur'}] — +${pts} Puiss. Occ.</option>`;
             }).join('');
     });
 }
@@ -1592,7 +1592,7 @@ function loadMesSoumissions() {
                         <span style="color:var(--text-muted);font-size:.75rem">${formatDate(s.dateCreation)}</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
-                        ${s.statut === 'valide' ? `<span class="pts pts-occulte">+${s.ptsGagnes} occulte</span>` : ''}
+                        ${s.statut === 'valide' ? `<span class="pts pts-occulte">+${s.ptsGagnes} Puiss. Occ.</span>` : ''}
                         <span class="soum-chev">▼</span>
                     </div>
                 </div>
@@ -1601,7 +1601,7 @@ function loadMesSoumissions() {
                         ${s.accesSalle   ? `<tr><td style="color:var(--text-muted);width:42%;padding:.2rem 0">Accès salle :</td><td style="color:var(--text-light)">${s.accesSalle}</td></tr>` : ''}
                         ${s.socleUtilise ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Socle :</td><td style="color:var(--text-light)">${s.socleUtilise}</td></tr>` : ''}
                         ${s.cible        ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Cible :</td><td style="color:var(--text-light)">${s.cible}</td></tr>` : ''}
-                        ${s.ptsGagnes    ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Points :</td><td style="color:var(--gold);font-weight:600">+${s.ptsGagnes} pts occulte</td></tr>` : ''}
+                        ${s.ptsGagnes    ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Points :</td><td style="color:var(--gold);font-weight:600">+${s.ptsGagnes} Puiss. Occ.</td></tr>` : ''}
                     </table>
                     ${s.usage ? `<p style="color:var(--text-muted);font-size:.82rem;margin-top:.5rem;border-top:1px solid rgba(255,255,255,.06);padding-top:.5rem">${s.usage}</p>` : ''}
                     ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.4rem">⚠ Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
@@ -1681,7 +1681,7 @@ function loadDashIncantations() {
                 <p style="font-size:.78rem;color:var(--text-muted);line-height:1.5;flex:1">${i.utilisation || i.description || ''}</p>
                 <div class="incan-card-pts">
                     ${cout ? `<span class="pts pts-manip">Coût : ${cout}</span>` : ''}
-                    ${pts  ? `<span class="pts pts-occulte">+${pts} occulte</span>` : ''}
+                    ${pts  ? `<span class="pts pts-occulte">+${pts} Puiss. Occ.</span>` : ''}
                 </div>
                 <div style="font-size:.7rem;color:var(--text-muted);text-align:center;margin-top:.3rem">▼ Cliquer pour voir les détails</div>
             </div>`;
@@ -1762,7 +1762,7 @@ function loadRapports() {
                         <span style="color:var(--text-muted);font-size:.75rem">📅 ${dateAffichee}</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
-                        <span class="pts pts-occulte">+${s.ptsGagnes || 0} occulte</span>
+                        <span class="pts pts-occulte">+${s.ptsGagnes || 0} Puiss. Occ.</span>
                         <span class="soum-chev">▼</span>
                     </div>
                 </div>
@@ -1930,7 +1930,7 @@ function renderSoumissions() {
                     <span style="color:var(--text-muted);font-size:.75rem">${formatDate(s.dateCreation)}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
-                    <span class="pts pts-occulte">+${s.ptsGagnes || 0} pts</span>
+                    <span class="pts pts-occulte">+${s.ptsGagnes || 0} Puiss. Occ.</span>
                     ${s.statut === 'attente' ? `
                     <button class="btn btn-success btn-sm" onclick="validerSoum('${s.id}','${s.membreId}',${s.ptsGagnes || 0})">✓ Valider</button>
                     <button class="btn btn-danger btn-sm"  onclick="ouvrirRefus('${s.id}','${s.membreId}',${s.ptsGagnes || 0})">✗ Refuser</button>` : ''}
@@ -1960,7 +1960,7 @@ function renderSoumissions() {
 }
 
 async function validerSoum(soumId, membreId, pts) {
-    if (!confirm(`Valider et attribuer ${pts} points occulte ?`)) return;
+    if (!confirm(`Valider et attribuer ${pts} Puissance Occulte ?`)) return;
     const batch   = db.batch();
     const soumRef = db.collection('soumissions').doc(soumId);
     const memRef  = db.collection('membres').doc(membreId);
@@ -2024,8 +2024,8 @@ function renderMembres() {
                     ${m.absent ? ' <span class="badge badge-absent">Absent</span>' : ''}
                 </div>
                 <div class="membre-card-pts">
-                    <span class="pts pts-manip">${m.pointsManipulation || 0} manip</span>
-                    <span class="pts pts-occulte">${m.pointsOcculte || 0} occulte</span>
+                    <span class="pts pts-manip">${m.pointsManipulation || 0} Manip. Occ.</span>
+                    <span class="pts pts-occulte">${m.pointsOcculte || 0} Puiss. Occ.</span>
                 </div>
             </div>
             <div class="membre-card-actions">
@@ -2107,8 +2107,8 @@ function loadAdminIncan() {
                 </div>
                 <p style="font-size:.78rem;color:var(--text-muted);flex:1;line-height:1.5">${i.utilisation || i.description || ''}</p>
                 <div class="incan-card-pts">
-                    ${cout ? `<span class="pts pts-manip">Coût : ${cout}</span>` : ''}
-                    ${pts  ? `<span class="pts pts-occulte">+${pts}</span>` : ''}
+                    ${cout ? `<span class="pts pts-manip">Coût : ${cout} Manip. Occ.</span>` : ''}
+                    ${pts  ? `<span class="pts pts-occulte">+${pts} Puiss. Occ.</span>` : ''}
                 </div>
                 <div class="incan-card-actions">
                     <button class="btn btn-ghost btn-sm" onclick="viewIncanById('${d.id}')">👁 Voir</button>

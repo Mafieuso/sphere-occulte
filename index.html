@@ -108,6 +108,41 @@
   </div>
 </div>
 
+<!-- Modal : Changement de mot de passe (première connexion) -->
+<div class="modal-overlay hidden" id="modal-change-pw">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-head">
+      <span class="modal-head-title">⬡ Créez votre mot de passe</span>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6">
+        Bienvenue ! C'est votre première connexion. Veuillez définir un mot de passe personnel que vous utiliserez à chaque connexion.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Nouveau mot de passe</label>
+        <input class="form-control" type="password" id="cpw-new" placeholder="Minimum 6 caractères" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmer le mot de passe</label>
+        <input class="form-control" type="password" id="cpw-confirm" placeholder="Répétez le mot de passe" autocomplete="new-password">
+      </div>
+      <div id="cpw-alert" class="alert alert-danger" style="display:none;margin-bottom:.75rem"></div>
+      <button class="btn btn-primary btn-full" onclick="changerMotDePasse()">⬡ Définir mon mot de passe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Détail d'une incantation -->
+<div class="modal-overlay hidden" id="modal-incan-view">
+  <div class="modal-box" style="max-width:600px;max-height:88vh;overflow-y:auto">
+    <div class="modal-head" style="position:sticky;top:0;background:#0f0819;z-index:1;padding-bottom:.75rem;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span class="modal-head-title" id="view-incan-title" style="font-family:'Cinzel',serif;letter-spacing:.05em">—</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-incan-view')">✕</button>
+    </div>
+    <div class="modal-body" id="view-incan-body" style="padding-top:.75rem"></div>
+  </div>
+</div>
+
 <!-- Modal Savoir Unique -->
 <div class="modal-overlay hidden" id="modal-savoir">
   <div class="modal-box" style="max-width:540px">
@@ -303,68 +338,27 @@
         <div class="auth-title">SPHÈRE OCCULTE</div>
         <div class="auth-sub">ORDRE DÉMONIAQUE</div>
       </div>
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Connexion</button>
-        <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Inscription</button>
-      </div>
       <div class="auth-body">
 
-        <!-- Login -->
+        <!-- Connexion uniquement — l'inscription se fait via l'administrateur -->
         <form id="form-login" onsubmit="doLogin(event)">
+          <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.1rem;text-align:center;line-height:1.65">
+            L'accès est sur invitation.<br>Connectez-vous avec votre <strong style="color:var(--gold)">Steam ID 64</strong> et le mot de passe fourni par l'administrateur.
+          </p>
           <div class="form-group">
-            <label class="form-label">Email</label>
-            <input class="form-control" type="email" id="login-email" placeholder="votre@email.com" required>
+            <label class="form-label">Steam ID 64</label>
+            <input class="form-control" type="text" id="login-steam" placeholder="76561198…" required autocomplete="username">
           </div>
           <div class="form-group">
             <label class="form-label">Mot de passe</label>
-            <input class="form-control" type="password" id="login-pw" placeholder="••••••••" required>
+            <input class="form-control" type="password" id="login-pw" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.9rem">
+            <input type="checkbox" id="login-remember" style="accent-color:var(--gold);width:14px;height:14px;cursor:pointer">
+            <label for="login-remember" style="font-size:.8rem;color:var(--text-muted);cursor:pointer;user-select:none">Se souvenir de moi</label>
           </div>
           <div id="login-alert" class="alert alert-danger" style="display:none"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="login-btn">Entrer dans l'Ordre</button>
-        </form>
-
-        <!-- Register -->
-        <form id="form-register" onsubmit="doRegister(event)" style="display:none">
-          <div class="photo-row">
-            <div class="photo-upload" id="photo-upload-zone"
-                 onclick="document.getElementById('reg-photo').click()"
-                 title="Cliquer pour choisir une photo">
-              <img id="photo-preview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
-              <div class="photo-upload-placeholder" id="photo-placeholder">
-                <span>📷</span>
-                <span>Photo</span>
-              </div>
-            </div>
-            <div class="photo-row-labels">
-              <div class="form-label">Photo de profil *</div>
-              <div class="photo-hint">200×200 · JPEG · obligatoire</div>
-            </div>
-          </div>
-          <input type="file" id="reg-photo" accept="image/*" style="display:none" onchange="previewPhoto(event)">
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">Prénom RP</label>
-              <input class="form-control" type="text" id="reg-prenom" placeholder="Kira" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Nom RP</label>
-              <input class="form-control" type="text" id="reg-nom" placeholder="Ombrenoir" required>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Steam ID</label>
-            <input class="form-control" type="text" id="reg-steam" placeholder="STEAM_0:0:000000000" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email</label>
-            <input class="form-control" type="email" id="reg-email" placeholder="votre@email.com" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Mot de passe</label>
-            <input class="form-control" type="password" id="reg-pw" placeholder="Minimum 6 caractères" required>
-          </div>
-          <div id="reg-alert" class="alert alert-danger" style="display:none"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="reg-btn">Rejoindre l'Ordre</button>
+          <button type="submit" class="btn btn-primary btn-full" id="login-btn">⬡ Entrer dans l'Ordre</button>
         </form>
 
         <a class="back-link" onclick="goTo('home')" style="cursor:pointer">← Retour au classement</a>
@@ -771,19 +765,19 @@
 
         <!-- Stats row -->
         <div class="stats-row" style="margin-bottom:1.25rem">
-          <div class="stat-card" data-tilt>
+          <div class="stat-card">
             <div class="stat-card-val" id="as-total">—</div>
             <div class="stat-card-lbl">MEMBRES</div>
           </div>
-          <div class="stat-card" data-tilt>
+          <div class="stat-card">
             <div class="stat-card-val" id="as-pending">—</div>
             <div class="stat-card-lbl">EN ATTENTE</div>
           </div>
-          <div class="stat-card" data-tilt>
+          <div class="stat-card">
             <div class="stat-card-val pts-occulte" id="as-validated">—</div>
             <div class="stat-card-lbl">VALIDÉES</div>
           </div>
-          <div class="stat-card" data-tilt>
+          <div class="stat-card">
             <div class="stat-card-val pts-manip" id="as-totalpts">—</div>
             <div class="stat-card-lbl">TOTAL OCCULTE</div>
           </div>
@@ -848,30 +842,25 @@
           <div style="max-width:480px">
             <div class="glass-card">
               <form onsubmit="creerMembre(event)">
+                <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6">
+                  Un <strong style="color:var(--gold)">code temporaire</strong> sera généré automatiquement. Transmettez-le au membre pour sa première connexion avec son Steam ID 64.
+                </p>
                 <div class="grid-2">
                   <div class="form-group">
-                    <label class="form-label">Prénom RP</label>
+                    <label class="form-label">Prénom RP *</label>
                     <input class="form-control" type="text" id="c-prenom" placeholder="Kira" required>
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Nom RP</label>
-                    <input class="form-control" type="text" id="c-nom" placeholder="Ombrenoir" required>
+                    <label class="form-label">Nom RP <span style="color:var(--text-muted);font-size:.75rem">(facultatif)</span></label>
+                    <input class="form-control" type="text" id="c-nom" placeholder="Ombrenoir">
                   </div>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Steam ID</label>
-                  <input class="form-control" type="text" id="c-steam" placeholder="STEAM_0:0:…" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Email</label>
-                  <input class="form-control" type="email" id="c-email" placeholder="membre@email.com" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Mot de passe</label>
-                  <input class="form-control" type="password" id="c-pw" placeholder="Minimum 6 caractères" required>
+                  <label class="form-label">Steam ID 64 *</label>
+                  <input class="form-control" type="text" id="c-steam" placeholder="76561198…" required>
                 </div>
                 <div id="creer-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
-                <div id="creer-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
+                <div id="creer-success" class="alert alert-success" style="display:none;margin-bottom:.75rem;white-space:pre-line"></div>
                 <button type="submit" class="btn btn-primary" id="creer-btn">Créer le compte</button>
               </form>
             </div>
@@ -1012,6 +1001,7 @@ function showView(name) {
     updateNavLinks();
     initTilt();
     if (name === 'home')      loadHome();
+    if (name === 'auth')      prefillSteam64();
     if (name === 'dashboard') loadDashboard();
     if (name === 'admin')     loadAdminData();
 }
@@ -1023,6 +1013,16 @@ function updateNavLinks() {
     setDisplay('nl-dash',   user ? '' : 'none');
     setDisplay('nl-admin',  (user && isAdmin) ? '' : 'none');
     setDisplay('nl-logout', user ? '' : 'none');
+}
+
+function prefillSteam64() {
+    const saved = localStorage.getItem('sphere_steam64');
+    const el    = document.getElementById('login-steam');
+    if (saved && el && !el.value) {
+        el.value = saved;
+        const rem = document.getElementById('login-remember');
+        if (rem) rem.checked = true;
+    }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1046,7 +1046,13 @@ auth.onAuthStateChanged(async user => {
             if (doc.exists) {
                 currentMembre = { id: doc.id, ...doc.data() };
                 updateNavLinks();
-                showView(currentMembre.role === 'admin' ? 'admin' : 'dashboard');
+                if (currentMembre.firstLogin) {
+                    // Première connexion : forcer le changement de mot de passe
+                    showView(currentMembre.role === 'admin' ? 'admin' : 'dashboard');
+                    openModal('modal-change-pw');
+                } else {
+                    showView(currentMembre.role === 'admin' ? 'admin' : 'dashboard');
+                }
             } else {
                 currentMembre = null;
                 updateNavLinks();
@@ -1177,13 +1183,7 @@ function renderLbRows(containerId, membres) {
 let regPhotoB64  = null;
 let rapScreenB64 = null;
 
-function switchTab(tab) {
-    const isLogin = tab === 'login';
-    document.getElementById('form-login').style.display    = isLogin ? '' : 'none';
-    document.getElementById('form-register').style.display = isLogin ? 'none' : '';
-    document.getElementById('tab-login').classList.toggle('active', isLogin);
-    document.getElementById('tab-register').classList.toggle('active', !isLogin);
-}
+// switchTab supprimé — inscription désactivée, accès sur invitation uniquement
 
 function previewPhoto(e) {
     const f = e.target.files[0];
@@ -1204,62 +1204,120 @@ async function doLogin(e) {
     btn.innerHTML = '<span class="loader"></span>';
     hideAlert('login-alert');
     try {
-        await auth.signInWithEmailAndPassword(val('login-email'), val('login-pw'));
+        const steam = val('login-steam').trim();
+        if (!steam) throw { code: 'auth/invalid-steam', message: 'Entrez votre Steam ID 64.' };
+        const email = steam + '@sphere-occulte.rp';
+        await auth.signInWithEmailAndPassword(email, val('login-pw'));
+        // Remember me
+        const remember = document.getElementById('login-remember');
+        if (remember && remember.checked) {
+            localStorage.setItem('sphere_steam64', steam);
+        } else {
+            localStorage.removeItem('sphere_steam64');
+        }
     } catch (err) {
         showAlert('login-alert', authErrMsg(err.code), 'danger');
         btn.disabled = false;
-        btn.textContent = "Entrer dans l'Ordre";
+        btn.textContent = "⬡ Entrer dans l'Ordre";
     }
 }
 
-async function doRegister(e) {
-    e.preventDefault();
-    if (!regPhotoB64) {
-        showAlert('reg-alert', 'Veuillez choisir une photo de profil.', 'danger');
-        return;
-    }
-    const btn = document.getElementById('reg-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loader"></span> Création…';
-    hideAlert('reg-alert');
+// Changement de mot de passe — première connexion
+async function changerMotDePasse() {
+    const np  = val('cpw-new').trim();
+    const npc = val('cpw-confirm').trim();
+    hideAlert('cpw-alert');
+    if (!np || np.length < 6)       { showAlert('cpw-alert', 'Minimum 6 caractères.', 'danger'); return; }
+    if (np !== npc)                  { showAlert('cpw-alert', 'Les mots de passe ne correspondent pas.', 'danger'); return; }
     try {
-        const cred = await auth.createUserWithEmailAndPassword(val('reg-email'), val('reg-pw'));
-        await db.collection('membres').doc(cred.user.uid).set({
-            uid:      cred.user.uid,
-            prenom:   val('reg-prenom').trim(),
-            nom:      val('reg-nom').trim(),
-            steamId:  val('reg-steam').trim(),
-            email:    val('reg-email').trim(),
-            photoURL: regPhotoB64,
-            grade:    'Incantateur',
-            pointsManipulation: 0,
-            pointsOcculte:      0,
-            absent:          false,
-            projetOcculte:   '',
-            nbMembresProjet: 0,
-            role:            'membre',
-            dateEvolution:   firebase.firestore.Timestamp.now(),
-            dateCreation:    firebase.firestore.Timestamp.now()
-        });
-        // auth.onAuthStateChanged prend le relais
+        await auth.currentUser.updatePassword(np);
+        if (currentMembre) {
+            await db.collection('membres').doc(currentMembre.id).update({ firstLogin: false });
+            currentMembre.firstLogin = false;
+        }
+        closeModal('modal-change-pw');
+        // Charger le dashboard après changement
+        if (currentMembre) {
+            showView(currentMembre.role === 'admin' ? 'admin' : 'dashboard');
+        }
     } catch (err) {
-        showAlert('reg-alert', authErrMsg(err.code), 'danger');
-        btn.disabled = false;
-        btn.textContent = "Rejoindre l'Ordre";
+        showAlert('cpw-alert', 'Erreur : ' + err.message, 'danger');
     }
+}
+
+// Vue détail d'une incantation
+function viewIncan(data) {
+    const gIdx   = data.gradeOrdre || 0;
+    const gDef   = GRADES[gIdx];
+    const pts    = data.ptsOcculte || data.pointsOcculte || 0;
+    const cout   = data.cout || data.pointsManipulation || 0;
+
+    document.getElementById('view-incan-title').textContent = data.nom || '—';
+
+    const socleHtml = (data.socle || data.descriptionSocle)
+        ? `<div style="margin-top:1rem;padding:.7rem .9rem;background:rgba(201,165,42,.06);border:1px solid rgba(201,165,42,.2);border-radius:8px">
+               <div style="font-size:.7rem;color:var(--gold);letter-spacing:.1em;font-family:'Cinzel',serif;margin-bottom:.35rem">⬡ SOCLE</div>
+               ${data.socle ? `<div style="font-weight:600;color:var(--text-light);font-size:.85rem">${data.socle}</div>` : ''}
+               ${data.descriptionSocle ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem;line-height:1.6">${data.descriptionSocle}</div>` : ''}
+           </div>` : '';
+
+    const incantText = data.texteIncantation
+        ? `<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba(0,0,0,.35);border-radius:8px;border:1px solid rgba(255,255,255,.05);font-style:italic;font-size:.82rem;color:rgba(201,165,42,.85);line-height:1.9;white-space:pre-wrap">${data.texteIncantation}</div>` : '';
+
+    document.getElementById('view-incan-body').innerHTML = `
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+            <span class="grade-badge ${gDef?.css || 'grade-incantateur'}">${gDef?.nom || 'Incantateur'}</span>
+            ${data.categorie ? `<span class="badge badge-attente">${data.categorie}</span>` : ''}
+            <div style="margin-left:auto;display:flex;gap:.45rem">
+                ${cout ? `<span class="pts pts-manip">Coût : ${cout} manip</span>` : ''}
+                ${pts  ? `<span class="pts pts-occulte">+${pts} occulte</span>` : ''}
+            </div>
+        </div>
+
+        ${data.utilisation ? `
+        <div style="margin-bottom:.9rem">
+            <div style="font-size:.7rem;color:var(--text-muted);letter-spacing:.1em;margin-bottom:.3rem;text-transform:uppercase">Dans quel cas l'utiliser</div>
+            <p style="font-size:.85rem;color:var(--text-light);line-height:1.65">${data.utilisation}</p>
+        </div>` : ''}
+
+        ${data.objetRequis ? `
+        <div style="margin-bottom:.9rem;padding:.55rem .75rem;background:rgba(139,0,0,.08);border-radius:7px;border:1px solid rgba(139,0,0,.18)">
+            <div style="font-size:.7rem;color:#e06060;letter-spacing:.1em;margin-bottom:.2rem;text-transform:uppercase">Objet requis</div>
+            <p style="font-size:.84rem;color:var(--text-light)">${data.objetRequis}</p>
+        </div>` : ''}
+
+        ${data.explication ? `
+        <div style="margin-bottom:.9rem">
+            <div style="font-size:.7rem;color:var(--text-muted);letter-spacing:.1em;margin-bottom:.3rem;text-transform:uppercase">Explication</div>
+            <p style="font-size:.84rem;color:var(--text-light);line-height:1.65">${data.explication}</p>
+        </div>` : ''}
+
+        ${socleHtml}
+        ${incantText}
+
+        ${(data.pointsManipulation || data.pointsOcculte || data.special) ? `
+        <div style="margin-top:1rem;padding:.6rem .75rem;background:rgba(255,255,255,.025);border-radius:7px;border:1px solid rgba(255,255,255,.06)">
+            <div style="font-size:.7rem;color:var(--text-muted);letter-spacing:.1em;margin-bottom:.35rem;text-transform:uppercase">Amélioration</div>
+            ${data.pointsManipulation ? `<span class="pts pts-manip" style="margin-right:.4rem">+${data.pointsManipulation} manip</span>` : ''}
+            ${data.pointsOcculte      ? `<span class="pts pts-occulte">+${data.pointsOcculte} occulte</span>` : ''}
+            ${data.special ? `<p style="font-size:.8rem;color:var(--gold);margin-top:.4rem">${data.special}${data.specialDescription ? ' — ' + data.specialDescription : ''}</p>` : ''}
+        </div>` : ''}
+    `;
+    openModal('modal-incan-view');
 }
 
 function authErrMsg(code) {
     const map = {
-        'auth/invalid-email':        'Email invalide.',
-        'auth/user-not-found':       'Aucun compte avec cet email.',
+        'auth/invalid-email':        'Steam ID 64 ou mot de passe invalide.',
+        'auth/user-not-found':       'Aucun compte trouvé pour ce Steam ID 64.',
         'auth/wrong-password':       'Mot de passe incorrect.',
-        'auth/invalid-credential':   'Identifiants invalides.',
-        'auth/email-already-in-use': 'Cet email est déjà utilisé.',
+        'auth/invalid-credential':   'Steam ID 64 ou mot de passe incorrect.',
+        'auth/email-already-in-use': 'Un compte existe déjà pour ce Steam ID.',
         'auth/weak-password':        'Mot de passe trop faible (min. 6 caractères).',
-        'auth/too-many-requests':    'Trop de tentatives. Réessayez plus tard.'
+        'auth/too-many-requests':    'Trop de tentatives. Réessayez plus tard.',
+        'auth/invalid-steam':        'Entrez votre Steam ID 64.'
     };
-    return map[code] || 'Erreur : ' + code;
+    return map[code] || 'Erreur de connexion. Vérifiez votre Steam ID 64 et mot de passe.';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1540,7 +1598,8 @@ function loadDashIncantations() {
                 </div>`;
             }
 
-            html += `<div class="glass-card incan-card" data-tilt>
+            const incanDataStr = JSON.stringify(i).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            html += `<div class="glass-card incan-card" style="cursor:pointer" title="Cliquer pour voir les détails" onclick='viewIncan(${JSON.stringify(i)})'>
                 <div style="font-size:1.6rem;text-align:center;color:var(--gold);filter:drop-shadow(0 0 8px rgba(201,165,42,.4))">✦</div>
                 <div class="incan-card-name">${i.nom}</div>
                 <div class="incan-card-meta">
@@ -1548,11 +1607,12 @@ function loadDashIncantations() {
                     ${i.categorie ? `<span class="badge badge-attente" style="font-size:.65rem">${i.categorie}</span>` : ''}
                     ${i.createdBy ? `<span style="font-size:.65rem;color:var(--gold)">✦ Custom</span>` : ''}
                 </div>
-                <p style="font-size:.78rem;color:var(--text-muted);line-height:1.5;flex:1">${i.description || i.utilisation || ''}</p>
+                <p style="font-size:.78rem;color:var(--text-muted);line-height:1.5;flex:1">${i.utilisation || i.description || ''}</p>
                 <div class="incan-card-pts">
-                    <span class="pts pts-manip">Coût : ${cout}</span>
-                    <span class="pts pts-occulte">+${pts} occulte</span>
+                    ${cout ? `<span class="pts pts-manip">Coût : ${cout}</span>` : ''}
+                    ${pts  ? `<span class="pts pts-occulte">+${pts} occulte</span>` : ''}
                 </div>
+                <div style="font-size:.7rem;color:var(--text-muted);text-align:center;margin-top:.3rem">▼ Cliquer pour voir les détails</div>
             </div>`;
         });
 
@@ -1919,7 +1979,7 @@ function loadAdminIncan() {
             const gradeDef = GRADES[gradeIdx];
             const pts      = i.ptsOcculte || i.pointsOcculte || 0;
             const cout     = i.cout || i.pointsManipulation || 0;
-            return `<div class="glass-card incan-card" data-tilt>
+            return `<div class="glass-card incan-card">
                 <div style="font-size:1.8rem;text-align:center;color:var(--gold)">✦</div>
                 <div class="incan-card-name">${i.nom}</div>
                 <div class="incan-card-meta">
@@ -1927,18 +1987,18 @@ function loadAdminIncan() {
                     ${i.categorie ? `<span class="badge badge-attente" style="font-size:.65rem">${i.categorie}</span>` : ''}
                     ${i.createdBy ? `<span style="font-size:.65rem;color:var(--gold)">✦ Custom</span>` : ''}
                 </div>
-                <p style="font-size:.78rem;color:var(--text-muted);flex:1;line-height:1.5">${i.description || i.utilisation || ''}</p>
+                <p style="font-size:.78rem;color:var(--text-muted);flex:1;line-height:1.5">${i.utilisation || i.description || ''}</p>
                 <div class="incan-card-pts">
-                    <span class="pts pts-manip">Coût : ${cout}</span>
-                    <span class="pts pts-occulte">+${pts}</span>
+                    ${cout ? `<span class="pts pts-manip">Coût : ${cout}</span>` : ''}
+                    ${pts  ? `<span class="pts pts-occulte">+${pts}</span>` : ''}
                 </div>
                 <div class="incan-card-actions">
+                    <button class="btn btn-ghost btn-sm" onclick='viewIncan(${JSON.stringify(i)})'>👁 Voir</button>
                     <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openIncanModal('${d.id}')">✏️ Modifier</button>
                     <button class="btn btn-danger btn-sm" onclick="supprimerIncan('${d.id}','${i.nom.replace(/'/g,"\\'")}')">🗑</button>
                 </div>
             </div>`;
         }).join('');
-        initTilt();
     });
 }
 
@@ -1997,9 +2057,13 @@ async function supprimerIncan(id, nom) {
 }
 
 async function seedIncantations() {
-    if (!confirm(`Importer ${INCANTATIONS_SEED.length} incantations de base ?`)) return;
+    if (!confirm(`Importer / mettre à jour les ${INCANTATIONS_SEED.length} incantations de base ?\n(Les incantations du seed seront écrasées si elles existent déjà, les customs resteront intact.)` )) return;
     const batch = db.batch();
-    INCANTATIONS_SEED.forEach(i => batch.set(db.collection('incantations').doc(), i));
+    INCANTATIONS_SEED.forEach(i => {
+        // ID déterministe basé sur le nom — évite les doublons en cas de double seed
+        const slug = i.nom.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        batch.set(db.collection('incantations').doc(slug), i);
+    });
     await batch.commit();
     alert('Incantations importées avec succès !');
     loadAdminIncan();
@@ -2117,6 +2181,14 @@ async function logAction(action, detail, pts) {
     } catch (e) { /* non-bloquant */ }
 }
 
+// Générer un code temporaire aléatoire (8 chars)
+function genTempPw() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let pw = '';
+    for (let i = 0; i < 8; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+    return pw;
+}
+
 // Créer membre (admin)
 async function creerMembre(e) {
     e.preventDefault();
@@ -2127,13 +2199,20 @@ async function creerMembre(e) {
     hideAlert('creer-success');
     try {
         if (!secondaryAuth) throw new Error('secondaryAuth non disponible');
-        const cred = await secondaryAuth.createUserWithEmailAndPassword(val('c-email'), val('c-pw'));
+        const prenom = val('c-prenom').trim();
+        const nom    = val('c-nom').trim();
+        const steam  = val('c-steam').trim();
+        if (!steam) throw new Error('Le Steam ID 64 est requis.');
+
+        const tempPw = genTempPw();
+        const email  = steam + '@sphere-occulte.rp';
+
+        const cred = await secondaryAuth.createUserWithEmailAndPassword(email, tempPw);
         await db.collection('membres').doc(cred.user.uid).set({
             uid:      cred.user.uid,
-            prenom:   val('c-prenom').trim(),
-            nom:      val('c-nom').trim(),
-            steamId:  val('c-steam').trim(),
-            email:    val('c-email').trim(),
+            prenom,   nom,
+            steamId:  steam,
+            email,
             photoURL: '',
             grade:    'Incantateur',
             pointsManipulation: 0,
@@ -2142,12 +2221,16 @@ async function creerMembre(e) {
             projetOcculte:   '',
             nbMembresProjet: 0,
             role:            'membre',
+            firstLogin:      true,
             dateEvolution:   firebase.firestore.Timestamp.now(),
             dateCreation:    firebase.firestore.Timestamp.now()
         });
         await secondaryAuth.signOut();
-        await logAction('creation', `Nouveau membre : ${val('c-prenom')} ${val('c-nom')}`, 0);
-        showAlert('creer-success', `Compte créé pour ${val('c-prenom')} ${val('c-nom')} !`, 'success');
+        const nomComplet = nom ? prenom + ' ' + nom : prenom;
+        await logAction('creation', `Nouveau membre : ${nomComplet}`, 0);
+        showAlert('creer-success',
+            `✅ Compte créé pour ${nomComplet} !\n\n🔑 Code temporaire : ${tempPw}\n\nTransmettez ce code au membre. Il sera invité à choisir son mot de passe lors de sa première connexion avec son Steam ID 64.`,
+            'success');
         e.target.reset();
     } catch (err) {
         showAlert('creer-alert', 'Erreur : ' + err.message, 'danger');

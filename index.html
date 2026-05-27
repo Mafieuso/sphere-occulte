@@ -359,7 +359,27 @@
           </div>
           <div id="login-alert" class="alert alert-danger" style="display:none"></div>
           <button type="submit" class="btn btn-primary btn-full" id="login-btn">⬡ Entrer dans l'Ordre</button>
+          <div style="text-align:center;margin-top:.75rem">
+            <button type="button" class="back-link" onclick="toggleForgot()" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--text-muted)">Mot de passe oublié ?</button>
+          </div>
         </form>
+
+        <!-- Section mot de passe oublié -->
+        <div id="forgot-section" style="display:none;margin-top:.5rem;padding:.9rem;background:rgba(255,255,255,.025);border-radius:10px;border:1px solid rgba(255,255,255,.07)">
+          <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:.75rem;line-height:1.6">
+            Entrez votre <strong style="color:var(--gold)">email</strong> pour recevoir un lien de réinitialisation.<br>
+            <span style="font-size:.72rem">Si vous vous connectez avec un Steam ID, contactez l'administrateur.</span>
+          </p>
+          <div class="form-group" style="margin-bottom:.6rem">
+            <input class="form-control" type="email" id="forgot-email" placeholder="votre@email.com" autocomplete="email">
+          </div>
+          <div id="forgot-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.5rem"></div>
+          <div id="forgot-success" class="alert alert-success" style="display:none;margin-bottom:.5rem"></div>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-primary btn-sm" onclick="envoyerResetPw()" style="flex:1">📧 Envoyer le lien</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleForgot()">Annuler</button>
+          </div>
+        </div>
 
         <a class="back-link" onclick="goTo('home')" style="cursor:pointer">← Retour au classement</a>
       </div>
@@ -1182,6 +1202,35 @@ function renderLbRows(containerId, membres) {
 ═══════════════════════════════════════════════════════ */
 let regPhotoB64  = null;
 let rapScreenB64 = null;
+
+function toggleForgot() {
+    const s = document.getElementById('forgot-section');
+    if (!s) return;
+    const visible = s.style.display !== 'none';
+    s.style.display = visible ? 'none' : '';
+    if (!visible) {
+        hideAlert('forgot-alert');
+        hideAlert('forgot-success');
+        const el = document.getElementById('forgot-email');
+        if (el) { el.value = val('login-steam').includes('@') ? val('login-steam') : ''; el.focus(); }
+    }
+}
+
+async function envoyerResetPw() {
+    hideAlert('forgot-alert');
+    hideAlert('forgot-success');
+    const email = val('forgot-email').trim();
+    if (!email) { showAlert('forgot-alert', 'Entrez votre email.', 'danger'); return; }
+    try {
+        await auth.sendPasswordResetEmail(email);
+        showAlert('forgot-success', '📧 Lien envoyé ! Vérifiez votre boîte mail (et les spams).', 'success');
+    } catch (err) {
+        const msg = err.code === 'auth/user-not-found'
+            ? 'Aucun compte trouvé pour cet email.'
+            : 'Erreur : ' + err.message;
+        showAlert('forgot-alert', msg, 'danger');
+    }
+}
 
 // switchTab supprimé — inscription désactivée, accès sur invitation uniquement
 

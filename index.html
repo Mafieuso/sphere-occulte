@@ -1370,6 +1370,11 @@ function viewIncan(data) {
     openModal('modal-incan-view');
 }
 
+function viewIncanById(id) {
+    const data = incanCache.get(id);
+    if (data) viewIncan(data);
+}
+
 function authErrMsg(code) {
     const map = {
         'auth/invalid-email':        'Steam ID 64 ou mot de passe invalide.',
@@ -1387,7 +1392,8 @@ function authErrMsg(code) {
 /* ═══════════════════════════════════════════════════════
    6. DASHBOARD
 ═══════════════════════════════════════════════════════ */
-let dashLive = null;
+let dashLive   = null;
+const incanCache = new Map(); // id → data, évite de passer JSON dans onclick
 
 function loadDashboard() {
     if (!currentMembre) return;
@@ -1663,8 +1669,8 @@ function loadDashIncantations() {
                 </div>`;
             }
 
-            const incanDataStr = JSON.stringify(i).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            html += `<div class="glass-card incan-card" style="cursor:pointer" title="Cliquer pour voir les détails" onclick='viewIncan(${JSON.stringify(i)})'>
+            incanCache.set(d.id, i);
+            html += `<div class="glass-card incan-card" style="cursor:pointer" title="Cliquer pour voir les détails" onclick="viewIncanById('${d.id}')">
                 <div style="font-size:1.6rem;text-align:center;color:var(--gold);filter:drop-shadow(0 0 8px rgba(201,165,42,.4))">✦</div>
                 <div class="incan-card-name">${i.nom}</div>
                 <div class="incan-card-meta">
@@ -2090,6 +2096,7 @@ function loadAdminIncan() {
             const gradeDef = GRADES[gradeIdx];
             const pts      = i.ptsOcculte || i.pointsOcculte || 0;
             const cout     = i.cout || i.pointsManipulation || 0;
+            incanCache.set(d.id, i);
             return `<div class="glass-card incan-card">
                 <div style="font-size:1.8rem;text-align:center;color:var(--gold)">✦</div>
                 <div class="incan-card-name">${i.nom}</div>
@@ -2104,7 +2111,7 @@ function loadAdminIncan() {
                     ${pts  ? `<span class="pts pts-occulte">+${pts}</span>` : ''}
                 </div>
                 <div class="incan-card-actions">
-                    <button class="btn btn-ghost btn-sm" onclick='viewIncan(${JSON.stringify(i)})'>👁 Voir</button>
+                    <button class="btn btn-ghost btn-sm" onclick="viewIncanById('${d.id}')">👁 Voir</button>
                     <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openIncanModal('${d.id}')">✏️ Modifier</button>
                     <button class="btn btn-danger btn-sm" onclick="supprimerIncan('${d.id}','${i.nom.replace(/'/g,"\\'")}')">🗑</button>
                 </div>

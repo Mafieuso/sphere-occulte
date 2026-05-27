@@ -346,8 +346,8 @@
             L'accès est sur invitation.<br>Connectez-vous avec votre <strong style="color:var(--gold)">Steam ID 64</strong> et le mot de passe fourni par l'administrateur.
           </p>
           <div class="form-group">
-            <label class="form-label">Steam ID 64</label>
-            <input class="form-control" type="text" id="login-steam" placeholder="76561198…" required autocomplete="username">
+            <label class="form-label">Steam ID 64 <span style="color:var(--text-muted);font-size:.72rem">(ou email pour les admins)</span></label>
+            <input class="form-control" type="text" id="login-steam" placeholder="76561198… ou votre@email.com" required autocomplete="username">
           </div>
           <div class="form-group">
             <label class="form-label">Mot de passe</label>
@@ -1206,7 +1206,8 @@ async function doLogin(e) {
     try {
         const steam = val('login-steam').trim();
         if (!steam) throw { code: 'auth/invalid-steam', message: 'Entrez votre Steam ID 64.' };
-        const email = steam + '@sphere-occulte.rp';
+        // Compatibilité : si l'entrée contient @, c'est déjà un email (ex: compte admin ancien format)
+        const email = steam.includes('@') ? steam : steam + '@sphere-occulte.rp';
         await auth.signInWithEmailAndPassword(email, val('login-pw'));
         // Remember me
         const remember = document.getElementById('login-remember');

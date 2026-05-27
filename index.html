@@ -436,6 +436,9 @@
           <button class="dash-nav-item active" onclick="dashPanel('rapport')" data-panel="rapport">
             <span class="nav-icon">📜</span> Rapport
           </button>
+          <button class="dash-nav-item" onclick="dashPanel('rapports')" data-panel="rapports">
+            <span class="nav-icon">📰</span> Rapports
+          </button>
           <button class="dash-nav-item" onclick="dashPanel('soumissions')" data-panel="soumissions">
             <span class="nav-icon">📋</span> Mes Soumissions
           </button>
@@ -546,6 +549,17 @@
               <button type="submit" class="btn btn-primary" id="rap-btn">⬡ Soumettre le Rapport</button>
             </form>
           </div>
+        </div>
+
+        <!-- Panel : Rapports validés -->
+        <div class="panel" id="p-rapports">
+          <div class="panel-hdr">
+            <div class="panel-title">📰 Rapports de l'Ordre</div>
+          </div>
+          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem">
+            Toutes les incantations validées par l'Ordre, classées par date.
+          </p>
+          <div id="rapports-list"></div>
         </div>
 
         <!-- Panel : Mes Soumissions -->
@@ -1433,6 +1447,7 @@ function dashPanel(name) {
     const p = document.getElementById('p-' + name);
     if (p) p.classList.add('active');
 
+    if (name === 'rapports')     loadRapports();
     if (name === 'soumissions')  loadMesSoumissions();
     if (name === 'incantations') loadDashIncantations();
     if (name === 'savoirs')      loadDashSavoirs();
@@ -1710,6 +1725,53 @@ async function creerIncanMembre(e) {
     }
     btn.disabled = false;
     btn.innerHTML = '✦ Créer l\'incantation';
+}
+
+function loadRapports() {
+    const list = document.getElementById('rapports-list');
+    if (!list) return;
+    list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+
+    db.collection('soumissions').where('statut', '==', 'valide').get().then(snap => {
+        if (snap.empty) {
+            list.innerHTML = '<div class="empty-state"><div class="empty-icon">📰</div><div class="empty-text">Aucun rapport validé pour le moment</div></div>';
+            return;
+        }
+        // Tri par date côté client (évite d'avoir besoin d'un index Firestore composite)
+        const docs = snap.docs.sort((a, b) => {
+            const ta = (a.data().dateValidation || a.data().dateCreation);
+            const tb = (b.data().dateValidation || b.data().dateCreation);
+            if (!ta || !tb) return 0;
+            return (tb.toDate ? tb.toDate() : new Date(tb)) - (ta.toDate ? ta.toDate() : new Date(ta));
+        });
+
+        list.innerHTML = docs.map(d => {
+            const s = d.data();
+            const dateAffichee = s.dateRap || formatDate(s.dateValidation || s.dateCreation);
+            return `<div class="glass-card soum-card valide" style="margin-bottom:.6rem;border-left:3px solid #2ecc71">
+                <div class="soum-head" style="cursor:pointer" onclick="this.closest('.soum-card').classList.toggle('open')">
+                    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+                        <strong style="color:var(--gold);font-size:.88rem">${s.membreNom || '—'}</strong>
+                        <span style="color:var(--text-light);font-size:.83rem">— ${s.incanNom || ''}</span>
+                        <span style="color:var(--text-muted);font-size:.75rem">📅 ${dateAffichee}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+                        <span class="pts pts-occulte">+${s.ptsGagnes || 0} occulte</span>
+                        <span class="soum-chev">▼</span>
+                    </div>
+                </div>
+                <div class="soum-body">
+                    <table style="width:100%;font-size:.82rem;border-collapse:collapse;margin-bottom:.4rem">
+                        ${s.accesSalle   ? `<tr><td style="color:var(--text-muted);width:38%;padding:.2rem 0">Accès salle :</td><td style="color:var(--text-light)">${s.accesSalle}</td></tr>` : ''}
+                        ${s.socleUtilise ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Socle :</td><td style="color:var(--text-light)">${s.socleUtilise}</td></tr>` : ''}
+                        ${s.cible        ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Cible :</td><td style="color:var(--text-light)">${s.cible}</td></tr>` : ''}
+                    </table>
+                    ${s.usage ? `<p style="font-size:.82rem;color:var(--text-muted);margin-top:.4rem;padding-top:.4rem;border-top:1px solid rgba(255,255,255,.05);line-height:1.6">${s.usage}</p>` : ''}
+                    ${s.screenshot ? `<div class="soum-screens" style="margin-top:.6rem"><img src="${s.screenshot}" loading="lazy" style="max-width:100%;border-radius:8px"></div>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+    });
 }
 
 function loadDashClassement() {
@@ -2106,15 +2168,28 @@ async function supprimerIncan(id, nom) {
 }
 
 async function seedIncantations() {
-    if (!confirm(`Importer / mettre à jour les ${INCANTATIONS_SEED.length} incantations de base ?\n(Les incantations du seed seront écrasées si elles existent déjà, les customs resteront intact.)` )) return;
-    const batch = db.batch();
+    if (!confirm(`🌱 Réimporter les ${INCANTATIONS_SEED.length} incantations officelles ?\n\nLes anciennes incantations non-custom seront supprimées pour éviter les doublons.\nLes incantations créées par les membres seront conservées.`)) return;
+
+    // 1. Supprimer toutes les incantations non-custom (officelles)
+    const existing = await db.collection('incantations').get();
+    if (existing.docs.length > 0) {
+        const delBatch = db.batch();
+        existing.docs.forEach(d => {
+            if (!d.data().createdBy) delBatch.delete(d.ref);
+        });
+        await delBatch.commit();
+    }
+
+    // 2. Réimporter avec ID stable (slug) — empêche les futurs doublons
+    const addBatch = db.batch();
     INCANTATIONS_SEED.forEach(i => {
-        // ID déterministe basé sur le nom — évite les doublons en cas de double seed
-        const slug = i.nom.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-        batch.set(db.collection('incantations').doc(slug), i);
+        const slug = i.nom.toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        addBatch.set(db.collection('incantations').doc(slug), i);
     });
-    await batch.commit();
-    alert('Incantations importées avec succès !');
+    await addBatch.commit();
+    alert(`✅ ${INCANTATIONS_SEED.length} incantations importées avec succès !`);
     loadAdminIncan();
 }
 

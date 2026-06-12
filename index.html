@@ -464,6 +464,34 @@
           </div>
         </div>
 
+        <!-- ── Setup initial (visible seulement si aucun membre) ── -->
+        <div id="setup-admin" style="display:none;margin-top:1rem;padding:1rem;background:rgba(201,165,42,.06);border:1px solid rgba(201,165,42,.25);border-radius:12px">
+          <div style="font-family:'Cinzel',serif;font-size:.75rem;color:var(--gold);letter-spacing:.1em;margin-bottom:.6rem;text-align:center">⬡ INITIALISATION — PREMIER COMPTE</div>
+          <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:.9rem;text-align:center;line-height:1.55">Aucun membre détecté. Créez votre compte <strong style="color:var(--gold)">Monarque</strong>.</p>
+          <form onsubmit="creerCompteAdmin(event)">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">Prénom RP</label>
+                <input class="form-control" type="text" id="sa-prenom" placeholder="Ex : Azariel" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nom RP</label>
+                <input class="form-control" type="text" id="sa-nom" placeholder="Ex : Von Drak" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Steam ID 64 <span style="color:var(--text-muted);font-size:.7rem">(sera votre identifiant de connexion)</span></label>
+              <input class="form-control" type="text" id="sa-steam" placeholder="76561198…" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mot de passe</label>
+              <input class="form-control" type="password" id="sa-pw" placeholder="Minimum 6 caractères" required autocomplete="new-password">
+            </div>
+            <div id="sa-alert" class="alert alert-danger" style="display:none;margin-bottom:.75rem"></div>
+            <button type="submit" class="btn btn-gold btn-full" id="sa-btn">⬡ Créer le compte Monarque</button>
+          </form>
+        </div>
+
         <a class="back-link" onclick="goTo('home')" style="cursor:pointer">← Retour au classement</a>
       </div>
     </div>
@@ -1149,7 +1177,7 @@ function showView(name) {
     updateNavLinks();
     initTilt();
     if (name === 'home')      loadHome();
-    if (name === 'auth')      prefillSteam64();
+    if (name === 'auth')      { prefillSteam64(); checkSetupAdmin(); }
     if (name === 'dashboard') loadDashboard();
     if (name === 'admin')     loadAdminData();
 }
@@ -1161,6 +1189,47 @@ function updateNavLinks() {
     setDisplay('nl-dash',   user ? '' : 'none');
     setDisplay('nl-admin',  (user && isAdmin) ? '' : 'none');
     setDisplay('nl-logout', user ? '' : 'none');
+}
+
+function checkSetupAdmin() {
+    db.collection('membres').limit(1).get().then(snap => {
+        const el = document.getElementById('setup-admin');
+        if (el) el.style.display = snap.empty ? '' : 'none';
+    });
+}
+
+async function creerCompteAdmin(e) {
+    e.preventDefault();
+    const btn     = document.getElementById('sa-btn');
+    const alertEl = document.getElementById('sa-alert');
+    const prenom  = document.getElementById('sa-prenom').value.trim();
+    const nom     = document.getElementById('sa-nom').value.trim();
+    const steam   = document.getElementById('sa-steam').value.trim();
+    const pw      = document.getElementById('sa-pw').value;
+
+    alertEl.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loader"></span> Création…';
+
+    try {
+        const email = steam.includes('@') ? steam : steam + '@sphere-occulte.rp';
+        const cred  = await auth.createUserWithEmailAndPassword(email, pw);
+        await db.collection('membres').doc(cred.user.uid).set({
+            prenom, nom, steamId: steam,
+            grade: 'Monarque des Ombres',
+            pointsOcculte: 999,
+            pointsManipulation: 0,
+            role: 'admin',
+            absent: false,
+            dateCreation: firebase.firestore.Timestamp.now()
+        });
+        // Connexion automatique après création
+    } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.style.display = '';
+        btn.disabled = false;
+        btn.innerHTML = '⬡ Créer le compte Monarque';
+    }
 }
 
 function prefillSteam64() {

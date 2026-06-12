@@ -508,6 +508,7 @@ body:has(a:hover) #cursor-ring,body:has(button:hover) #cursor-ring { width:42px;
 .grade-marcheur    { background:rgba(85,136,255,.1);   color:var(--g1); border:1px solid rgba(85,136,255,.32);  text-shadow:0 0 10px rgba(85,136,255,.5); }
 .grade-collecteur  { background:rgba(204,68,255,.1);   color:var(--g2); border:1px solid rgba(204,68,255,.35);  text-shadow:0 0 10px rgba(204,68,255,.5); }
 .grade-marchand    { background:rgba(255,51,51,.1);    color:var(--g3); border:1px solid rgba(255,51,51,.38);   text-shadow:0 0 10px rgba(255,51,51,.55); }
+.grade-monarque    { background:rgba(242,208,96,.12);  color:var(--g4); border:1px solid rgba(242,208,96,.45);  text-shadow:0 0 14px rgba(242,208,96,.7); animation:pulse-gold 3s ease-in-out infinite; }
 
 /* ── Points ──────────────────────────────────────────────────── */
 .pts { font-family:'Cinzel',serif; font-weight:700; font-size:.82rem; }

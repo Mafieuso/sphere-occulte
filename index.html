@@ -586,11 +586,6 @@
           </button>
         </nav>
 
-        <!-- Projet occulte éditable -->
-        <div id="projet-wrap" style="display:none">
-          <div style="font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:.35rem">Projet Occulte</div>
-          <textarea id="projet-input" class="form-control" rows="2" placeholder="Décrivez votre projet…" style="font-size:.78rem;resize:none" oninput="saveProjetOcculte()"></textarea>
-        </div>
 
         <div style="margin-top:auto;padding-top:1rem;border-top:1px solid rgba(255,255,255,.04)">
           <button class="sidebar-footer-btn danger" onclick="doLogout()" style="width:100%">
@@ -1698,12 +1693,6 @@ function loadDashboard() {
 
     const gradeIdx = getGradeIndex(currentMembre.grade);
 
-    // Projet occulte éditable
-    const projetWrap = document.getElementById('projet-wrap');
-    const projetInput = document.getElementById('projet-input');
-    if (projetWrap) projetWrap.style.display = '';
-    if (projetInput && currentMembre.projetOcculte !== undefined)
-        projetInput.value = currentMembre.projetOcculte || '';
 
     if (!dashLive) {
         dashLive = db.collection('membres').doc(currentMembre.id).onSnapshot(snap => {
@@ -2953,9 +2942,6 @@ async function sauvegarderProfil() {
         await db.collection('membres').doc(currentMembre.id).update(update);
         Object.assign(currentMembre, update);
         renderDashProfile(currentMembre);
-        // Sync projet sidebar
-        const projetInput = document.getElementById('projet-input');
-        if (projetInput) projetInput.value = projet;
         showAlert('profil-save-alert', '✦ Profil mis à jour avec succès.', 'success');
         editPhotoB64 = null;
     } catch(e) {
@@ -2989,12 +2975,17 @@ async function loadDashEcole() {
     if (emptyEl) { emptyEl.style.display = ''; emptyEl.innerHTML = '<div class="empty-state"><div class="loader"></div></div>'; }
 
     const isFondateur = gradeIdx >= 2;
-    const maxEcoles   = gradeIdx >= 3 ? 2 : 1; // Marchand = 2, Collecteur = 1
+    const maxEcoles   = gradeIdx >= 3 ? 2 : 1;
 
-    // Charger les écoles fondées par ce membre
-    const fondSnap = isFondateur
-        ? await db.collection('ecoles').where('fondateurId', '==', currentMembre.id).get()
-        : { docs: [], empty: true };
+    let fondSnap;
+    try {
+        fondSnap = isFondateur
+            ? await db.collection('ecoles').where('fondateurId', '==', currentMembre.id).get()
+            : { docs: [], empty: true };
+    } catch(err) {
+        if (emptyEl) emptyEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Erreur : ${err.message}</div></div>`;
+        return;
+    }
 
     if (btnCreer) btnCreer.style.display = (isFondateur && fondSnap.docs.length < maxEcoles) ? '' : 'none';
 

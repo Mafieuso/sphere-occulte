@@ -650,8 +650,7 @@ body.music-playing #music-player {
 .mp-bars.active span:nth-child(5) { animation:mpbar .9s  ease-in-out infinite .12s; }
 @keyframes mpbar { 0%,100%{height:3px} 50%{height:16px} }
 
-/* Curseur — icône note quand la musique joue */
-body.music-playing { cursor:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text y='20' font-size='18'>🎵</text></svg>") 12 12, default; }
+/* curseur normal partout */
 
 /* ── Splash Overlay ──────────────────────────────────────────── */
 #splash-overlay {

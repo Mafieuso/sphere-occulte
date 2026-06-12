@@ -1322,11 +1322,10 @@ auth.onAuthStateChanged(async user => {
                 currentMembre = { id: doc.id, ...doc.data() };
                 updateNavLinks();
                 if (currentMembre.firstLogin) {
-                    // Première connexion : forcer le changement de mot de passe
-                    showView(currentMembre.role === 'admin' ? 'admin' : 'dashboard');
+                    showView('home');
                     openModal('modal-change-pw');
                 } else {
-                    showView(currentMembre.role === 'admin' ? 'admin' : 'dashboard');
+                    showView('home');
                 }
             } else {
                 currentMembre = null;
@@ -1457,14 +1456,18 @@ function renderLbRows(containerId, membres, ecoleMap) {
         const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
 
         return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}">
-            <div class="lb-card-rank">${rankLabel}</div>
-            <div class="lb-card-avatar">${avatarHtml}</div>
-            <div class="lb-card-name">${name}</div>
-            <div class="lb-card-grade"><span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span></div>
-            <div class="lb-card-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</div>
-            <div class="lb-card-pts">
-                <span class="pts pts-occulte">🔮 ${pts}</span>
-                <span class="pts pts-manip">✦ ${manip}</span>
+            <div class="lb-card-top">
+                <div class="lb-card-rank">${rankLabel}</div>
+                <div class="lb-card-avatar">${avatarHtml}</div>
+                <div class="lb-card-info">
+                    <div class="lb-card-name">${name}</div>
+                    <span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span>
+                    <div class="lb-card-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</div>
+                    <div class="lb-card-pts">
+                        <span class="pts pts-occulte">🔮 ${pts}</span>
+                        <span class="pts pts-manip">✦ ${manip}</span>
+                    </div>
+                </div>
             </div>
             <div class="lb-card-progress">
                 <div class="channel-progress-bar"><div class="channel-progress-fill" style="width:${progress}%"></div></div>
@@ -3274,15 +3277,13 @@ function compressScreen(file) {
 (function() {
     const overlay = document.getElementById('splash-overlay');
     if (!overlay) return;
-    if (sessionStorage.getItem('sphere_entered')) {
-        overlay.style.display = 'none';
-        return;
-    }
     overlay.style.display = '';
     overlay.addEventListener('click', function() {
-        sessionStorage.setItem('sphere_entered', '1');
         overlay.classList.add('splash-closing');
-        setTimeout(() => { overlay.style.display = 'none'; }, 900);
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            if (typeof showView === 'function') showView('home');
+        }, 900);
     }, { once: true });
 })();
 

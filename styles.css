@@ -591,3 +591,78 @@ textarea.form-control { resize:vertical; min-height:100px; }
     .grade-showcase { grid-template-columns:1fr; }
     .hero-stats { gap:1.5rem; }
 }
+
+/* ── Lecteur Audio ───────────────────────────────────────────── */
+#music-player {
+    position:fixed; bottom:1.4rem; left:1.4rem; z-index:300;
+    background:rgba(6,3,14,.9);
+    border:1px solid rgba(201,165,42,.2); border-radius:16px;
+    padding:.75rem 1rem .65rem;
+    backdrop-filter:blur(22px);
+    box-shadow:0 0 40px rgba(0,0,0,.7), 0 0 20px rgba(0,0,0,.4);
+    width:220px;
+    transition:border-color .4s, box-shadow .4s;
+    user-select:none;
+}
+#music-player.playing-active,
+body.music-playing #music-player {
+    border-color:rgba(201,165,42,.5);
+    box-shadow:0 0 40px rgba(0,0,0,.7), 0 0 30px rgba(201,165,42,.12), 0 0 0 1px rgba(201,165,42,.08);
+}
+.mp-top { display:flex; align-items:center; gap:.65rem; margin-bottom:.55rem; }
+.mp-info { flex:1; min-width:0; }
+.mp-title { font-family:'Cinzel',serif; font-size:.72rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.04em; }
+.mp-sub   { font-size:.6rem; color:var(--text-muted); margin-top:.1rem; letter-spacing:.04em; }
+.mp-playbtn {
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(135deg,var(--crimson),var(--blood));
+    border:1px solid rgba(201,165,42,.3);
+    color:var(--gold-bright); font-size:.8rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .2s; box-shadow:0 0 12px rgba(139,0,0,.4);
+}
+.mp-playbtn:hover { transform:scale(1.1); box-shadow:0 0 20px rgba(139,0,0,.6); }
+.mp-vol-row { display:flex; align-items:center; gap:.45rem; }
+.mp-vbtn { background:none; border:none; color:var(--text-muted); font-size:.85rem; cursor:pointer; padding:0 .1rem; transition:color .2s; line-height:1; }
+.mp-vbtn:hover { color:var(--gold); }
+.mp-slider-wrap { flex:1; }
+.mp-slider {
+    -webkit-appearance:none; appearance:none;
+    width:100%; height:3px; border-radius:99px;
+    background:rgba(255,255,255,.1); cursor:pointer; outline:none;
+}
+.mp-slider::-webkit-slider-thumb {
+    -webkit-appearance:none; width:11px; height:11px; border-radius:50%;
+    background:var(--gold-bright); box-shadow:0 0 8px rgba(201,165,42,.6);
+    cursor:pointer;
+}
+.mp-slider::-moz-range-thumb {
+    width:11px; height:11px; border-radius:50%; border:none;
+    background:var(--gold-bright); box-shadow:0 0 8px rgba(201,165,42,.6);
+}
+
+/* Barres animées */
+.mp-bars { display:flex; align-items:flex-end; gap:2.5px; height:18px; flex-shrink:0; }
+.mp-bars span {
+    display:block; width:3px; background:rgba(201,165,42,.35);
+    border-radius:2px; height:4px; transition:background .3s;
+}
+.mp-bars.active span { background:var(--gold); }
+.mp-bars.active span:nth-child(1) { animation:mpbar .85s ease-in-out infinite; }
+.mp-bars.active span:nth-child(2) { animation:mpbar .65s ease-in-out infinite .1s; }
+.mp-bars.active span:nth-child(3) { animation:mpbar 1.0s ease-in-out infinite .05s; }
+.mp-bars.active span:nth-child(4) { animation:mpbar .75s ease-in-out infinite .2s; }
+.mp-bars.active span:nth-child(5) { animation:mpbar .9s  ease-in-out infinite .12s; }
+@keyframes mpbar { 0%,100%{height:3px} 50%{height:16px} }
+
+/* Curseur — change quand la musique joue */
+body.music-playing #cursor-dot {
+    background:var(--gold-bright);
+    box-shadow:0 0 14px var(--gold), 0 0 30px rgba(201,165,42,.5);
+    width:8px; height:8px;
+}
+body.music-playing #cursor-ring {
+    border-color:rgba(201,165,42,.75);
+    width:34px; height:34px;
+    animation:rotate-cw 3s linear infinite;
+}

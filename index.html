@@ -584,8 +584,8 @@
           <button class="dash-nav-item" id="nav-ecole" onclick="dashPanel('ecole')" data-panel="ecole" style="display:none">
             <span class="nav-icon">🏛</span> Mon École
           </button>
-          <button class="dash-nav-item" onclick="dashPanel('channel')" data-panel="channel">
-            <span class="nav-icon">🔮</span> Channel
+          <button class="dash-nav-item" onclick="dashPanel('profil')" data-panel="profil">
+            <span class="nav-icon">👤</span> Mon Profil
           </button>
         </nav>
 
@@ -873,13 +873,34 @@
           <div id="dash-lb-list"></div>
         </div>
 
-        <!-- Panel : Channel -->
-        <div class="panel" id="p-channel">
+        <!-- Panel : Mon Profil -->
+        <div class="panel" id="p-profil">
           <div class="panel-hdr">
-            <div class="panel-title">🔮 Channel de la Sphère</div>
-            <span style="font-size:.72rem;color:var(--text-muted)" id="channel-count"></span>
+            <div class="panel-title">👤 Mon Profil</div>
           </div>
-          <div id="channel-grid" class="channel-grid"></div>
+          <div class="profil-edit-wrap">
+            <!-- Photo -->
+            <div class="profil-photo-zone" onclick="document.getElementById('edit-photo-input').click()">
+              <div class="profil-photo-preview" id="edit-photo-preview">
+                <div class="profil-photo-init" id="edit-photo-init">?</div>
+              </div>
+              <div class="profil-photo-hint">Cliquer pour changer la photo</div>
+            </div>
+            <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="editPhotoChosen(this)">
+            <!-- Champs -->
+            <div class="form-group" style="margin-top:1.5rem">
+              <label class="form-label">Prénom</label>
+              <input type="text" id="edit-prenom" class="form-input" placeholder="Prénom">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom</label>
+              <input type="text" id="edit-nom" class="form-input" placeholder="Nom">
+            </div>
+            <div id="edit-profil-alert" class="alert" style="display:none"></div>
+            <button class="btn btn-gold" style="width:100%;margin-top:1rem" onclick="sauvegarderProfil()">
+              Sauvegarder
+            </button>
+          </div>
         </div>
 
         <!-- Panel : École -->
@@ -1389,45 +1410,70 @@ function filtrerHome() {
     if (filterGrade) m = m.filter(x => x.grade === filterGrade);
     if (filterPres)  m = m.filter(x => !x.absent);
     if (sort === 'manip') m.sort((a, b) => (b.pointsManipulation || 0) - (a.pointsManipulation || 0));
-    renderLbRows('lb-list', m);
+    renderLbRows('lb-list', m, null);
 }
 
-function renderLbRows(containerId, membres) {
+function sortByGrade(membres) {
+    return [...membres].sort((a, b) => {
+        const gi = getGradeIndex(b.grade) - getGradeIndex(a.grade);
+        if (gi !== 0) return gi;
+        return (b.pointsOcculte || 0) - (a.pointsOcculte || 0);
+    });
+}
+
+function renderLbRows(containerId, membres, ecoleMap) {
     const el = document.getElementById(containerId);
     if (!el) return;
     if (!membres.length) {
         el.innerHTML = '<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">Aucun membre</div></div>';
         return;
     }
-    el.innerHTML = membres.map((m, i) => {
-        const rank   = i + 1;
-        const medal  = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
-        const topCls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
-        const name   = displayName(m);
-        const init   = (m.prenom || m.nom || '?')[0].toUpperCase();
-        const gradeIdx = GRADES.findIndex(g => g.nom === m.grade);
-        const next     = GRADES[gradeIdx + 1];
-        const evoText  = next
-            ? `${next.minOcculte - (m.pointsOcculte || 0)} pts → ${next.nom}`
-            : '✦ Rang max';
+    const sorted = sortByGrade(membres);
+    el.innerHTML = sorted.map((m, i) => {
+        const gradeIdx  = getGradeIndex(m.grade);
+        const gradeDef  = GRADES[gradeIdx] || GRADES[0];
+        const nextGrade = GRADES[gradeIdx + 1];
+        const pts       = m.pointsOcculte || 0;
+        const manip     = m.pointsManipulation || 0;
+        const name      = displayName(m);
+        const init      = (m.prenom || m.nom || '?')[0].toUpperCase();
+        const isMon     = gradeIdx === 4;
+
+        let progress = 100, progressLabel = '✦ Grade maximum';
+        if (nextGrade) {
+            const cur  = gradeDef.minOcculte;
+            const next = nextGrade.minOcculte;
+            progress = Math.min(100, Math.max(0, Math.round(((pts - cur) / (next - cur)) * 100)));
+            progressLabel = `${next - pts} pts → ${nextGrade.nom}`;
+        }
+
+        const ecoleName = ecoleMap && m.ecoleId && ecoleMap[m.ecoleId]
+            ? ecoleMap[m.ecoleId] : 'École Générale';
+
         const avatarHtml = m.photoURL
-            ? `<div class="lb-avatar"><img src="${m.photoURL}" alt="${name}" loading="lazy"></div>`
-            : `<div class="lb-avatar"><div class="lb-avatar-init">${init}</div></div>`;
-        return `<div class="lb-row ${topCls} ${m.absent ? 'lb-absent' : ''}" data-tilt>
-            <div class="lb-rank">${medal}</div>
-            <div style="display:flex;align-items:center;gap:.6rem;min-width:0">
-                ${avatarHtml}
-                <div class="lb-name-block">
-                    <div class="lb-name">${name}</div>
-                    <div style="font-size:.68rem;color:var(--text-muted)">${evoText}</div>
-                </div>
+            ? `<img src="${m.photoURL}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
+            : `<div class="lb-avatar-init">${init}</div>`;
+
+        const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+
+        return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}">
+            <div class="lb-card-rank">${rankLabel}</div>
+            <div class="lb-card-avatar">${avatarHtml}</div>
+            <div class="lb-card-name">${name}</div>
+            <div class="lb-card-grade"><span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span></div>
+            <div class="lb-card-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</div>
+            <div class="lb-card-pts">
+                <span class="pts pts-occulte">🔮 ${pts}</span>
+                <span class="pts pts-manip">✦ ${manip}</span>
             </div>
-            <div>${badgeGrade(m.grade)}</div>
-            <div class="lb-pts-col"><span class="pts pts-manip">${m.pointsManipulation || 0}</span></div>
-            <div class="lb-pts-col"><span class="pts pts-occulte">${m.pointsOcculte || 0}</span></div>
+            <div class="lb-card-progress">
+                <div class="channel-progress-bar"><div class="channel-progress-fill" style="width:${progress}%"></div></div>
+                <div class="channel-progress-label">${progressLabel}</div>
+            </div>
+            ${m.projetOcculte ? `<div class="channel-projet">📜 ${m.projetOcculte}</div>` : ''}
+            ${m.absent ? `<div style="font-size:.65rem;color:var(--text-muted);margin-top:.4rem;font-family:'Cinzel',serif;letter-spacing:.06em">ABSENT</div>` : ''}
         </div>`;
     }).join('');
-    initTilt();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1690,7 +1736,7 @@ function dashPanel(name) {
     if (name === 'savoirs')      loadDashSavoirs();
     if (name === 'classement')   loadDashClassement();
     if (name === 'ecole')        loadDashEcole();
-    if (name === 'channel')      loadChannel();
+    if (name === 'profil')       loadDashProfil();
 }
 
 function loadIncanForRap() {
@@ -2060,9 +2106,18 @@ function loadRapports() {
 }
 
 function loadDashClassement() {
-    db.collection('membres').orderBy('pointsOcculte', 'desc').get().then(snap => {
-        const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderLbRows('dash-lb-list', membres);
+    const list = document.getElementById('dash-lb-list');
+    if (list) list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    Promise.all([
+        db.collection('membres').get(),
+        db.collection('ecoles').get()
+    ]).then(([memSnap, ecoleSnap]) => {
+        const membres = memSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const ecoleMap = {};
+        ecoleSnap.forEach(d => { ecoleMap[d.id] = d.data().nom; });
+        renderLbRows('dash-lb-list', membres, ecoleMap);
+    }).catch(() => {
+        if (list) list.innerHTML = '<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">Erreur de chargement</div></div>';
     });
 }
 
@@ -2794,6 +2849,57 @@ async function loadChannel() {
             ${m.absent ? `<div style="font-size:.65rem;color:var(--text-muted);margin-top:.3rem;font-family:'Cinzel',serif;letter-spacing:.06em">ABSENT</div>` : ''}
         </div>`;
     }).join('');
+}
+
+/* ── Profil édition ─────────────────────────────────────────── */
+let editPhotoB64 = null;
+
+function loadDashProfil() {
+    if (!currentMembre) return;
+    const m = currentMembre;
+    document.getElementById('edit-prenom').value = m.prenom || '';
+    document.getElementById('edit-nom').value    = m.nom    || '';
+    editPhotoB64 = null;
+    const preview = document.getElementById('edit-photo-preview');
+    const initEl  = document.getElementById('edit-photo-init');
+    if (m.photoURL) {
+        preview.innerHTML = `<img src="${m.photoURL}" style="width:100%;height:100%;object-fit:cover">`;
+    } else {
+        if (initEl) initEl.textContent = ((m.prenom || m.nom || '?')[0]).toUpperCase();
+        preview.innerHTML = `<div class="profil-photo-init">${((m.prenom || m.nom || '?')[0]).toUpperCase()}</div>`;
+    }
+    const alert = document.getElementById('edit-profil-alert');
+    if (alert) alert.style.display = 'none';
+}
+
+function editPhotoChosen(input) {
+    const f = input.files[0];
+    if (!f) return;
+    compressPhoto(f, 300, 300, 0.82).then(b64 => {
+        editPhotoB64 = b64;
+        document.getElementById('edit-photo-preview').innerHTML =
+            `<img src="${b64}" style="width:100%;height:100%;object-fit:cover">`;
+    });
+}
+
+async function sauvegarderProfil() {
+    const alertEl = document.getElementById('edit-profil-alert');
+    const prenom  = (document.getElementById('edit-prenom')?.value || '').trim();
+    const nom     = (document.getElementById('edit-nom')?.value    || '').trim();
+    if (!prenom || !nom) {
+        showAlert('edit-profil-alert', 'Prénom et nom requis.', 'error'); return;
+    }
+    if (!currentMembre) return;
+    const update = { prenom, nom };
+    if (editPhotoB64) update.photoURL = editPhotoB64;
+    try {
+        await db.collection('membres').doc(currentMembre.id).update(update);
+        Object.assign(currentMembre, update);
+        renderDashProfile(currentMembre);
+        showAlert('edit-profil-alert', 'Profil mis à jour !', 'success');
+    } catch(e) {
+        showAlert('edit-profil-alert', 'Erreur : ' + e.message, 'error');
+    }
 }
 
 let projetDebounce = null;

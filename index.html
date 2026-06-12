@@ -578,10 +578,7 @@
           <button class="dash-nav-item" onclick="dashPanel('reglement')" data-panel="reglement">
             <span class="nav-icon">⚖</span> Règlement
           </button>
-          <button class="dash-nav-item" onclick="dashPanel('classement')" data-panel="classement">
-            <span class="nav-icon">⬡</span> Classement
-          </button>
-          <button class="dash-nav-item" id="nav-ecole" onclick="dashPanel('ecole')" data-panel="ecole" style="display:none">
+          <button class="dash-nav-item" id="nav-ecole" onclick="dashPanel('ecole')" data-panel="ecole">
             <span class="nav-icon">🏛</span> Mon École
           </button>
           <button class="dash-nav-item" onclick="dashPanel('profil')" data-panel="profil">
@@ -1700,8 +1697,6 @@ function loadDashboard() {
     loadIncanForRap();
 
     const gradeIdx = getGradeIndex(currentMembre.grade);
-    const navEcole = document.getElementById('nav-ecole');
-    if (navEcole) navEcole.style.display = gradeIdx >= 2 ? '' : 'none';
 
     // Projet occulte éditable
     const projetWrap = document.getElementById('projet-wrap');

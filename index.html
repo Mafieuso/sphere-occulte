@@ -235,6 +235,89 @@
   </div>
 </div>
 
+<!-- Modal : Créer / Renommer une École -->
+<div class="modal-overlay hidden" id="modal-creer-ecole">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <span class="modal-head-title" id="modal-ecole-title">Fonder une École</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-creer-ecole')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ecole-edit-id">
+      <div class="form-group">
+        <label class="form-label">Nom de l'École</label>
+        <input class="form-control" type="text" id="ecole-nom" placeholder="Ex : Cercle des Ombres Silencieuses" required maxlength="60">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description (optionnel)</label>
+        <textarea class="form-control" id="ecole-desc" rows="3" placeholder="Doctrine, objectifs, spécialisation de cette école…"></textarea>
+      </div>
+      <div id="ecole-alert" class="alert alert-danger" style="display:none;margin-bottom:.75rem"></div>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
+        <button class="btn btn-ghost" onclick="closeModal('modal-creer-ecole')">Annuler</button>
+        <button class="btn btn-violet" onclick="confirmerCreerEcole()">🏛 Fonder</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Ajouter un membre à une École -->
+<div class="modal-overlay hidden" id="modal-add-membre-ecole">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <span class="modal-head-title">Ajouter un Membre</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-add-membre-ecole')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="add-membre-ecole-id">
+      <div class="form-group">
+        <label class="form-label">Rechercher un membre</label>
+        <input class="form-control" type="text" id="add-membre-search" placeholder="Nom, prénom…" oninput="rechercherMembreEcole()">
+      </div>
+      <div id="add-membre-results" style="max-height:240px;overflow-y:auto;margin-top:.5rem;display:flex;flex-direction:column;gap:.4rem"></div>
+      <div id="add-membre-alert" class="alert alert-danger" style="display:none;margin-top:.75rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Créer une incantation d'école -->
+<div class="modal-overlay hidden" id="modal-incan-ecole">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <span class="modal-head-title">Incantation d'École</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-incan-ecole')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ie-ecole-id">
+      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem">Cette incantation sera <strong style="color:var(--g2)">exclusive</strong> aux membres de votre école.</p>
+      <div class="form-group">
+        <label class="form-label">Nom</label>
+        <input class="form-control" type="text" id="ie-nom" placeholder="Ex : Invocation des Ombres Liées" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description / Utilisation</label>
+        <textarea class="form-control" id="ie-desc" rows="3" placeholder="Décrivez l'effet et conditions d'utilisation…" required></textarea>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Manipulation Occulte</label>
+          <input class="form-control" type="number" id="ie-manip" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Puissance Occulte</label>
+          <input class="form-control" type="number" id="ie-pts" min="0" value="0">
+        </div>
+      </div>
+      <div id="ie-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
+      <div id="ie-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
+        <button class="btn btn-ghost" onclick="closeModal('modal-incan-ecole')">Annuler</button>
+        <button class="btn btn-violet" onclick="confirmerCreerIncanEcole()">✦ Créer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ APP ═══ -->
 <div id="app">
 
@@ -453,6 +536,9 @@
           </button>
           <button class="dash-nav-item" onclick="dashPanel('classement')" data-panel="classement">
             <span class="nav-icon">⬡</span> Classement
+          </button>
+          <button class="dash-nav-item" id="nav-ecole" onclick="dashPanel('ecole')" data-panel="ecole" style="display:none">
+            <span class="nav-icon">🏛</span> Mon École
           </button>
         </nav>
 
@@ -732,6 +818,29 @@
             <div class="panel-title">⬡ Classement de l'Ordre</div>
           </div>
           <div id="dash-lb-list"></div>
+        </div>
+
+        <!-- Panel : École -->
+        <div class="panel" id="p-ecole">
+          <div class="panel-hdr">
+            <div class="panel-title">🏛 Mon École</div>
+            <button class="btn btn-violet btn-sm" id="btn-creer-ecole" onclick="ouvrirCreerEcole()" style="display:none">+ Fonder une École</button>
+          </div>
+          <!-- Vue membre non-fondateur -->
+          <div id="ecole-membre-view" style="display:none">
+            <div class="ecole-card" id="ecole-membre-card"></div>
+          </div>
+          <!-- Vue fondateur -->
+          <div id="ecole-fondateur-view" style="display:none">
+            <div id="ecole-fondateur-list"></div>
+          </div>
+          <!-- Vue vide -->
+          <div id="ecole-empty-view">
+            <div class="empty-state">
+              <div class="empty-icon">🏛</div>
+              <div class="empty-text">Chargement…</div>
+            </div>
+          </div>
         </div>
 
       </div><!-- /dash-main -->
@@ -1399,6 +1508,12 @@ function loadDashboard() {
     if (!currentMembre) return;
     renderDashProfile(currentMembre);
     loadIncanForRap();
+
+    // Afficher le nav "Mon École" pour Collecteur (grade ≥ 2) et plus
+    const gradeIdx = getGradeIndex(currentMembre.grade);
+    const navEcole = document.getElementById('nav-ecole');
+    if (navEcole) navEcole.style.display = gradeIdx >= 2 ? '' : 'none';
+
     if (!dashLive) {
         dashLive = db.collection('membres').doc(currentMembre.id).onSnapshot(snap => {
             if (snap.exists) {
@@ -1458,6 +1573,7 @@ function dashPanel(name) {
     if (name === 'incantations') loadDashIncantations();
     if (name === 'savoirs')      loadDashSavoirs();
     if (name === 'classement')   loadDashClassement();
+    if (name === 'ecole')        loadDashEcole();
 }
 
 function loadIncanForRap() {
@@ -1471,23 +1587,36 @@ function loadIncanForRap() {
     const rapDateEl = document.getElementById('rap-date');
     if (rapDateEl && !rapDateEl.value) rapDateEl.value = new Date().toISOString().split('T')[0];
 
-    db.collection('incantations').orderBy('nom').get().then(snap => {
+    const memEcoleId = currentMembre.ecoleId || null;
+    const queries    = [db.collection('incantations').orderBy('nom').get()];
+    if (memEcoleId) queries.push(db.collection('incantations').where('ecoleId', '==', memEcoleId).get());
+
+    Promise.all(queries).then(([pubSnap, ecoleSnap]) => {
         const sel = document.getElementById('rap-incan');
         if (!sel) return;
-        // Filtrer selon le grade du membre
-        const accessible = snap.docs.filter(d => {
+
+        // Incantations publiques accessibles au grade
+        const pubAccessible = pubSnap.docs.filter(d => {
             const i = d.data();
-            const reqIdx = (i.gradeOrdre !== undefined) ? i.gradeOrdre : 0;
-            return reqIdx <= memberGradeIdx;
+            return !i.ecoleId && (i.gradeOrdre !== undefined ? i.gradeOrdre : 0) <= memberGradeIdx;
         });
-        sel.innerHTML = '<option value="">— Choisir une incantation —</option>' +
-            accessible.map(d => {
-                const i     = d.data();
-                const pts   = i.ptsOcculte || i.pointsOcculte || 0;
-                const grade = GRADES[i.gradeOrdre || 0];
-                const socle = (i.socle || '').replace(/"/g, '&quot;');
-                return `<option value="${d.id}" data-pts="${pts}" data-nom="${i.nom}" data-socle="${socle}">${i.nom} [${grade?.nom || 'Incantateur'}] — +${pts} Puiss. Occ.</option>`;
-            }).join('');
+
+        const ecoleAccessible = ecoleSnap ? ecoleSnap.docs : [];
+
+        const toOption = d => {
+            const i     = d.data();
+            const pts   = i.ptsOcculte || i.pointsOcculte || 0;
+            const grade = GRADES[i.gradeOrdre || 0];
+            const socle = (i.socle || '').replace(/"/g, '&quot;');
+            const label = i.ecoleId ? `[École] ${i.nom}` : `${i.nom} [${grade?.nom || 'Incantateur'}]`;
+            return `<option value="${d.id}" data-pts="${pts}" data-nom="${i.nom}" data-socle="${socle}">${label} — +${pts} Puiss. Occ.</option>`;
+        };
+
+        sel.innerHTML = '<option value="">— Choisir une incantation —</option>'
+            + pubAccessible.map(toOption).join('')
+            + (ecoleAccessible.length
+                ? '<option disabled>── Incantations d\'École ──</option>' + ecoleAccessible.map(toOption).join('')
+                : '');
     });
 }
 
@@ -1634,9 +1763,18 @@ function loadDashIncantations() {
 
     grid.innerHTML = '<p style="color:var(--text-muted)">Chargement…</p>';
 
-    db.collection('incantations').get().then(snap => {
-        // Filtrer : seulement les incantations <= grade du membre
-        const accessible = snap.docs.filter(d => {
+    const memEcoleId = currentMembre.ecoleId || null;
+
+    // Charger incantations publiques + incantations de l'école du membre en parallèle
+    const queries = [db.collection('incantations').get()];
+    if (memEcoleId) queries.push(db.collection('incantations').where('ecoleId', '==', memEcoleId).get());
+
+    Promise.all(queries).then(([pubSnap, ecoleSnap]) => {
+        const pubDocs   = pubSnap.docs.filter(d => !d.data().ecoleId); // seulement publiques
+        const ecoleDocs = ecoleSnap ? ecoleSnap.docs : [];
+
+        // Filtrer publiques selon grade
+        const accessible = pubDocs.filter(d => {
             const i   = d.data();
             const req = (i.gradeOrdre !== undefined) ? i.gradeOrdre : 0;
             return req <= memberGradeIdx;
@@ -1646,14 +1784,14 @@ function loadDashIncantations() {
             return ao !== bo ? ao - bo : (a.data().nom || '').localeCompare(b.data().nom || '');
         });
 
-        if (!accessible.length) {
+        if (!accessible.length && !ecoleDocs.length) {
             grid.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Aucune incantation disponible à votre grade</div></div>';
             return;
         }
 
-        // Grouper par grade pour l'affichage
         let lastGradeOrdre = -1;
         let html = '';
+
         accessible.forEach(d => {
             const i        = d.data();
             const gradeIdx = i.gradeOrdre || 0;
@@ -1661,7 +1799,6 @@ function loadDashIncantations() {
             const pts      = i.ptsOcculte || i.pointsOcculte || 0;
             const cout     = i.cout || i.pointsManipulation || 0;
 
-            // Séparateur de grade
             if (gradeIdx !== lastGradeOrdre) {
                 lastGradeOrdre = gradeIdx;
                 html += `<div style="grid-column:1/-1;margin:${html?'1rem':0} 0 .25rem">
@@ -1686,6 +1823,31 @@ function loadDashIncantations() {
                 <div style="font-size:.7rem;color:var(--text-muted);text-align:center;margin-top:.3rem">▼ Cliquer pour voir les détails</div>
             </div>`;
         });
+
+        // Section incantations d'école
+        if (ecoleDocs.length) {
+            html += `<div style="grid-column:1/-1;margin:1rem 0 .25rem">
+                <div class="section-title" style="font-size:.65rem;color:var(--g2)">🏛 Incantations de votre École</div>
+            </div>`;
+            ecoleDocs.forEach(d => {
+                const i    = d.data();
+                const pts  = i.ptsOcculte || i.pointsOcculte || 0;
+                const cout = i.cout || i.pointsManipulation || 0;
+                incanCache.set(d.id, i);
+                html += `<div class="ecole-card incan-card" style="cursor:pointer" onclick="viewIncanById('${d.id}')">
+                    <div style="font-size:1.6rem;text-align:center;color:var(--g2);filter:drop-shadow(0 0 10px rgba(204,68,255,.5))">🏛</div>
+                    <div class="incan-card-name">${i.nom}</div>
+                    <div class="incan-card-meta">
+                        <span class="ecole-badge">École Exclusive</span>
+                    </div>
+                    <p style="font-size:.78rem;color:var(--text-muted);line-height:1.5;flex:1">${i.utilisation || i.description || ''}</p>
+                    <div class="incan-card-pts">
+                        ${cout ? `<span class="pts pts-manip">+${cout} Manip. Occ.</span>` : ''}
+                        ${pts  ? `<span class="pts pts-occulte">+${pts} Puiss. Occ.</span>` : ''}
+                    </div>
+                </div>`;
+            });
+        }
 
         grid.innerHTML = html;
         initTilt();
@@ -1964,18 +2126,37 @@ async function validerSoum(soumId, membreId, pts) {
     const batch   = db.batch();
     const soumRef = db.collection('soumissions').doc(soumId);
     const memRef  = db.collection('membres').doc(membreId);
-    const memDoc  = await memRef.get();
-    const m       = memDoc.data();
+
+    // Lecture parallèle : membre + Monarques
+    const drainPts = pts > 0 ? Math.max(1, Math.floor(pts * 0.2)) : 0;
+    const [memDoc, monarqueSnap] = await Promise.all([
+        memRef.get(),
+        drainPts > 0
+            ? db.collection('membres').where('grade', '==', 'Monarque des Ombres').get()
+            : Promise.resolve({ docs: [] })
+    ]);
+
+    const m          = memDoc.data();
     const newOcculte = (m.pointsOcculte || 0) + pts;
     const newGrade   = getGrade(newOcculte);
+
     batch.update(soumRef, { statut: 'valide', dateValidation: firebase.firestore.Timestamp.now() });
     batch.update(memRef,  {
         pointsOcculte: newOcculte,
         grade: newGrade,
         ...(newGrade !== m.grade ? { dateEvolution: firebase.firestore.Timestamp.now() } : {})
     });
+
+    // Drain Monarque : +20% arrondi à l'entier (min 1) pour chaque Monarque des Ombres
+    monarqueSnap.docs.forEach(mDoc => {
+        if (mDoc.id === membreId) return; // pas de drain si le membre IS le Monarque
+        const md = mDoc.data();
+        const newMOcculte = (md.pointsOcculte || 0) + drainPts;
+        batch.update(mDoc.ref, { pointsOcculte: newMOcculte, grade: getGrade(newMOcculte) });
+    });
+
     await batch.commit();
-    await logAction('validation', `+${pts} pts → ${displayName(m)} (${newGrade})`, pts);
+    await logAction('validation', `+${pts} pts → ${displayName(m)} (${newGrade})${monarqueSnap.docs.length ? ` | Monarque +${drainPts}` : ''}`, pts);
 }
 
 function ouvrirRefus(soumId, membreId, pts) {
@@ -2403,6 +2584,307 @@ document.addEventListener('keydown', e => {
 document.querySelectorAll('.modal-overlay').forEach(ov => {
     ov.addEventListener('click', e => { if (e.target === ov) ov.classList.add('hidden'); });
 });
+
+/* ═══════════════════════════════════════════════════════
+   SYSTÈME D'ÉCOLE
+═══════════════════════════════════════════════════════ */
+
+async function loadDashEcole() {
+    const gradeIdx = getGradeIndex(currentMembre.grade);
+    const emptyEl  = document.getElementById('ecole-empty-view');
+    const fondEl   = document.getElementById('ecole-fondateur-view');
+    const memEl    = document.getElementById('ecole-membre-view');
+    const btnCreer = document.getElementById('btn-creer-ecole');
+
+    [fondEl, memEl].forEach(el => el && (el.style.display = 'none'));
+    if (emptyEl) { emptyEl.style.display = ''; emptyEl.innerHTML = '<div class="empty-state"><div class="loader"></div></div>'; }
+
+    const isFondateur = gradeIdx >= 2;
+    const maxEcoles   = gradeIdx >= 3 ? 2 : 1; // Marchand = 2, Collecteur = 1
+
+    // Charger les écoles fondées par ce membre
+    const fondSnap = isFondateur
+        ? await db.collection('ecoles').where('fondateurId', '==', currentMembre.id).get()
+        : { docs: [], empty: true };
+
+    if (btnCreer) btnCreer.style.display = (isFondateur && fondSnap.docs.length < maxEcoles) ? '' : 'none';
+
+    if (isFondateur && !fondSnap.empty) {
+        // Vue fondateur : gérer ses écoles
+        if (emptyEl) emptyEl.style.display = 'none';
+        fondEl.style.display = '';
+        let html = '';
+
+        for (const eDoc of fondSnap.docs) {
+            const e = eDoc.data();
+
+            // Charger membres + incantations d'école en parallèle
+            const [membresSnaps, incanSnap] = await Promise.all([
+                Promise.all((e.membres || []).map(uid => db.collection('membres').doc(uid).get())),
+                db.collection('incantations').where('ecoleId', '==', eDoc.id).get()
+            ]);
+
+            const membresValides = membresSnaps.filter(s => s.exists);
+
+            html += `<div class="ecole-card" style="margin-bottom:1.5rem">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
+                    <div>
+                        <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--g2);text-shadow:0 0 12px rgba(204,68,255,.4)">${e.nom}</div>
+                        ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
+                    </div>
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                        <button class="btn btn-violet btn-sm" onclick="ouvrirAddMembreEcole('${eDoc.id}')">+ Membre</button>
+                        <button class="btn btn-ghost btn-sm"  onclick="ouvrirIncanEcole('${eDoc.id}')">✦ Incantation</button>
+                    </div>
+                </div>
+
+                <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:.5rem">Membres (${membresValides.length})</div>
+                ${membresValides.length ? membresValides.map(s => {
+                    const mb = s.data();
+                    const init = ((mb.prenom || '')[0] || (mb.nom || '')[0] || '?').toUpperCase();
+                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem .6rem;background:rgba(255,255,255,.025);border-radius:8px;margin-bottom:.35rem">
+                        <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(204,68,255,.3);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(100,20,140,.5),rgba(60,0,90,.5));font-family:'Cinzel',serif;font-size:.8rem;color:var(--g2)">
+                            ${mb.photoURL ? `<img src="${mb.photoURL}" style="width:100%;height:100%;object-fit:cover">` : init}
+                        </div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${displayName(mb)}</div>
+                            <div style="font-size:.72rem;color:var(--text-muted)">${mb.grade || ''}</div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="retirerMembreEcole('${eDoc.id}','${s.id}','${(displayName(mb)).replace(/'/g,"\\'")}')">✕</button>
+                    </div>`;
+                }).join('') : `<p style="font-size:.8rem;color:var(--text-muted);padding:.5rem 0">Aucun membre pour l'instant.</p>`}
+
+                ${incanSnap.docs.length ? `
+                <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin:.9rem 0 .5rem">Incantations Exclusives (${incanSnap.docs.length})</div>
+                ${incanSnap.docs.map(id => {
+                    const inc = id.data();
+                    const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
+                    const cout = inc.cout || inc.pointsManipulation || 0;
+                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem .6rem;background:rgba(204,68,255,.05);border:1px solid rgba(204,68,255,.15);border-radius:8px;margin-bottom:.35rem">
+                        <span style="color:var(--g2);font-size:1rem">✦</span>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${inc.nom}</div>
+                            <div style="font-size:.72rem;color:var(--text-muted)">
+                                ${cout ? `+${cout} Manip.` : ''} ${pts ? `+${pts} Puiss.` : ''}
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="supprimerIncanEcole('${id.id}','${eDoc.id}')">✕</button>
+                    </div>`;
+                }).join('')}` : ''}
+            </div>`;
+        }
+
+        document.getElementById('ecole-fondateur-list').innerHTML = html;
+        return;
+    }
+
+    // Vue membre (appartient à une école sans en être fondateur)
+    if (currentMembre.ecoleId) {
+        const ecoleDoc = await db.collection('ecoles').doc(currentMembre.ecoleId).get();
+        if (ecoleDoc.exists) {
+            const e = ecoleDoc.data();
+            const incanSnap = await db.collection('incantations').where('ecoleId', '==', ecoleDoc.id).get();
+            if (emptyEl) emptyEl.style.display = 'none';
+            memEl.style.display = '';
+
+            const membNbr = (e.membres || []).length;
+            document.getElementById('ecole-membre-card').innerHTML = `
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
+                    <div>
+                        <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--g2);text-shadow:0 0 14px rgba(204,68,255,.4)">${e.nom}</div>
+                        ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
+                        <p style="font-size:.75rem;color:var(--text-muted);margin-top:.4rem">Fondée par <strong style="color:var(--text)">${e.fondateurNom}</strong> · ${membNbr} membre${membNbr > 1 ? 's' : ''}</p>
+                    </div>
+                    <span class="ecole-badge">Membre</span>
+                </div>
+                ${incanSnap.docs.length ? `
+                <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin:.75rem 0 .5rem">Incantations Exclusives</div>
+                ${incanSnap.docs.map(id => {
+                    const inc = id.data();
+                    const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
+                    const cout = inc.cout || inc.pointsManipulation || 0;
+                    return `<div style="display:flex;align-items:center;gap:.65rem;padding:.45rem .6rem;background:rgba(204,68,255,.05);border:1px solid rgba(204,68,255,.15);border-radius:8px;margin-bottom:.35rem">
+                        <span style="color:var(--g2)">✦</span>
+                        <div style="flex:1">
+                            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${inc.nom}</div>
+                            <div style="font-size:.72rem;color:var(--text-muted)">${cout ? `+${cout} Manip.` : ''} ${pts ? `+${pts} Puiss.` : ''}</div>
+                        </div>
+                    </div>`;
+                }).join('')}` : `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.75rem">Aucune incantation exclusive pour l'instant.</p>`}`;
+            return;
+        }
+    }
+
+    // Aucune école
+    if (emptyEl) {
+        emptyEl.style.display = '';
+        const msg = isFondateur
+            ? `<div class="empty-state"><div class="empty-icon">🏛</div><div class="empty-text">Vous n'avez pas encore fondé d'école</div><button class="btn btn-violet" style="margin-top:1rem" onclick="ouvrirCreerEcole()">🏛 Fonder une École</button></div>`
+            : `<div class="empty-state"><div class="empty-icon">🏛</div><div class="empty-text">Vous n'êtes pas encore membre d'une école</div><p style="font-size:.78rem;color:var(--text-muted);margin-top:.5rem">Un Collecteur ou Marchand peut vous inviter.</p></div>`;
+        emptyEl.innerHTML = msg;
+    }
+}
+
+function ouvrirCreerEcole() {
+    document.getElementById('ecole-edit-id').value = '';
+    document.getElementById('ecole-nom').value = '';
+    document.getElementById('ecole-desc').value = '';
+    document.getElementById('modal-ecole-title').textContent = 'Fonder une École';
+    document.getElementById('ecole-alert').style.display = 'none';
+    openModal('modal-creer-ecole');
+}
+
+async function confirmerCreerEcole() {
+    const nom  = document.getElementById('ecole-nom').value.trim();
+    const desc = document.getElementById('ecole-desc').value.trim();
+    const alertEl = document.getElementById('ecole-alert');
+    alertEl.style.display = 'none';
+
+    if (!nom) { alertEl.textContent = 'Le nom est obligatoire.'; alertEl.style.display = ''; return; }
+
+    const gradeIdx  = getGradeIndex(currentMembre.grade);
+    const maxEcoles = gradeIdx >= 3 ? 2 : 1;
+
+    const existSnap = await db.collection('ecoles').where('fondateurId', '==', currentMembre.id).get();
+    if (existSnap.docs.length >= maxEcoles) {
+        alertEl.textContent = `Vous ne pouvez pas créer plus de ${maxEcoles} école(s) à votre grade.`;
+        alertEl.style.display = '';
+        return;
+    }
+
+    await db.collection('ecoles').add({
+        nom, description: desc,
+        fondateurId: currentMembre.id,
+        fondateurNom: displayName(currentMembre),
+        membres: [],
+        dateCreation: firebase.firestore.Timestamp.now()
+    });
+    closeModal('modal-creer-ecole');
+    loadDashEcole();
+    const btn = document.getElementById('btn-creer-ecole');
+    if (btn) btn.style.display = 'none';
+}
+
+function ouvrirAddMembreEcole(ecoleId) {
+    document.getElementById('add-membre-ecole-id').value = ecoleId;
+    document.getElementById('add-membre-search').value = '';
+    document.getElementById('add-membre-results').innerHTML = '';
+    document.getElementById('add-membre-alert').style.display = 'none';
+    openModal('modal-add-membre-ecole');
+}
+
+async function rechercherMembreEcole() {
+    const query    = document.getElementById('add-membre-search').value.trim().toLowerCase();
+    const ecoleId  = document.getElementById('add-membre-ecole-id').value;
+    const results  = document.getElementById('add-membre-results');
+    const alertEl  = document.getElementById('add-membre-alert');
+
+    if (query.length < 2) { results.innerHTML = ''; return; }
+
+    const snap = await db.collection('membres').get();
+    const matches = snap.docs.filter(d => {
+        const m = d.data();
+        const full = `${m.prenom || ''} ${m.nom || ''}`.toLowerCase();
+        return full.includes(query) && d.id !== currentMembre.id;
+    }).slice(0, 8);
+
+    if (!matches.length) { results.innerHTML = '<p style="font-size:.8rem;color:var(--text-muted);padding:.4rem">Aucun résultat.</p>'; return; }
+
+    const ecoleDoc = await db.collection('ecoles').doc(ecoleId).get();
+    const membres  = (ecoleDoc.data() || {}).membres || [];
+
+    results.innerHTML = matches.map(d => {
+        const m       = d.data();
+        const inEcole = membres.includes(d.id) || m.ecoleId === ecoleId;
+        const hasEcole= m.ecoleId && m.ecoleId !== ecoleId;
+        return `<div style="display:flex;align-items:center;gap:.65rem;padding:.5rem .7rem;background:rgba(255,255,255,.025);border-radius:8px;border:1px solid rgba(255,255,255,.06)">
+            <div style="flex:1;min-width:0">
+                <div style="font-family:'Cinzel',serif;font-size:.83rem;color:var(--text)">${displayName(m)}</div>
+                <div style="font-size:.72rem;color:var(--text-muted)">${m.grade || 'Incantateur'}${hasEcole ? ' · <span style="color:var(--g3)">Déjà dans une école</span>' : ''}</div>
+            </div>
+            ${inEcole
+                ? `<span class="ecole-badge">Déjà membre</span>`
+                : hasEcole
+                    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.4">Indisponible</button>`
+                    : `<button class="btn btn-violet btn-sm" onclick="confirmerAjoutMembre('${ecoleId}','${d.id}')">Ajouter</button>`
+            }
+        </div>`;
+    }).join('');
+}
+
+async function confirmerAjoutMembre(ecoleId, membreId) {
+    const alertEl = document.getElementById('add-membre-alert');
+    alertEl.style.display = 'none';
+    try {
+        const batch   = db.batch();
+        const ecoleRef = db.collection('ecoles').doc(ecoleId);
+        const memRef   = db.collection('membres').doc(membreId);
+        batch.update(ecoleRef, { membres: firebase.firestore.FieldValue.arrayUnion(membreId) });
+        batch.update(memRef,   { ecoleId });
+        await batch.commit();
+        closeModal('modal-add-membre-ecole');
+        loadDashEcole();
+    } catch (err) {
+        alertEl.textContent = 'Erreur : ' + err.message;
+        alertEl.style.display = '';
+    }
+}
+
+async function retirerMembreEcole(ecoleId, membreId, membreNom) {
+    if (!confirm(`Retirer ${membreNom} de l'école ?`)) return;
+    const batch    = db.batch();
+    const ecoleRef = db.collection('ecoles').doc(ecoleId);
+    const memRef   = db.collection('membres').doc(membreId);
+    batch.update(ecoleRef, { membres: firebase.firestore.FieldValue.arrayRemove(membreId) });
+    batch.update(memRef,   { ecoleId: firebase.firestore.FieldValue.delete() });
+    await batch.commit();
+    loadDashEcole();
+}
+
+function ouvrirIncanEcole(ecoleId) {
+    document.getElementById('ie-ecole-id').value = ecoleId;
+    document.getElementById('ie-nom').value   = '';
+    document.getElementById('ie-desc').value  = '';
+    document.getElementById('ie-manip').value = '0';
+    document.getElementById('ie-pts').value   = '0';
+    document.getElementById('ie-alert').style.display   = 'none';
+    document.getElementById('ie-success').style.display = 'none';
+    openModal('modal-incan-ecole');
+}
+
+async function confirmerCreerIncanEcole() {
+    const ecoleId = document.getElementById('ie-ecole-id').value;
+    const nom     = document.getElementById('ie-nom').value.trim();
+    const desc    = document.getElementById('ie-desc').value.trim();
+    const manip   = parseInt(document.getElementById('ie-manip').value) || 0;
+    const pts     = parseInt(document.getElementById('ie-pts').value)   || 0;
+    const alertEl = document.getElementById('ie-alert');
+    alertEl.style.display = 'none';
+
+    if (!nom)   { alertEl.textContent = 'Le nom est obligatoire.';   alertEl.style.display = ''; return; }
+    if (!desc)  { alertEl.textContent = 'La description est obligatoire.'; alertEl.style.display = ''; return; }
+    if (!ecoleId) { alertEl.textContent = 'École manquante.'; alertEl.style.display = ''; return; }
+
+    await db.collection('incantations').add({
+        nom, utilisation: desc,
+        cout: manip, ptsOcculte: pts,
+        ecoleId,
+        gradeOrdre: getGradeIndex(currentMembre.grade),
+        createdBy: currentMembre.id,
+        createdByNom: displayName(currentMembre),
+        dateCreation: firebase.firestore.Timestamp.now()
+    });
+
+    document.getElementById('ie-success').textContent = '✦ Incantation d\'école créée !';
+    document.getElementById('ie-success').style.display = '';
+    setTimeout(() => { closeModal('modal-incan-ecole'); loadDashEcole(); }, 1200);
+}
+
+async function supprimerIncanEcole(incanId, ecoleId) {
+    if (!confirm('Supprimer cette incantation d\'école ?')) return;
+    await db.collection('incantations').doc(incanId).delete();
+    loadDashEcole();
+}
 
 async function doLogout() {
     if (dashLive)      { dashLive();      dashLive = null; }

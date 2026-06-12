@@ -41,7 +41,7 @@ body {
     color:var(--text);
     min-height:100vh;
     line-height:1.65;
-    cursor:none;
+    cursor:default;
 }
 
 /* Nébuleuse de fond très visible */
@@ -90,12 +90,7 @@ a:hover { color:var(--gold-pale); }
 @keyframes scan { 0%{background-position:0 0} 100%{background-position:0 -100vh} }
 
 /* ── Curseur ─────────────────────────────────────────────────── */
-#cursor-dot,#cursor-ring { position:fixed; pointer-events:none; z-index:10000; border-radius:50%; transform:translate(-50%,-50%); }
-#cursor-dot { width:6px; height:6px; background:var(--gold-bright); box-shadow:0 0 12px var(--gold),0 0 24px rgba(201,165,42,.4); transition:transform .08s; }
-#cursor-ring { width:30px; height:30px; border:1.5px solid rgba(201,165,42,.6); transition:transform .14s ease,width .2s,height .2s; }
-body:has(a:hover) #cursor-ring,body:has(button:hover) #cursor-ring { width:42px; height:42px; border-color:rgba(200,30,30,.9); }
-.trail { position:fixed; pointer-events:none; z-index:9998; border-radius:50%; width:4px; height:4px; background:var(--crimson); transform:translate(-50%,-50%); animation:trail-out .5s forwards; }
-@keyframes trail-out { to{opacity:0;transform:translate(-50%,-80%) scale(0)} }
+#cursor-dot,#cursor-ring,.trail { display:none; }
 
 /* ── Voile ───────────────────────────────────────────────────── */
 #veil { position:fixed; inset:0; z-index:8000; background:var(--void); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .4s ease; }
@@ -655,14 +650,5 @@ body.music-playing #music-player {
 .mp-bars.active span:nth-child(5) { animation:mpbar .9s  ease-in-out infinite .12s; }
 @keyframes mpbar { 0%,100%{height:3px} 50%{height:16px} }
 
-/* Curseur — change quand la musique joue */
-body.music-playing #cursor-dot {
-    background:var(--gold-bright);
-    box-shadow:0 0 14px var(--gold), 0 0 30px rgba(201,165,42,.5);
-    width:8px; height:8px;
-}
-body.music-playing #cursor-ring {
-    border-color:rgba(201,165,42,.75);
-    width:34px; height:34px;
-    animation:rotate-cw 3s linear infinite;
-}
+/* Curseur — icône note quand la musique joue */
+body.music-playing { cursor:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text y='20' font-size='18'>🎵</text></svg>") 12 12, default; }

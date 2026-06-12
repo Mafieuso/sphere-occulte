@@ -25,7 +25,7 @@ const GRADES = [
     { nom: "Marcheur des Voiles",  minOcculte: 23,  couleur: "#b06060", css: "grade-marcheur" },
     { nom: "Collecteur d'Ombre",   minOcculte: 45,  couleur: "#8b3a3a", css: "grade-collecteur" },
     { nom: "Marchand des Âmes",    minOcculte: 90,  couleur: "#6b0000", css: "grade-marchand" },
-    { nom: "Monarque des Ombres",  minOcculte: 999, couleur: "#f2d060", css: "grade-monarque" }
+    { nom: "Monarque des Ombres",  minOcculte: 400, couleur: "#f2d060", css: "grade-monarque" }
 ];
 
 function getGrade(pointsOcculte) {

@@ -742,57 +742,147 @@ body.music-playing { cursor:url("data:image/svg+xml,<svg xmlns='http://www.w3.or
 @media (max-width:600px) { .channel-grid { grid-template-columns:1fr 1fr; } }
 @media (max-width:400px) { .channel-grid { grid-template-columns:1fr; } }
 
-/* ── Classement cards ────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   CLASSEMENT — cartes magazine
+══════════════════════════════════════════════════════════════ */
 #dash-lb-list, #lb-list {
     display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-    gap:.75rem;
+    grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+    gap:1rem;
 }
+
 .lb-card {
-    background:rgba(10,5,24,.72); border:1px solid rgba(255,255,255,.09);
-    border-radius:14px; padding:.85rem 1rem;
-    backdrop-filter:blur(16px);
-    transition:transform .2s,border-color .3s,box-shadow .3s;
-    position:relative; overflow:hidden;
+    display:flex; height:165px; border-radius:18px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 8px 40px rgba(0,0,0,.55);
+    transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;
+    position:relative; cursor:default;
 }
-.lb-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent); }
-.lb-card:hover { transform:translateY(-2px); border-color:rgba(201,165,42,.22); box-shadow:0 8px 30px rgba(0,0,0,.45); }
-.lb-card--monarque { border-color:rgba(242,208,96,.35); background:rgba(20,12,4,.82); box-shadow:0 0 28px rgba(201,165,42,.1); animation:border-glow 3s ease-in-out infinite; }
+.lb-card::after {
+    content:''; position:absolute; inset:0; border-radius:18px;
+    border:1px solid rgba(255,255,255,.04); pointer-events:none;
+}
+.lb-card:hover { transform:translateY(-4px) scale(1.01); box-shadow:0 18px 60px rgba(0,0,0,.65),0 0 30px color-mix(in srgb,var(--grade-color) 20%,transparent); border-color:color-mix(in srgb,var(--grade-color) 35%,transparent); }
+.lb-card--monarque { border-color:rgba(242,208,96,.3); box-shadow:0 8px 40px rgba(0,0,0,.6),0 0 50px rgba(201,165,42,.12); animation:border-glow 4s ease-in-out infinite; }
+.lb-absent { opacity:.38; filter:grayscale(.4); }
 
-/* layout interne : rang + avatar + infos en ligne */
-.lb-card-top { display:flex; align-items:center; gap:.75rem; }
-.lb-card-rank { font-size:.85rem; font-family:'Cinzel',serif; color:var(--gold); min-width:1.6rem; text-align:center; flex-shrink:0; }
-.lb-card-avatar {
-    width:52px; height:52px; border-radius:50%; overflow:hidden; flex-shrink:0;
-    border:2px solid rgba(139,0,0,.5); box-shadow:0 0 12px rgba(139,0,0,.2);
+/* Photo panel — gauche */
+.lb-photo-panel {
+    width:38%; flex-shrink:0; position:relative; overflow:hidden;
 }
-.lb-card--monarque .lb-card-avatar { border-color:rgba(242,208,96,.55); box-shadow:0 0 18px rgba(201,165,42,.25); }
-.lb-avatar-init {
+.lb-photo-panel img { width:100%; height:100%; object-fit:cover; display:block; }
+.lb-photo-init {
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(160deg,color-mix(in srgb,var(--grade-color) 40%,#0a0518),#0a0518);
+    font-family:'Cinzel Decorative',serif; font-size:2.8rem;
+    color:var(--grade-color); text-shadow:0 0 30px color-mix(in srgb,var(--grade-color) 60%,transparent);
+}
+.lb-photo-fade {
+    position:absolute; inset:0;
+    background:linear-gradient(to right,transparent 45%,rgba(5,2,18,.96) 100%);
+}
+
+/* Corps — droite */
+.lb-body {
+    flex:1; min-width:0; padding:.9rem 1.1rem .8rem .7rem;
+    background:rgba(5,2,18,.92); backdrop-filter:blur(12px);
+    display:flex; flex-direction:column; justify-content:space-between;
+    position:relative;
+}
+.lb-rank-medal {
+    position:absolute; top:.65rem; right:.8rem;
+    font-size:1.3rem; line-height:1;
+}
+.lb-name {
+    font-family:'Cinzel Decorative',serif; font-size:.95rem;
+    color:#fff; letter-spacing:.03em; margin-bottom:.3rem;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    padding-right:2rem;
+}
+.lb-grade-row { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.3rem; }
+.lb-ecole { font-size:.64rem; color:var(--text-muted); font-family:'Cinzel',serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lb-stats-row { display:flex; gap:.7rem; margin-bottom:.35rem; }
+.lb-stat {
+    display:flex; align-items:center; gap:.28rem;
+    font-family:'Cinzel',serif; font-size:.82rem; color:var(--text-light);
+    background:rgba(255,255,255,.05); border-radius:6px; padding:.18rem .5rem;
+}
+.lb-stat-icon { font-size:.78rem; opacity:.85; }
+
+/* Barre de progression */
+.lb-progress-wrap { margin-top:auto; }
+.lb-progress-track { height:3px; background:rgba(255,255,255,.07); border-radius:99px; overflow:hidden; margin-bottom:.25rem; }
+.lb-progress-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,color-mix(in srgb,var(--grade-color) 60%,var(--crimson)),var(--grade-color)); transition:width 1.2s cubic-bezier(.4,0,.2,1); }
+.lb-progress-label { font-size:.6rem; color:var(--text-muted); font-family:'Cinzel',serif; letter-spacing:.05em; }
+.lb-projet { font-size:.68rem; color:var(--text-muted); font-style:italic; margin-top:.3rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+@media (max-width:700px)  { #dash-lb-list, #lb-list { grid-template-columns:1fr; } .lb-card { height:auto; min-height:150px; } }
+@media (max-width:480px)  { .lb-photo-panel { width:33%; } .lb-name { font-size:.82rem; } }
+
+/* ══════════════════════════════════════════════════════════════
+   PROFIL — édition
+══════════════════════════════════════════════════════════════ */
+.profil-page { max-width:520px; margin:0 auto; padding-bottom:2rem; }
+
+/* Carte identité visuelle en haut */
+.profil-id-card {
+    position:relative; height:170px; border-radius:18px; overflow:hidden;
+    margin-bottom:1.8rem;
+    box-shadow:0 10px 50px rgba(0,0,0,.6);
+    border:1px solid rgba(255,255,255,.08);
+}
+.profil-id-bg {
+    position:absolute; inset:0;
+    background:linear-gradient(135deg,rgba(139,0,0,.6),#0a0518);
+    transition:background .4s ease;
+}
+.profil-id-bg::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(to right,rgba(0,0,0,.2) 0%,rgba(5,2,18,.75) 60%,rgba(5,2,18,.95) 100%);
+}
+.profil-id-content {
+    position:relative; z-index:1; height:100%;
+    display:flex; align-items:center; padding:0 1.6rem; gap:1.4rem;
+}
+.profil-big-avatar {
+    width:100px; height:100px; border-radius:50%; overflow:hidden; flex-shrink:0;
+    border:3px solid rgba(201,165,42,.5);
+    box-shadow:0 0 30px rgba(201,165,42,.2),0 0 60px rgba(0,0,0,.5);
+    cursor:pointer; position:relative;
+    transition:border-color .3s,box-shadow .3s;
+}
+.profil-big-avatar:hover { border-color:rgba(201,165,42,.9); box-shadow:0 0 40px rgba(201,165,42,.4); }
+.profil-big-init {
     width:100%; height:100%; display:flex; align-items:center; justify-content:center;
     background:linear-gradient(135deg,var(--crimson),var(--blood));
-    font-family:'Cinzel Decorative',serif; font-size:1.1rem; color:var(--gold);
+    font-family:'Cinzel Decorative',serif; font-size:2.4rem; color:var(--gold);
 }
-.lb-card-info { flex:1; min-width:0; }
-.lb-card-name { font-family:'Cinzel',serif; font-size:.84rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:.25rem; }
-.lb-card-ecole { font-size:.64rem; color:var(--text-muted); margin:.2rem 0; font-family:'Cinzel',serif; }
-.lb-card-pts { display:flex; gap:.5rem; flex-wrap:wrap; font-size:.76rem; margin-top:.2rem; }
-.lb-card-progress { margin:.6rem 0 .15rem; }
-.lb-absent { opacity:.4; }
+.profil-camera-overlay {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); font-size:1.5rem;
+    opacity:0; transition:opacity .2s;
+    border-radius:50%;
+}
+.profil-big-avatar:hover .profil-camera-overlay { opacity:1; }
+.profil-id-info { flex:1; min-width:0; }
+.profil-id-name {
+    font-family:'Cinzel Decorative',serif; font-size:1.1rem; color:#fff;
+    margin-bottom:.45rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.profil-id-stats { display:flex; gap:.6rem; margin-top:.5rem; flex-wrap:wrap; }
 
-@media (max-width:600px) { #dash-lb-list, #lb-list { grid-template-columns:1fr; } }
+/* Formulaire */
+.profil-form { display:flex; flex-direction:column; gap:1.2rem; }
+.profil-form-section {
+    background:rgba(10,5,24,.6); border:1px solid rgba(255,255,255,.07);
+    border-radius:14px; padding:1.1rem 1.2rem;
+    backdrop-filter:blur(10px);
+}
+.profil-section-label {
+    font-family:'Cinzel',serif; font-size:.68rem; letter-spacing:.18em;
+    color:var(--gold); text-transform:uppercase; margin-bottom:.9rem;
+}
+.profil-fields-row { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+.profil-save-btn { width:100%; padding:.85rem; font-size:.9rem; letter-spacing:.12em; }
 
-/* ── Profil édition ──────────────────────────────────────────── */
-.profil-edit-wrap { max-width:380px; margin:0 auto; padding:.5rem 0 2rem; }
-.profil-photo-zone { display:flex; flex-direction:column; align-items:center; gap:.6rem; cursor:pointer; }
-.profil-photo-preview {
-    width:110px; height:110px; border-radius:50%; overflow:hidden;
-    border:2px solid rgba(201,165,42,.4); box-shadow:0 0 24px rgba(201,165,42,.15);
-    transition:box-shadow .3s,border-color .3s;
-}
-.profil-photo-zone:hover .profil-photo-preview { border-color:rgba(201,165,42,.75); box-shadow:0 0 32px rgba(201,165,42,.3); }
-.profil-photo-init {
-    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(135deg,var(--crimson),var(--blood));
-    font-family:'Cinzel Decorative',serif; font-size:2rem; color:var(--gold);
-}
-.profil-photo-hint { font-size:.7rem; color:var(--text-muted); font-family:'Cinzel',serif; letter-spacing:.06em; }
+@media (max-width:480px) { .profil-fields-row { grid-template-columns:1fr; } .profil-id-card { height:150px; } .profil-big-avatar { width:82px; height:82px; } .profil-id-name { font-size:.92rem; } }

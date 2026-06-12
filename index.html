@@ -878,28 +878,55 @@
           <div class="panel-hdr">
             <div class="panel-title">👤 Mon Profil</div>
           </div>
-          <div class="profil-edit-wrap">
-            <!-- Photo -->
-            <div class="profil-photo-zone" onclick="document.getElementById('edit-photo-input').click()">
-              <div class="profil-photo-preview" id="edit-photo-preview">
-                <div class="profil-photo-init" id="edit-photo-init">?</div>
+          <div class="profil-page">
+
+            <!-- Carte identité -->
+            <div class="profil-id-card">
+              <div class="profil-id-bg" id="profil-id-bg"></div>
+              <div class="profil-id-content">
+                <div class="profil-big-avatar" id="profil-big-avatar" onclick="document.getElementById('profil-photo-input').click()">
+                  <div class="profil-big-init" id="profil-big-init">?</div>
+                  <div class="profil-camera-overlay">📷</div>
+                </div>
+                <div class="profil-id-info">
+                  <div class="profil-id-name" id="profil-id-name">—</div>
+                  <div id="profil-id-grade"></div>
+                  <div class="profil-id-stats" id="profil-id-stats"></div>
+                </div>
               </div>
-              <div class="profil-photo-hint">Cliquer pour changer la photo</div>
             </div>
-            <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="editPhotoChosen(this)">
-            <!-- Champs -->
-            <div class="form-group" style="margin-top:1.5rem">
-              <label class="form-label">Prénom</label>
-              <input type="text" id="edit-prenom" class="form-input" placeholder="Prénom">
+
+            <input type="file" id="profil-photo-input" accept="image/*" style="display:none" onchange="editPhotoChosen(this)">
+
+            <!-- Formulaire -->
+            <div class="profil-form">
+              <div class="profil-form-section">
+                <div class="profil-section-label">Identité</div>
+                <div class="profil-fields-row">
+                  <div class="form-group">
+                    <label class="form-label">Prénom RP</label>
+                    <input type="text" id="profil-prenom" class="form-control" placeholder="Prénom">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Nom RP</label>
+                    <input type="text" id="profil-nom" class="form-control" placeholder="Nom">
+                  </div>
+                </div>
+              </div>
+
+              <div class="profil-form-section">
+                <div class="profil-section-label">Projet Occulte</div>
+                <textarea id="profil-projet" class="form-control" rows="4"
+                  placeholder="Décrivez votre ambition, vos objectifs au sein de la Sphère…"
+                  style="resize:vertical;line-height:1.6"></textarea>
+              </div>
+
+              <div id="profil-save-alert" class="alert" style="display:none"></div>
+              <button class="btn btn-gold profil-save-btn" onclick="sauvegarderProfil()">
+                ✦ Sauvegarder le profil
+              </button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Nom</label>
-              <input type="text" id="edit-nom" class="form-input" placeholder="Nom">
-            </div>
-            <div id="edit-profil-alert" class="alert" style="display:none"></div>
-            <button class="btn btn-gold" style="width:100%;margin-top:1rem" onclick="sauvegarderProfil()">
-              Sauvegarder
-            </button>
+
           </div>
         </div>
 
@@ -1437,44 +1464,48 @@ function renderLbRows(containerId, membres, ecoleMap) {
         const name      = displayName(m);
         const init      = (m.prenom || m.nom || '?')[0].toUpperCase();
         const isMon     = gradeIdx === 4;
+        const color     = gradeDef.couleur;
 
-        let progress = 100, progressLabel = '✦ Grade maximum';
+        let progress = 100, progressLabel = 'Grade maximum';
         if (nextGrade) {
-            const cur  = gradeDef.minOcculte;
-            const next = nextGrade.minOcculte;
-            progress = Math.min(100, Math.max(0, Math.round(((pts - cur) / (next - cur)) * 100)));
-            progressLabel = `${next - pts} pts → ${nextGrade.nom}`;
+            const span = nextGrade.minOcculte - gradeDef.minOcculte;
+            progress = Math.min(100, Math.max(0, Math.round(((pts - gradeDef.minOcculte) / span) * 100)));
+            progressLabel = `${nextGrade.nom} dans ${nextGrade.minOcculte - pts} pts`;
         }
 
         const ecoleName = ecoleMap && m.ecoleId && ecoleMap[m.ecoleId]
             ? ecoleMap[m.ecoleId] : 'École Générale';
 
-        const avatarHtml = m.photoURL
-            ? `<img src="${m.photoURL}" alt="${name}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
-            : `<div class="lb-avatar-init">${init}</div>`;
+        const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="font-size:.75rem">#${i+1}</span>`;
 
-        const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+        const photoSide = m.photoURL
+            ? `<img src="${m.photoURL}" alt="" loading="lazy">`
+            : `<div class="lb-photo-init" style="--grade-color:${color}">${init}</div>`;
 
-        return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}">
-            <div class="lb-card-top">
-                <div class="lb-card-rank">${rankLabel}</div>
-                <div class="lb-card-avatar">${avatarHtml}</div>
-                <div class="lb-card-info">
-                    <div class="lb-card-name">${name}</div>
+        return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}" style="--grade-color:${color}">
+            <div class="lb-photo-panel">
+                ${photoSide}
+                <div class="lb-photo-fade"></div>
+            </div>
+            <div class="lb-body">
+                <div class="lb-rank-medal">${rankLabel}</div>
+                <div class="lb-name">${name}</div>
+                <div class="lb-grade-row">
                     <span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span>
-                    <div class="lb-card-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</div>
-                    <div class="lb-card-pts">
-                        <span class="pts pts-occulte">🔮 ${pts}</span>
-                        <span class="pts pts-manip">✦ ${manip}</span>
-                    </div>
+                    <span class="lb-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</span>
                 </div>
+                <div class="lb-stats-row">
+                    <span class="lb-stat"><span class="lb-stat-icon">🔮</span>${pts}</span>
+                    <span class="lb-stat"><span class="lb-stat-icon">✦</span>${manip}</span>
+                </div>
+                <div class="lb-progress-wrap">
+                    <div class="lb-progress-track">
+                        <div class="lb-progress-fill" style="width:${progress}%"></div>
+                    </div>
+                    <span class="lb-progress-label">${progressLabel}</span>
+                </div>
+                ${m.projetOcculte ? `<div class="lb-projet">📜 ${m.projetOcculte}</div>` : ''}
             </div>
-            <div class="lb-card-progress">
-                <div class="channel-progress-bar"><div class="channel-progress-fill" style="width:${progress}%"></div></div>
-                <div class="channel-progress-label">${progressLabel}</div>
-            </div>
-            ${m.projetOcculte ? `<div class="channel-projet">📜 ${m.projetOcculte}</div>` : ''}
-            ${m.absent ? `<div style="font-size:.65rem;color:var(--text-muted);margin-top:.4rem;font-family:'Cinzel',serif;letter-spacing:.06em">ABSENT</div>` : ''}
         </div>`;
     }).join('');
 }
@@ -2859,49 +2890,81 @@ let editPhotoB64 = null;
 
 function loadDashProfil() {
     if (!currentMembre) return;
-    const m = currentMembre;
-    document.getElementById('edit-prenom').value = m.prenom || '';
-    document.getElementById('edit-nom').value    = m.nom    || '';
-    editPhotoB64 = null;
-    const preview = document.getElementById('edit-photo-preview');
-    const initEl  = document.getElementById('edit-photo-init');
-    if (m.photoURL) {
-        preview.innerHTML = `<img src="${m.photoURL}" style="width:100%;height:100%;object-fit:cover">`;
-    } else {
-        if (initEl) initEl.textContent = ((m.prenom || m.nom || '?')[0]).toUpperCase();
-        preview.innerHTML = `<div class="profil-photo-init">${((m.prenom || m.nom || '?')[0]).toUpperCase()}</div>`;
+    const m        = currentMembre;
+    const gradeIdx = getGradeIndex(m.grade);
+    const gradeDef = GRADES[gradeIdx] || GRADES[0];
+    const init     = ((m.prenom || m.nom || '?')[0]).toUpperCase();
+
+    // Carte identité visuelle
+    const bgEl = document.getElementById('profil-id-bg');
+    if (bgEl) {
+        bgEl.style.background = m.photoURL
+            ? `url('${m.photoURL}') center/cover no-repeat`
+            : `linear-gradient(135deg,${gradeDef.couleur}44,#0a0518)`;
     }
-    const alert = document.getElementById('edit-profil-alert');
-    if (alert) alert.style.display = 'none';
+    const avatarEl = document.getElementById('profil-big-avatar');
+    if (avatarEl) {
+        const overlay = '<div class="profil-camera-overlay">📷</div>';
+        avatarEl.innerHTML = m.photoURL
+            ? `<img src="${m.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">${overlay}`
+            : `<div class="profil-big-init">${init}</div>${overlay}`;
+    }
+    const nameEl = document.getElementById('profil-id-name');
+    if (nameEl) nameEl.textContent = displayName(m);
+    const gradeEl = document.getElementById('profil-id-grade');
+    if (gradeEl) gradeEl.innerHTML = `<span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span>`;
+    const statsEl = document.getElementById('profil-id-stats');
+    if (statsEl) statsEl.innerHTML =
+        `<span class="pts pts-occulte">🔮 ${m.pointsOcculte||0}</span><span class="pts pts-manip">✦ ${m.pointsManipulation||0}</span>`;
+
+    // Champs
+    const prenomEl = document.getElementById('profil-prenom');
+    const nomEl    = document.getElementById('profil-nom');
+    const projetEl = document.getElementById('profil-projet');
+    if (prenomEl) prenomEl.value = m.prenom || '';
+    if (nomEl)    nomEl.value    = m.nom    || '';
+    if (projetEl) projetEl.value = m.projetOcculte || '';
+
+    editPhotoB64 = null;
+    const alertEl = document.getElementById('profil-save-alert');
+    if (alertEl) alertEl.style.display = 'none';
 }
 
 function editPhotoChosen(input) {
     const f = input.files[0];
     if (!f) return;
-    compressPhoto(f, 300, 300, 0.82).then(b64 => {
+    compressPhoto(f, 400, 400, 0.85).then(b64 => {
         editPhotoB64 = b64;
-        document.getElementById('edit-photo-preview').innerHTML =
-            `<img src="${b64}" style="width:100%;height:100%;object-fit:cover">`;
+        const avatarEl = document.getElementById('profil-big-avatar');
+        if (avatarEl) {
+            avatarEl.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div class="profil-camera-overlay">📷</div>`;
+        }
+        const bgEl = document.getElementById('profil-id-bg');
+        if (bgEl) bgEl.style.background = `url('${b64}') center/cover no-repeat`;
     });
 }
 
 async function sauvegarderProfil() {
-    const alertEl = document.getElementById('edit-profil-alert');
-    const prenom  = (document.getElementById('edit-prenom')?.value || '').trim();
-    const nom     = (document.getElementById('edit-nom')?.value    || '').trim();
+    const prenom = (document.getElementById('profil-prenom')?.value || '').trim();
+    const nom    = (document.getElementById('profil-nom')?.value    || '').trim();
+    const projet = (document.getElementById('profil-projet')?.value || '').trim();
     if (!prenom || !nom) {
-        showAlert('edit-profil-alert', 'Prénom et nom requis.', 'error'); return;
+        showAlert('profil-save-alert', 'Prénom et nom requis.', 'error'); return;
     }
     if (!currentMembre) return;
-    const update = { prenom, nom };
+    const update = { prenom, nom, projetOcculte: projet };
     if (editPhotoB64) update.photoURL = editPhotoB64;
     try {
         await db.collection('membres').doc(currentMembre.id).update(update);
         Object.assign(currentMembre, update);
         renderDashProfile(currentMembre);
-        showAlert('edit-profil-alert', 'Profil mis à jour !', 'success');
+        // Sync projet sidebar
+        const projetInput = document.getElementById('projet-input');
+        if (projetInput) projetInput.value = projet;
+        showAlert('profil-save-alert', '✦ Profil mis à jour avec succès.', 'success');
+        editPhotoB64 = null;
     } catch(e) {
-        showAlert('edit-profil-alert', 'Erreur : ' + e.message, 'error');
+        showAlert('profil-save-alert', 'Erreur : ' + e.message, 'error');
     }
 }
 

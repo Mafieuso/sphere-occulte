@@ -652,3 +652,92 @@ body.music-playing #music-player {
 
 /* Curseur — icône note quand la musique joue */
 body.music-playing { cursor:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><text y='20' font-size='18'>🎵</text></svg>") 12 12, default; }
+
+/* ── Splash Overlay ──────────────────────────────────────────── */
+#splash-overlay {
+    position:fixed; inset:0; z-index:9999;
+    background:var(--void);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:opacity .9s ease;
+}
+#splash-overlay.splash-closing { opacity:0; pointer-events:none; }
+.splash-inner { text-align:center; padding:2rem; user-select:none; }
+
+.splash-sigil { position:relative; width:160px; height:160px; margin:0 auto 2rem; }
+.splash-ring { position:absolute; inset:0; border-radius:50%; }
+.splash-ring.r1 { border:2px solid rgba(139,0,0,.7);        animation:rotate-cw   6s  linear infinite; }
+.splash-ring.r2 { inset:18px; border:1.5px solid rgba(201,165,42,.6); animation:rotate-ccw  9s  linear infinite; }
+.splash-ring.r3 { inset:36px; border:1px   solid rgba(136,68,255,.45); animation:rotate-cw  14s linear infinite; }
+.splash-ring.r4 { inset:52px; border:1px   solid rgba(201,165,42,.3);  animation:rotate-ccw 20s linear infinite; }
+.splash-center {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:2.8rem; color:var(--gold);
+    filter:drop-shadow(0 0 20px rgba(201,165,42,.8)) drop-shadow(0 0 50px rgba(201,165,42,.3));
+    animation:pulse-gold 2s ease-in-out infinite;
+}
+.splash-title {
+    font-family:'Cinzel Decorative',serif;
+    font-size:clamp(1.6rem,5vw,3rem); letter-spacing:.3em;
+    background:linear-gradient(135deg,#fff8e0,var(--gold-bright),var(--gold),#ff5555,var(--gold-bright));
+    background-size:300% auto;
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    animation:shimmer 5s linear infinite; margin-bottom:.5rem;
+}
+.splash-sub {
+    font-family:'Cinzel',serif; font-size:.75rem; letter-spacing:.45em;
+    color:var(--text-muted); text-transform:uppercase; margin-bottom:2.5rem;
+}
+.splash-enter {
+    font-family:'Cinzel',serif; font-size:.72rem; letter-spacing:.3em;
+    color:var(--gold); text-transform:uppercase;
+    animation:pulse-gold 2s ease-in-out infinite;
+    border:1px solid rgba(201,165,42,.3); border-radius:30px;
+    padding:.55rem 1.5rem; display:inline-block;
+}
+
+/* ── Channel Cards ───────────────────────────────────────────── */
+.channel-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:1rem;
+}
+.channel-card {
+    background:rgba(10,5,24,.72); border:1px solid rgba(255,255,255,.09);
+    border-radius:16px; padding:1.25rem 1rem 1rem;
+    text-align:center; backdrop-filter:blur(16px);
+    transition:transform .2s,border-color .3s,box-shadow .3s;
+    position:relative; overflow:hidden;
+}
+.channel-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+}
+.channel-card:hover { transform:translateY(-3px); border-color:rgba(201,165,42,.25); box-shadow:0 10px 40px rgba(0,0,0,.5),0 0 25px rgba(201,165,42,.07); }
+.channel-card--monarque {
+    border-color:rgba(242,208,96,.35); background:rgba(20,12,4,.8);
+    box-shadow:0 0 30px rgba(201,165,42,.1),inset 0 0 40px rgba(201,165,42,.03);
+    animation:border-glow 3s ease-in-out infinite;
+}
+.channel-avatar {
+    width:72px; height:72px; border-radius:50%; overflow:hidden;
+    margin:0 auto .75rem; border:2px solid rgba(139,0,0,.5);
+    box-shadow:0 0 18px rgba(139,0,0,.25);
+}
+.channel-card--monarque .channel-avatar { border-color:rgba(242,208,96,.6); box-shadow:0 0 24px rgba(201,165,42,.35); }
+.channel-avatar img { width:100%; height:100%; object-fit:cover; }
+.channel-avatar-init {
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,var(--crimson),var(--blood));
+    font-family:'Cinzel Decorative',serif; font-size:1.4rem; color:var(--gold);
+}
+.channel-name { font-family:'Cinzel',serif; font-size:.88rem; color:var(--text); margin-bottom:.15rem; }
+.channel-ecole { font-size:.68rem; color:var(--text-muted); margin:.3rem 0 .5rem; font-family:'Cinzel',serif; letter-spacing:.04em; }
+.channel-pts { display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; margin:.4rem 0; font-size:.78rem; }
+.channel-progress-wrap { margin:.55rem 0 .25rem; }
+.channel-progress-bar { height:4px; background:rgba(255,255,255,.06); border-radius:99px; overflow:hidden; }
+.channel-progress-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--crimson),var(--gold)); transition:width 1s cubic-bezier(.4,0,.2,1); }
+.channel-progress-label { font-size:.62rem; color:var(--text-muted); margin-top:.3rem; font-family:'Cinzel',serif; letter-spacing:.04em; }
+.channel-projet { font-size:.73rem; color:var(--text-muted); margin-top:.55rem; padding:.45rem .6rem; background:rgba(255,255,255,.025); border-radius:7px; border:1px solid rgba(255,255,255,.06); text-align:left; line-height:1.5; font-style:italic; }
+
+@media (max-width:600px) { .channel-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:400px) { .channel-grid { grid-template-columns:1fr; } }

@@ -21,11 +21,11 @@ const auth = firebase.auth();
 
 // ── Grades (seuils basés sur Puissance Occulte) ──────────────────
 const GRADES = [
-    { nom: "Incantateur",          minOcculte: 0,   couleur: "#c4a0a0", css: "grade-incantateur" },
-    { nom: "Marcheur des Voiles",  minOcculte: 23,  couleur: "#b06060", css: "grade-marcheur" },
-    { nom: "Collecteur d'Ombre",   minOcculte: 45,  couleur: "#8b3a3a", css: "grade-collecteur" },
-    { nom: "Marchand des Âmes",    minOcculte: 90,  couleur: "#6b0000", css: "grade-marchand" },
-    { nom: "Monarque des Ombres",  minOcculte: 400, couleur: "#f2d060", css: "grade-monarque" }
+    { nom: "Incantateur",          minOcculte: 0,   couleur: "#c4a0a0", css: "grade-incantateur", icon: "🌑" },
+    { nom: "Marcheur des Voiles",  minOcculte: 23,  couleur: "#b06060", css: "grade-marcheur",    icon: "🌘" },
+    { nom: "Collecteur d'Ombre",   minOcculte: 45,  couleur: "#8b3a3a", css: "grade-collecteur",  icon: "🌗" },
+    { nom: "Marchand des Âmes",    minOcculte: 90,  couleur: "#6b0000", css: "grade-marchand",    icon: "🔴" },
+    { nom: "Monarque des Ombres",  minOcculte: 400, couleur: "#f2d060", css: "grade-monarque",    icon: "👑" }
 ];
 
 function getGrade(pointsOcculte) {

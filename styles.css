@@ -41,8 +41,9 @@ body {
     color:var(--text);
     min-height:100vh;
     line-height:1.65;
-    cursor:default;
+    cursor:default !important;
 }
+body.music-playing { cursor:default !important; }
 
 /* Nébuleuse de fond très visible */
 body::before {
@@ -589,7 +590,7 @@ textarea.form-control { resize:vertical; min-height:100px; }
 
 /* ── Lecteur Audio ───────────────────────────────────────────── */
 #music-player {
-    position:fixed; bottom:1.4rem; left:1.4rem; z-index:300;
+    position:fixed; bottom:1.4rem; right:1.4rem; z-index:300;
     background:rgba(6,3,14,.9);
     border:1px solid rgba(201,165,42,.2); border-radius:16px;
     padding:.75rem 1rem .65rem;

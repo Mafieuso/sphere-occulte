@@ -1192,9 +1192,12 @@ function updateNavLinks() {
 }
 
 function checkSetupAdmin() {
+    const forceShow = new URLSearchParams(window.location.search).has('setup');
+    const el = document.getElementById('setup-admin');
+    if (!el) return;
+    if (forceShow) { el.style.display = ''; return; }
     db.collection('membres').limit(1).get().then(snap => {
-        const el = document.getElementById('setup-admin');
-        if (el) el.style.display = snap.empty ? '' : 'none';
+        el.style.display = snap.empty ? '' : 'none';
     });
 }
 

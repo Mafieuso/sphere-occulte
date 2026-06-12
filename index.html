@@ -2712,11 +2712,24 @@ async function loadChannel() {
     if (!grid) return;
     grid.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
 
-    // Charger membres + écoles en parallèle
-    const [memSnap, ecoleSnap] = await Promise.all([
-        db.collection('membres').orderBy('pointsOcculte', 'desc').get(),
-        db.collection('ecoles').get()
-    ]);
+    let memSnap, ecoleSnap;
+    try {
+        [memSnap, ecoleSnap] = await Promise.all([
+            db.collection('membres').orderBy('pointsOcculte', 'desc').get(),
+            db.collection('ecoles').get()
+        ]);
+    } catch(err) {
+        // orderBy peut échouer si l'index Firestore n'existe pas — fallback sans tri
+        try {
+            [memSnap, ecoleSnap] = await Promise.all([
+                db.collection('membres').get(),
+                db.collection('ecoles').get()
+            ]);
+        } catch(err2) {
+            grid.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Erreur : ${err2.message}</div></div>`;
+            return;
+        }
+    }
 
     // Map ecoleId → nom
     const ecoleMap = {};

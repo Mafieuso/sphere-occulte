@@ -1378,6 +1378,10 @@ auth.onAuthStateChanged(async user => {
             const doc = await db.collection('membres').doc(user.uid).get();
             if (doc.exists) {
                 currentMembre = { id: doc.id, ...doc.data() };
+                // Enregistrer la date de dernière connexion
+                db.collection('membres').doc(user.uid).update({
+                    lastLogin: firebase.firestore.Timestamp.now()
+                }).catch(() => {});
                 updateNavLinks();
                 if (currentMembre.firstLogin) {
                     showView('home');
@@ -2852,7 +2856,13 @@ async function creerMembre(e) {
             'success');
         e.target.reset();
     } catch (err) {
-        showAlert('creer-alert', 'Erreur : ' + err.message, 'danger');
+        const msgMap = {
+            'auth/email-already-in-use': 'Un compte existe déjà pour ce Steam ID 64. Le membre est peut-être déjà enregistré — vérifiez la liste des membres.',
+            'auth/weak-password':        'Mot de passe trop faible (min. 6 caractères).',
+            'auth/invalid-email':        'Format de Steam ID invalide.'
+        };
+        const msg = msgMap[err.code] || ('Erreur : ' + err.message);
+        showAlert('creer-alert', msg, 'danger');
     }
     btn.disabled = false;
     btn.textContent = 'Créer le compte';

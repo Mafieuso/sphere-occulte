@@ -244,13 +244,22 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="ecole-edit-id">
+      <div class="form-group" style="display:flex;align-items:center;gap:1rem">
+        <div id="ecole-logo-preview" onclick="document.getElementById('ecole-logo-input').click()"
+          style="width:64px;height:64px;border-radius:12px;overflow:hidden;border:2px dashed rgba(201,165,42,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.03);flex-shrink:0;font-size:1.6rem;color:var(--text-muted)">🏛</div>
+        <div>
+          <div class="form-label" style="margin-bottom:.3rem">Logo de l'école</div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('ecole-logo-input').click()">Choisir une image</button>
+        </div>
+        <input type="file" id="ecole-logo-input" accept="image/*" style="display:none" onchange="ecoleLogoChosen(this)">
+      </div>
       <div class="form-group">
         <label class="form-label">Nom de l'École</label>
         <input class="form-control" type="text" id="ecole-nom" placeholder="Ex : Cercle des Ombres Silencieuses" required maxlength="60">
       </div>
       <div class="form-group">
         <label class="form-label">Description (optionnel)</label>
-        <textarea class="form-control" id="ecole-desc" rows="3" placeholder="Doctrine, objectifs, spécialisation de cette école…"></textarea>
+        <textarea class="form-control" id="ecole-desc" rows="3" placeholder="Doctrine, objectifs, spécialisation…"></textarea>
       </div>
       <div id="ecole-alert" class="alert alert-danger" style="display:none;margin-bottom:.75rem"></div>
       <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
@@ -296,7 +305,11 @@
       </div>
       <div class="form-group">
         <label class="form-label">Description / Utilisation</label>
-        <textarea class="form-control" id="ie-desc" rows="3" placeholder="Décrivez l'effet et conditions d'utilisation…" required></textarea>
+        <textarea class="form-control" id="ie-desc" rows="2" placeholder="Effet, conditions d'utilisation…" required></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Incantation</label>
+        <textarea class="form-control" id="ie-incantation" rows="3" placeholder="Écrivez ici le texte de l'incantation…"></textarea>
       </div>
       <div class="grid-2">
         <div class="form-group">
@@ -992,6 +1005,9 @@
           <div class="sidebar-nav-item" onclick="adminPanel('savoirs')" data-panel="savoirs" style="cursor:pointer">
             <span class="nav-icon">📖</span> Savoirs Uniques
           </div>
+          <div class="sidebar-nav-item" onclick="adminPanel('ecoles')" data-panel="ecoles" style="cursor:pointer">
+            <span class="nav-icon">🏛</span> Écoles
+          </div>
           <div class="sidebar-nav-item" onclick="adminPanel('logs')" data-panel="logs" style="cursor:pointer">
             <span class="nav-icon">📜</span> Logs
           </div>
@@ -1069,6 +1085,14 @@
             <button class="btn btn-primary btn-sm" onclick="openSavoirModal()">+ Nouveau Savoir</button>
           </div>
           <div class="incan-grid" id="admin-savoirs-grid"></div>
+        </div>
+
+        <!-- Panel : Écoles (Admin) -->
+        <div class="panel" id="ap-ecoles">
+          <div class="panel-hdr">
+            <div class="panel-title">🏛 Toutes les Écoles</div>
+          </div>
+          <div id="admin-ecoles-list"></div>
         </div>
 
         <!-- Panel : Logs -->
@@ -2241,10 +2265,11 @@ function adminPanel(name) {
     const el = document.getElementById('ap-' + name);
     if (el) el.classList.add('active');
 
-    if (name === 'membres')     renderMembres();
+    if (name === 'membres')      loadAdminMembres();
     if (name === 'incantations') loadAdminIncan();
-    if (name === 'savoirs')     loadAdminSavoirs();
-    if (name === 'logs')        loadLogs();
+    if (name === 'savoirs')      loadAdminSavoirs();
+    if (name === 'ecoles')       loadAdminEcoles();
+    if (name === 'logs')         loadLogs();
 }
 
 // Filtre soumissions admin
@@ -2373,38 +2398,53 @@ async function confirmerRefus() {
 }
 
 // Membres
-function renderMembres() {
+function renderMembres() { loadAdminMembres(); }
+
+async function loadAdminMembres() {
     const list = document.getElementById('membres-list');
     if (!list) return;
-    if (!allMembres.length) {
-        list.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">Aucun membre</div></div>';
-        return;
-    }
-    list.innerHTML = allMembres.map(m => {
+    list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    let snap;
+    try { snap = await db.collection('membres').orderBy('pointsOcculte','desc').get(); }
+    catch(e) { snap = await db.collection('membres').get(); }
+    if (snap.empty) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">Aucun membre</div></div>'; return; }
+    const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    list.innerHTML = membres.map(m => {
         const name = displayName(m);
         const init = ((m.prenom || m.nom || '?')[0]).toUpperCase();
-        const avatarHtml = m.photoURL
-            ? `<div class="membre-card-avatar"><img src="${m.photoURL}" alt="${name}" loading="lazy"></div>`
+        const avatar = m.photoURL
+            ? `<div class="membre-card-avatar"><img src="${m.photoURL}" loading="lazy"></div>`
             : `<div class="membre-card-avatar"><div class="membre-card-avatar-init">${init}</div></div>`;
-        return `<div class="glass-card membre-card" style="margin-bottom:.5rem">
-            ${avatarHtml}
-            <div class="membre-card-info">
-                <div class="membre-card-name">${name}</div>
-                <div class="membre-card-sub">
-                    ${badgeGrade(m.grade)}
-                    ${m.absent ? ' <span class="badge badge-absent">Absent</span>' : ''}
-                </div>
-                <div class="membre-card-pts">
-                    <span class="pts pts-manip">${m.pointsManipulation || 0} Manip. Occ.</span>
-                    <span class="pts pts-occulte">${m.pointsOcculte || 0} Puiss. Occ.</span>
+        const lastCo = m.lastLogin
+            ? (m.lastLogin.toDate ? m.lastLogin.toDate() : new Date(m.lastLogin)).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})
+            : 'Jamais';
+        const susp   = m.suspended;
+        return `<div class="glass-card membre-card${susp ? ' membre-suspended' : ''}" style="margin-bottom:.5rem">
+            ${avatar}
+            <div class="membre-card-info" style="flex:1">
+                <div class="membre-card-name">${name} ${susp ? '<span class="badge badge-absent">Suspendu</span>' : ''}</div>
+                <div class="membre-card-sub">${badgeGrade(m.grade)}</div>
+                <div class="membre-card-pts" style="gap:.5rem;flex-wrap:wrap">
+                    <span class="pts pts-occulte">🔮 ${m.pointsOcculte||0}</span>
+                    <span class="pts pts-manip">✦ ${m.pointsManipulation||0}</span>
+                    <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cinzel',serif">⏱ ${lastCo}</span>
                 </div>
             </div>
-            <div class="membre-card-actions">
-                <button class="btn btn-ghost btn-sm" onclick="openMembreEdit('${m.id}')">✏️</button>
-                <button class="btn btn-danger btn-sm" onclick="supprimerMembre('${m.id}','${name.replace(/'/g,"\\'")}')">🗑</button>
+            <div class="membre-card-actions" style="flex-direction:column;gap:.35rem">
+                <button class="btn btn-ghost btn-sm" onclick="openMembreEdit('${m.id}')">✏️ Modifier</button>
+                <button class="btn btn-sm ${susp ? 'btn-primary' : 'btn-ghost'}" onclick="toggleSuspendMembre('${m.id}','${name.replace(/'/g,"\\'")}',${susp})">${susp ? '✅ Réactiver' : '🚫 Suspendre'}</button>
+                <button class="btn btn-danger btn-sm" onclick="supprimerMembre('${m.id}','${name.replace(/'/g,"\\'")}')">🗑 Supprimer</button>
             </div>
         </div>`;
     }).join('');
+}
+
+async function toggleSuspendMembre(id, nom, estSuspendu) {
+    const action = estSuspendu ? 'réactiver' : 'suspendre';
+    if (!confirm(`${action.charAt(0).toUpperCase()+action.slice(1)} ${nom} ?`)) return;
+    await db.collection('membres').doc(id).update({ suspended: !estSuspendu });
+    await logAction(estSuspendu ? 'RÉACTIVATION' : 'SUSPENSION', nom, 0);
+    loadAdminMembres();
 }
 
 function openMembreEdit(membreId) {
@@ -2651,6 +2691,57 @@ async function supprimerSavoir(id) {
     loadAdminSavoirs();
 }
 
+// Admin — toutes les écoles
+async function loadAdminEcoles() {
+    const list = document.getElementById('admin-ecoles-list');
+    if (!list) return;
+    list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    let snap;
+    try { snap = await db.collection('ecoles').orderBy('dateCreation','desc').get(); }
+    catch(e) { snap = await db.collection('ecoles').get(); }
+    if (snap.empty) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🏛</div><div class="empty-text">Aucune école</div></div>'; return; }
+    list.innerHTML = snap.docs.map(doc => {
+        const e = doc.data();
+        const logo = e.logoURL
+            ? `<img src="${e.logoURL}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+            : `<div style="width:48px;height:48px;border-radius:50%;background:rgba(139,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">🏛</div>`;
+        const membresCount = (e.membres || []).length;
+        return `<div class="glass-card" style="display:flex;align-items:center;gap:1rem;margin-bottom:.6rem;padding:.9rem 1rem">
+            ${logo}
+            <div style="flex:1;min-width:0">
+                <div style="font-family:'Cinzel',serif;font-size:.95rem;color:var(--text);font-weight:600">${e.nom}</div>
+                <div style="font-size:.75rem;color:var(--text-muted);margin:.15rem 0">Fondateur : ${e.fondateurNom || '?'} · ${membresCount} membre(s)</div>
+                ${e.description ? `<div style="font-size:.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.description}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
+                <button class="btn btn-ghost btn-sm" onclick="adminEditEcole('${doc.id}')">✏️ Modifier</button>
+                <button class="btn btn-danger btn-sm" onclick="adminDeleteEcole('${doc.id}','${(e.nom||'').replace(/'/g,"\\'")}')">🗑 Supprimer</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function adminEditEcole(ecoleId) {
+    const doc = await db.collection('ecoles').doc(ecoleId).get();
+    const e = doc.data();
+    document.getElementById('ecole-edit-id').value = ecoleId;
+    document.getElementById('ecole-nom').value = e.nom || '';
+    document.getElementById('ecole-desc').value = e.description || '';
+    document.getElementById('modal-ecole-title').textContent = 'Modifier l\'École (Admin)';
+    document.getElementById('ecole-alert').style.display = 'none';
+    ecoleLogoB64 = null;
+    const prev = document.getElementById('ecole-logo-preview');
+    if (prev) prev.innerHTML = e.logoURL ? `<img src="${e.logoURL}" style="width:64px;height:64px;border-radius:50%;object-fit:cover">` : '🏛';
+    openModal('modal-creer-ecole');
+}
+
+async function adminDeleteEcole(ecoleId, nom) {
+    if (!confirm(`Supprimer l'école "${nom}" définitivement ?`)) return;
+    await db.collection('ecoles').doc(ecoleId).delete();
+    await logAction('SUPPRESSION ÉCOLE', nom, 0);
+    loadAdminEcoles();
+}
+
 // Logs
 async function loadLogs() {
     const list = document.getElementById('logs-list');
@@ -2674,11 +2765,13 @@ async function loadLogs() {
 
 async function logAction(action, detail, pts) {
     try {
+        const actorName = currentMembre ? displayName(currentMembre) : 'system';
         await db.collection('logs').add({
             action, detail,
-            pts:   pts || 0,
-            admin: currentUser ? currentUser.uid : 'system',
-            date:  firebase.firestore.Timestamp.now()
+            pts:      pts || 0,
+            admin:    currentUser ? currentUser.uid : 'system',
+            adminNom: actorName,
+            date:     firebase.firestore.Timestamp.now()
         });
     } catch (e) { /* non-bloquant */ }
 }
@@ -3105,26 +3198,65 @@ async function loadDashEcole() {
     }
 }
 
+let ecoleLogoB64 = null;
+
+function ecoleLogoChosen(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            const s = Math.min(img.width, img.height);
+            const ox = (img.width - s) / 2, oy = (img.height - s) / 2;
+            ctx.drawImage(img, ox, oy, s, s, 0, 0, 200, 200);
+            ecoleLogoB64 = canvas.toDataURL('image/jpeg', 0.82);
+            const prev = document.getElementById('ecole-logo-preview');
+            if (prev) { prev.innerHTML = `<img src="${ecoleLogoB64}" style="width:64px;height:64px;border-radius:50%;object-fit:cover">`; }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 function ouvrirCreerEcole() {
     document.getElementById('ecole-edit-id').value = '';
     document.getElementById('ecole-nom').value = '';
     document.getElementById('ecole-desc').value = '';
     document.getElementById('modal-ecole-title').textContent = 'Fonder une École';
     document.getElementById('ecole-alert').style.display = 'none';
+    ecoleLogoB64 = null;
+    const prev = document.getElementById('ecole-logo-preview');
+    if (prev) prev.innerHTML = '🏛';
     openModal('modal-creer-ecole');
 }
 
 async function confirmerCreerEcole() {
-    const nom  = document.getElementById('ecole-nom').value.trim();
-    const desc = document.getElementById('ecole-desc').value.trim();
+    const editId = document.getElementById('ecole-edit-id').value;
+    const nom    = document.getElementById('ecole-nom').value.trim();
+    const desc   = document.getElementById('ecole-desc').value.trim();
     const alertEl = document.getElementById('ecole-alert');
     alertEl.style.display = 'none';
 
     if (!nom) { alertEl.textContent = 'Le nom est obligatoire.'; alertEl.style.display = ''; return; }
 
+    if (editId) {
+        // Mode modification (admin ou fondateur)
+        const updateData = { nom, description: desc };
+        if (ecoleLogoB64) updateData.logoURL = ecoleLogoB64;
+        await db.collection('ecoles').doc(editId).update(updateData);
+        await logAction('MODIFICATION ÉCOLE', nom, 0);
+        closeModal('modal-creer-ecole');
+        if (currentMembre && currentMembre.role === 'admin') loadAdminEcoles();
+        else loadDashEcole();
+        return;
+    }
+
     const gradeIdx  = getGradeIndex(currentMembre.grade);
     const maxEcoles = gradeIdx >= 3 ? 2 : 1;
-
     const existSnap = await db.collection('ecoles').where('fondateurId', '==', currentMembre.id).get();
     if (existSnap.docs.length >= maxEcoles) {
         alertEl.textContent = `Vous ne pouvez pas créer plus de ${maxEcoles} école(s) à votre grade.`;
@@ -3132,13 +3264,15 @@ async function confirmerCreerEcole() {
         return;
     }
 
-    await db.collection('ecoles').add({
+    const ecoleData = {
         nom, description: desc,
         fondateurId: currentMembre.id,
         fondateurNom: displayName(currentMembre),
         membres: [],
         dateCreation: firebase.firestore.Timestamp.now()
-    });
+    };
+    if (ecoleLogoB64) ecoleData.logoURL = ecoleLogoB64;
+    await db.collection('ecoles').add(ecoleData);
     closeModal('modal-creer-ecole');
     loadDashEcole();
     const btn = document.getElementById('btn-creer-ecole');
@@ -3227,6 +3361,8 @@ function ouvrirIncanEcole(ecoleId) {
     document.getElementById('ie-desc').value  = '';
     document.getElementById('ie-manip').value = '0';
     document.getElementById('ie-pts').value   = '0';
+    const ieIncan = document.getElementById('ie-incantation');
+    if (ieIncan) ieIncan.value = '';
     document.getElementById('ie-alert').style.display   = 'none';
     document.getElementById('ie-success').style.display = 'none';
     openModal('modal-incan-ecole');
@@ -3245,8 +3381,11 @@ async function confirmerCreerIncanEcole() {
     if (!desc)  { alertEl.textContent = 'La description est obligatoire.'; alertEl.style.display = ''; return; }
     if (!ecoleId) { alertEl.textContent = 'École manquante.'; alertEl.style.display = ''; return; }
 
+    const incantationEl = document.getElementById('ie-incantation');
+    const incantation   = incantationEl ? incantationEl.value.trim() : '';
     await db.collection('incantations').add({
         nom, utilisation: desc,
+        incantation,
         cout: manip, ptsOcculte: pts,
         ecoleId,
         gradeOrdre: getGradeIndex(currentMembre.grade),

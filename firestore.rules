@@ -2,21 +2,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Fonction utilitaire : est-ce un haut grade ou admin ? ──
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     function isHautGrade() {
-      return request.auth != null &&
+      return isAuthenticated() &&
         exists(/databases/$(database)/documents/membres/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/membres/$(request.auth.uid)).data.role
           in ['haut_grade', 'admin'];
     }
 
-    function isAuthenticated() {
-      return request.auth != null;
+    function memberGrade() {
+      return get(/databases/$(database)/documents/membres/$(request.auth.uid)).data.grade;
+    }
+
+    function isCollecteurOrHigher() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/membres/$(request.auth.uid)) &&
+        memberGrade() in [
+          "Collecteur d'Ombre",
+          "Marchand des Âmes",
+          "Monarque des Ombres"
+        ];
     }
 
     // ── Membres ────────────────────────────────────────────────
-    // Lecture publique (classement visible par tous)
-    // Écriture : soi-même (son propre profil) OU haut grade
     match /membres/{userId} {
       allow read: if true;
       allow create: if isAuthenticated() && request.auth.uid == userId;
@@ -26,16 +37,12 @@ service cloud.firestore {
     }
 
     // ── Incantations ───────────────────────────────────────────
-    // Lecture publique, écriture réservée aux hauts grades
     match /incantations/{incantationId} {
       allow read: if true;
       allow write: if isHautGrade();
     }
 
     // ── Soumissions ────────────────────────────────────────────
-    // Lecture : son propre dossier OU haut grade
-    // Création : membre authentifié (son propre uid dans le doc)
-    // Mise à jour : haut grade uniquement (pour valider/refuser)
     match /soumissions/{soumissionId} {
       allow read: if isAuthenticated() &&
         (request.auth.uid == resource.data.membreId || isHautGrade());
@@ -45,12 +52,28 @@ service cloud.firestore {
       allow delete: if isHautGrade();
     }
 
+    // ── Écoles ─────────────────────────────────────────────────
+    match /ecoles/{ecoleId} {
+      allow read: if isAuthenticated();
+      allow create: if isCollecteurOrHigher() &&
+        request.resource.data.fondateurId == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        (resource.data.fondateurId == request.auth.uid || isHautGrade());
+      allow delete: if isAuthenticated() &&
+        (resource.data.fondateurId == request.auth.uid || isHautGrade());
+    }
+
+    // ── Savoirs Uniques ────────────────────────────────────────
+    match /savoirsUniques/{savoirId} {
+      allow read: if isAuthenticated();
+      allow write: if isHautGrade();
+    }
+
     // ── Logs ───────────────────────────────────────────────────
-    // Lecture et écriture : hauts grades uniquement
     match /logs/{logId} {
       allow read:   if isHautGrade();
       allow create: if isHautGrade();
-      allow update, delete: if false; // logs immuables
+      allow update, delete: if false;
     }
   }
 }

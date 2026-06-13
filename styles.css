@@ -400,6 +400,7 @@ a:hover { color:var(--gold-pale); }
 .membre-card-sub { font-size:.72rem; color:var(--text-muted); margin-top:.12rem; }
 .membre-card-pts { display:flex; gap:.6rem; margin-top:.3rem; font-size:.78rem; }
 .membre-card-actions { display:flex; gap:.35rem; margin-left:auto; }
+.membre-suspended { opacity:.6; border-color:rgba(255,80,80,.25) !important; }
 
 /* ── Incantation grid ────────────────────────────────────────── */
 .incan-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.85rem; }

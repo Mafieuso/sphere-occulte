@@ -30,16 +30,17 @@ service cloud.firestore {
     // ── Membres ────────────────────────────────────────────────
     match /membres/{userId} {
       allow read: if true;
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isAuthenticated() &&
+      allow create: if isAuthenticated() &&
         (request.auth.uid == userId || isHautGrade());
+      allow update: if isAuthenticated() &&
+        (request.auth.uid == userId || isHautGrade() || isCollecteurOrHigher());
       allow delete: if isHautGrade();
     }
 
     // ── Incantations ───────────────────────────────────────────
     match /incantations/{incantationId} {
-      allow read: if true;
-      allow write: if isHautGrade();
+      allow read: if isAuthenticated();
+      allow write: if isCollecteurOrHigher() || isHautGrade();
     }
 
     // ── Soumissions ────────────────────────────────────────────

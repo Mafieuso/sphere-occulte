@@ -1023,10 +1023,7 @@
             <span class="nav-icon">📜</span> Logs
           </div>
           <div class="sidebar-nav-item" onclick="adminPanel('acces')" data-panel="acces" style="cursor:pointer">
-            <span class="nav-icon">🔑</span> Accès membres
-          </div>
-          <div class="sidebar-nav-item" onclick="adminPanel('creer')" data-panel="creer" style="cursor:pointer">
-            <span class="nav-icon">➕</span> Créer Membre
+            <span class="nav-icon">🔑</span> Accès &amp; Comptes
           </div>
         </nav>
         <div class="sidebar-footer">
@@ -1113,11 +1110,38 @@
           <div id="admin-ecoles-list"></div>
         </div>
 
-        <!-- Panel : Accès membres -->
+        <!-- Panel : Accès & Comptes (fusionné) -->
         <div class="panel" id="ap-acces">
           <div class="panel-hdr">
-            <div class="panel-title">🔑 Accès Membres</div>
+            <div class="panel-title">🔑 Accès &amp; Comptes</div>
           </div>
+
+          <!-- Formulaire création -->
+          <div class="glass-card" style="margin-bottom:1.5rem;max-width:560px">
+            <div style="font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:.1em;color:var(--gold);margin-bottom:.85rem">➕ CRÉER UN ACCÈS</div>
+            <form onsubmit="creerMembre(event)">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Prénom RP *</label>
+                  <input class="form-control" type="text" id="c-prenom" placeholder="Kira" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nom RP <span style="color:var(--text-muted);font-size:.75rem">(facultatif)</span></label>
+                  <input class="form-control" type="text" id="c-nom" placeholder="Ombrenoir">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Steam ID 64 *</label>
+                <input class="form-control" type="text" id="c-steam" placeholder="76561198…" required>
+              </div>
+              <div id="creer-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
+              <div id="creer-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
+              <button type="submit" class="btn btn-primary" id="creer-btn">➕ Créer l'accès</button>
+            </form>
+          </div>
+
+          <!-- Séparateur -->
+          <div style="font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:.75rem">Comptes enregistrés</div>
           <div id="acces-list"></div>
         </div>
 
@@ -1127,39 +1151,6 @@
             <div class="panel-title">📜 Journal des Actions</div>
           </div>
           <div id="logs-list"></div>
-        </div>
-
-        <!-- Panel : Créer membre -->
-        <div class="panel" id="ap-creer">
-          <div class="panel-hdr">
-            <div class="panel-title">➕ Créer un Compte Membre</div>
-          </div>
-          <div style="max-width:480px">
-            <div class="glass-card">
-              <form onsubmit="creerMembre(event)">
-                <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6">
-                  Un <strong style="color:var(--gold)">code temporaire</strong> sera généré automatiquement. Transmettez-le au membre pour sa première connexion avec son Steam ID 64.
-                </p>
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label class="form-label">Prénom RP *</label>
-                    <input class="form-control" type="text" id="c-prenom" placeholder="Kira" required>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Nom RP <span style="color:var(--text-muted);font-size:.75rem">(facultatif)</span></label>
-                    <input class="form-control" type="text" id="c-nom" placeholder="Ombrenoir">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Steam ID 64 *</label>
-                  <input class="form-control" type="text" id="c-steam" placeholder="76561198…" required>
-                </div>
-                <div id="creer-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
-                <div id="creer-success" class="alert alert-success" style="display:none;margin-bottom:.75rem;white-space:pre-line"></div>
-                <button type="submit" class="btn btn-primary" id="creer-btn">Créer le compte</button>
-              </form>
-            </div>
-          </div>
         </div>
 
       </div><!-- /admin-main -->
@@ -2780,51 +2771,52 @@ async function loadAdminAcces() {
     const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     list.innerHTML = membres.map(m => {
-        const name = displayName(m) || m.steamId || m.id;
-        const hasCo   = !!m.lastLogin;
-        const isPW    = !m.firstLogin;
+        const name  = displayName(m) || m.steamId || m.id;
+        const hasCo = !!m.lastLogin;
+        const isPW  = !m.firstLogin;
 
-        // Statut
-        let statut, statutColor;
-        if (!hasCo) {
-            statut = '🔴 Jamais connecté';
-            statutColor = 'rgba(220,50,50,.15)';
-        } else if (!isPW) {
-            statut = '🟡 Connecté — mot de passe non configuré';
-            statutColor = 'rgba(220,180,0,.12)';
-        } else {
-            statut = '🟢 Accès configuré';
-            statutColor = 'rgba(30,180,60,.1)';
-        }
+        let dot, statutLabel;
+        if (!hasCo)       { dot = '#e05050'; statutLabel = 'Jamais connecté'; }
+        else if (!isPW)   { dot = '#d4a017'; statutLabel = 'En attente — code non changé'; }
+        else              { dot = '#3cb86a'; statutLabel = 'Accès configuré'; }
 
         const lastCo = m.lastLogin
             ? (m.lastLogin.toDate ? m.lastLogin.toDate() : new Date(m.lastLogin))
                 .toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})
             : '—';
 
-        const tempBlock = (m.firstLogin && m.tempPassword)
-            ? `<div style="margin-top:.5rem;padding:.45rem .7rem;background:rgba(201,165,42,.1);border:1px solid rgba(201,165,42,.3);border-radius:8px;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
-                <span style="font-size:.72rem;color:var(--text-muted);font-family:'Cinzel',serif">🔑 Code temp.</span>
-                <code id="tp-${m.id}" style="font-size:.82rem;color:var(--gold);letter-spacing:.08em;filter:blur(5px);cursor:pointer" onclick="this.style.filter='none'" title="Cliquer pour révéler">${m.tempPassword}</code>
-                <span style="font-size:.65rem;color:var(--text-muted)">(cliquer pour révéler)</span>
-                <button class="btn btn-ghost btn-sm" onclick="regenererCode('${m.id}','${m.steamId}','${m.tempPassword}')">↻ Nouveau code</button>
-              </div>`
-            : m.firstLogin
-                ? `<div style="margin-top:.4rem;font-size:.72rem;color:var(--text-muted)">⚠️ Code temporaire non retrouvé — recréez le compte.</div>`
-                : '';
+        const safeNom = name.replace(/'/g,"\\'");
 
-        return `<div style="padding:.85rem 1rem;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:${statutColor};margin-bottom:.6rem">
-            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
-                <div style="flex:1;min-width:160px">
-                    <div style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--text);font-weight:600">${name}</div>
-                    <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem">${m.steamId || ''}</div>
+        const codeRow = m.tempPassword
+            ? `<div style="display:flex;align-items:center;gap:.6rem;margin-top:.55rem;flex-wrap:wrap">
+                <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cinzel',serif;flex-shrink:0">🔑 Code :</span>
+                <code onclick="this.style.filter='none';this.nextElementSibling.style.display='none'"
+                      style="font-size:.82rem;color:var(--gold);letter-spacing:.1em;cursor:pointer;filter:blur(4px);transition:filter .2s">${m.tempPassword}</code>
+                <span style="font-size:.65rem;color:var(--text-muted)">← cliquer pour voir</span>
+                <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="regenererCode('${m.id}','${m.steamId}','${m.tempPassword}')">↻ Nouveau code</button>
+              </div>`
+            : isPW
+                ? `<div style="font-size:.68rem;color:var(--g3);margin-top:.4rem">✓ Mot de passe configuré par le membre</div>`
+                : `<div style="font-size:.68rem;color:var(--text-muted);margin-top:.4rem">⚠️ Code non retrouvé — recréez l'accès si besoin</div>`;
+
+        return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);margin-bottom:.55rem">
+            <div style="width:9px;height:9px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:.55rem"></div>
+            <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+                    <span style="font-family:'Cinzel',serif;font-size:.88rem;color:var(--text);font-weight:600">${name}</span>
+                    <span style="font-size:.68rem;color:var(--text-muted)">${m.steamId || ''}</span>
                 </div>
-                <div style="text-align:right;min-width:120px">
-                    <div style="font-size:.78rem;color:var(--text)">${statut}</div>
-                    <div style="font-size:.68rem;color:var(--text-muted);margin-top:.15rem">Dernière co. : ${lastCo}</div>
+                <div style="display:flex;align-items:center;gap:1rem;margin-top:.2rem;flex-wrap:wrap">
+                    <span style="font-size:.72rem;color:${dot}">${statutLabel}</span>
+                    <span style="font-size:.68rem;color:var(--text-muted)">⏱ ${lastCo}</span>
                 </div>
+                ${codeRow}
             </div>
-            ${tempBlock}
+            <button onclick="supprimerMembre('${m.id}','${safeNom}')"
+                    style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1px solid rgba(220,50,50,.4);background:rgba(220,50,50,.1);color:#e05050;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s"
+                    onmouseover="this.style.background='rgba(220,50,50,.3)'"
+                    onmouseout="this.style.background='rgba(220,50,50,.1)'"
+                    title="Révoquer l'accès">✕</button>
         </div>`;
     }).join('');
 }
@@ -2994,10 +2986,9 @@ async function creerMembre(e) {
         await secondaryAuth.signOut();
         const nomComplet = nom ? prenom + ' ' + nom : prenom;
         await logAction('creation', `Nouveau membre : ${nomComplet}`, 0);
-        showAlert('creer-success',
-            `✅ Compte créé pour ${nomComplet} !\n\n🔑 Code temporaire : ${tempPw}\n\nTransmettez ce code au membre. Il sera invité à choisir son mot de passe lors de sa première connexion avec son Steam ID 64.`,
-            'success');
+        showAlert('creer-success', `✅ Compte créé pour ${nomComplet} !`, 'success');
         e.target.reset();
+        loadAdminAcces();
     } catch (err) {
         const msgMap = {
             'auth/email-already-in-use': '⚠️ Compte Auth orphelin détecté pour ce Steam ID. Allez dans Firebase Console → Authentication, supprimez l\'entrée "' + (val('c-steam').trim()) + '@sphere-occulte.rp", puis réessayez.',

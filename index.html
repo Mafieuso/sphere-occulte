@@ -2827,6 +2827,17 @@ async function creerMembre(e) {
         const steam  = val('c-steam').trim();
         if (!steam) throw new Error('Le Steam ID 64 est requis.');
 
+        // Vérifier si un membre Firestore existe déjà avec ce steamId
+        const existSnap = await db.collection('membres').where('steamId', '==', steam).limit(1).get();
+        if (!existSnap.empty) {
+            const m = existSnap.docs[0].data();
+            const nom2 = m.prenom ? `${m.prenom} ${m.nom || ''}`.trim() : 'Inconnu';
+            showAlert('creer-alert', `⚠️ Ce Steam ID est déjà enregistré — membre : ${nom2}.`, 'danger');
+            btn.disabled = false;
+            btn.textContent = 'Créer le compte';
+            return;
+        }
+
         const tempPw = genTempPw();
         const email  = steam + '@sphere-occulte.rp';
 
@@ -2857,7 +2868,7 @@ async function creerMembre(e) {
         e.target.reset();
     } catch (err) {
         const msgMap = {
-            'auth/email-already-in-use': 'Un compte existe déjà pour ce Steam ID 64. Le membre est peut-être déjà enregistré — vérifiez la liste des membres.',
+            'auth/email-already-in-use': '⚠️ Compte Auth orphelin détecté pour ce Steam ID. Allez dans Firebase Console → Authentication, supprimez l\'entrée "' + (val('c-steam').trim()) + '@sphere-occulte.rp", puis réessayez.',
             'auth/weak-password':        'Mot de passe trop faible (min. 6 caractères).',
             'auth/invalid-email':        'Format de Steam ID invalide.'
         };

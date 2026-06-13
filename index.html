@@ -1022,6 +1022,9 @@
           <div class="sidebar-nav-item" onclick="adminPanel('logs')" data-panel="logs" style="cursor:pointer">
             <span class="nav-icon">📜</span> Logs
           </div>
+          <div class="sidebar-nav-item" onclick="adminPanel('acces')" data-panel="acces" style="cursor:pointer">
+            <span class="nav-icon">🔑</span> Accès membres
+          </div>
           <div class="sidebar-nav-item" onclick="adminPanel('creer')" data-panel="creer" style="cursor:pointer">
             <span class="nav-icon">➕</span> Créer Membre
           </div>
@@ -1108,6 +1111,14 @@
             <div class="panel-title">🏛 Toutes les Écoles</div>
           </div>
           <div id="admin-ecoles-list"></div>
+        </div>
+
+        <!-- Panel : Accès membres -->
+        <div class="panel" id="ap-acces">
+          <div class="panel-hdr">
+            <div class="panel-title">🔑 Accès Membres</div>
+          </div>
+          <div id="acces-list"></div>
         </div>
 
         <!-- Panel : Logs -->
@@ -1630,7 +1641,10 @@ async function changerMotDePasse() {
     try {
         await auth.currentUser.updatePassword(np);
         if (currentMembre) {
-            await db.collection('membres').doc(currentMembre.id).update({ firstLogin: false });
+            await db.collection('membres').doc(currentMembre.id).update({
+                firstLogin:    false,
+                tempPassword:  firebase.firestore.FieldValue.delete()
+            });
             currentMembre.firstLogin = false;
         }
         closeModal('modal-change-pw');
@@ -2288,6 +2302,7 @@ function adminPanel(name) {
     if (name === 'incantations') loadAdminIncan();
     if (name === 'savoirs')      loadAdminSavoirs();
     if (name === 'ecoles')       loadAdminEcoles();
+    if (name === 'acces')        loadAdminAcces();
     if (name === 'logs')         loadLogs();
 }
 
@@ -2719,6 +2734,91 @@ async function supprimerSavoir(id) {
     loadAdminSavoirs();
 }
 
+// Admin — accès membres (statut connexion + mot de passe)
+async function loadAdminAcces() {
+    const list = document.getElementById('acces-list');
+    if (!list) return;
+    list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    let snap;
+    try { snap = await db.collection('membres').orderBy('dateCreation','desc').get(); }
+    catch(e) { snap = await db.collection('membres').get(); }
+    if (snap.empty) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">Aucun membre</div></div>';
+        return;
+    }
+    const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    list.innerHTML = membres.map(m => {
+        const name = displayName(m) || m.steamId || m.id;
+        const hasCo   = !!m.lastLogin;
+        const isPW    = !m.firstLogin;
+
+        // Statut
+        let statut, statutColor;
+        if (!hasCo) {
+            statut = '🔴 Jamais connecté';
+            statutColor = 'rgba(220,50,50,.15)';
+        } else if (!isPW) {
+            statut = '🟡 Connecté — mot de passe non configuré';
+            statutColor = 'rgba(220,180,0,.12)';
+        } else {
+            statut = '🟢 Accès configuré';
+            statutColor = 'rgba(30,180,60,.1)';
+        }
+
+        const lastCo = m.lastLogin
+            ? (m.lastLogin.toDate ? m.lastLogin.toDate() : new Date(m.lastLogin))
+                .toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})
+            : '—';
+
+        const tempBlock = (m.firstLogin && m.tempPassword)
+            ? `<div style="margin-top:.5rem;padding:.45rem .7rem;background:rgba(201,165,42,.1);border:1px solid rgba(201,165,42,.3);border-radius:8px;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                <span style="font-size:.72rem;color:var(--text-muted);font-family:'Cinzel',serif">🔑 Code temp.</span>
+                <code id="tp-${m.id}" style="font-size:.82rem;color:var(--gold);letter-spacing:.08em;filter:blur(5px);cursor:pointer" onclick="this.style.filter='none'" title="Cliquer pour révéler">${m.tempPassword}</code>
+                <span style="font-size:.65rem;color:var(--text-muted)">(cliquer pour révéler)</span>
+                <button class="btn btn-ghost btn-sm" onclick="regenererCode('${m.id}','${m.steamId}','${m.tempPassword}')">↻ Nouveau code</button>
+              </div>`
+            : m.firstLogin
+                ? `<div style="margin-top:.4rem;font-size:.72rem;color:var(--text-muted)">⚠️ Code temporaire non retrouvé — recréez le compte.</div>`
+                : '';
+
+        return `<div style="padding:.85rem 1rem;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:${statutColor};margin-bottom:.6rem">
+            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+                <div style="flex:1;min-width:160px">
+                    <div style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--text);font-weight:600">${name}</div>
+                    <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem">${m.steamId || ''}</div>
+                </div>
+                <div style="text-align:right;min-width:120px">
+                    <div style="font-size:.78rem;color:var(--text)">${statut}</div>
+                    <div style="font-size:.68rem;color:var(--text-muted);margin-top:.15rem">Dernière co. : ${lastCo}</div>
+                </div>
+            </div>
+            ${tempBlock}
+        </div>`;
+    }).join('');
+}
+
+async function regenererCode(membreId, steamId, ancienCode) {
+    if (!confirm('Générer un nouveau code temporaire pour ce membre ?')) return;
+    if (!secondaryAuth) { alert('secondaryAuth non disponible'); return; }
+    try {
+        const email   = steamId + '@sphere-occulte.rp';
+        const newCode = genTempPw();
+        // Signer avec l'ancien code pour pouvoir changer le mot de passe
+        const cred = await secondaryAuth.signInWithEmailAndPassword(email, ancienCode);
+        await cred.user.updatePassword(newCode);
+        await secondaryAuth.signOut();
+        await db.collection('membres').doc(membreId).update({
+            tempPassword: newCode,
+            firstLogin:   true
+        });
+        await logAction('RESET CODE', steamId, 0);
+        loadAdminAcces();
+    } catch(err) {
+        alert('Impossible de régénérer le code : ' + err.message + '\n\nSi le membre a déjà changé son mot de passe, supprimez et recréez son compte.');
+    }
+}
+
 // Admin — toutes les écoles
 async function loadAdminEcoles() {
     const list = document.getElementById('admin-ecoles-list');
@@ -2856,6 +2956,7 @@ async function creerMembre(e) {
             nbMembresProjet: 0,
             role:            'membre',
             firstLogin:      true,
+            tempPassword:    tempPw,
             dateEvolution:   firebase.firestore.Timestamp.now(),
             dateCreation:    firebase.firestore.Timestamp.now()
         });

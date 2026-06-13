@@ -2529,9 +2529,40 @@ async function sauvegarderMembre() {
 }
 
 async function supprimerMembre(id, nom) {
-    if (!confirm(`Supprimer ${nom} ? Cette action est irréversible.`)) return;
+    if (!confirm(`Supprimer définitivement ${nom} ?\n\nLe compte et toutes ses données seront effacés.`)) return;
+
+    const memDoc = await db.collection('membres').doc(id).get();
+    const m = memDoc.exists ? memDoc.data() : {};
+
+    // 1. Retirer de l'école si besoin
+    if (m.ecoleId) {
+        try {
+            await db.collection('ecoles').doc(m.ecoleId).update({
+                membres: firebase.firestore.FieldValue.arrayRemove(id)
+            });
+        } catch(e) {}
+    }
+
+    // 2. Supprimer le doc Firestore
     await db.collection('membres').doc(id).delete();
-    await logAction('suppression', `Suppression de ${nom}`, 0);
+
+    // 3. Supprimer le compte Auth via secondaryAuth (possible seulement si tempPassword connu)
+    if (m.tempPassword && m.steamId && secondaryAuth) {
+        try {
+            const email = m.steamId + '@sphere-occulte.rp';
+            const cred  = await secondaryAuth.signInWithEmailAndPassword(email, m.tempPassword);
+            await cred.user.delete();
+            await secondaryAuth.signOut();
+        } catch(e) {
+            // Membre a déjà changé son mot de passe — Auth non supprimé côté client
+            // L'admin devra le faire manuellement dans Firebase Console si nécessaire
+        }
+    }
+
+    await logAction('SUPPRESSION', nom, 0);
+    // Rafraîchir la liste active
+    if (document.getElementById('ap-membres')?.classList.contains('active')) loadAdminMembres();
+    if (document.getElementById('ap-acces')?.classList.contains('active'))   loadAdminAcces();
 }
 
 // Incantations admin

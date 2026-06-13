@@ -311,6 +311,17 @@
         <label class="form-label">Incantation</label>
         <textarea class="form-control" id="ie-incantation" rows="3" placeholder="Écrivez ici le texte de l'incantation…"></textarea>
       </div>
+      <div class="form-group">
+        <label class="form-label">Pentagrames requis</label>
+        <div id="ie-pentagrames" style="display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.3rem">
+          <label class="pentag-pill"><input type="checkbox" value="Sang"       onchange="pentagChanged(this)"> ⛤ Sang</label>
+          <label class="pentag-pill"><input type="checkbox" value="Âme"        onchange="pentagChanged(this)"> ⛤ Âme</label>
+          <label class="pentag-pill"><input type="checkbox" value="Invocation" onchange="pentagChanged(this)"> ⛤ Invocation</label>
+          <label class="pentag-pill"><input type="checkbox" value="Sceau"      onchange="pentagChanged(this)"> ⛤ Sceau</label>
+          <label class="pentag-pill"><input type="checkbox" value="Chaos"      onchange="pentagChanged(this)"> ⛤ Chaos</label>
+          <label class="pentag-pill pentag-none"><input type="checkbox" value="aucun" id="ie-penta-aucun" onchange="pentagChanged(this)"> ✗ Aucun requis</label>
+        </div>
+      </div>
       <div class="grid-2">
         <div class="form-group">
           <label class="form-label">Manipulation Occulte</label>
@@ -1062,6 +1073,10 @@
         <div class="panel" id="ap-membres">
           <div class="panel-hdr">
             <div class="panel-title">👥 Membres de l'Ordre</div>
+          </div>
+          <div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">
+            <button class="btn btn-sm btn-violet" id="btn-filtre-actifs"  onclick="loadAdminMembres('actifs')">✅ Actifs (connectés + profil)</button>
+            <button class="btn btn-sm btn-ghost"  id="btn-filtre-tous"   onclick="loadAdminMembres('tous')">👥 Tous</button>
           </div>
           <div id="membres-list"></div>
         </div>
@@ -2398,9 +2413,15 @@ async function confirmerRefus() {
 }
 
 // Membres
-function renderMembres() { loadAdminMembres(); }
+function renderMembres() { loadAdminMembres('tous'); }
 
-async function loadAdminMembres() {
+async function loadAdminMembres(filtre = 'tous') {
+    // Mettre à jour l'apparence des boutons filtre
+    const btnActifs = document.getElementById('btn-filtre-actifs');
+    const btnTous   = document.getElementById('btn-filtre-tous');
+    if (btnActifs) { btnActifs.className = filtre === 'actifs' ? 'btn btn-sm btn-violet' : 'btn btn-sm btn-ghost'; }
+    if (btnTous)   { btnTous.className   = filtre === 'tous'   ? 'btn btn-sm btn-violet' : 'btn btn-sm btn-ghost'; }
+
     const list = document.getElementById('membres-list');
     if (!list) return;
     list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
@@ -2408,7 +2429,10 @@ async function loadAdminMembres() {
     try { snap = await db.collection('membres').orderBy('pointsOcculte','desc').get(); }
     catch(e) { snap = await db.collection('membres').get(); }
     if (snap.empty) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">Aucun membre</div></div>'; return; }
-    const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (filtre === 'actifs') {
+        membres = membres.filter(m => m.lastLogin && (m.prenom || m.nom));
+    }
     list.innerHTML = membres.map(m => {
         const name = displayName(m);
         const init = ((m.prenom || m.nom || '?')[0]).toUpperCase();
@@ -3103,6 +3127,7 @@ async function loadDashEcole() {
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
                     <div>
                         <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--g2);text-shadow:0 0 12px rgba(204,68,255,.4)">${e.nom}</div>
+                        <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
                         ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
                     </div>
                     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
@@ -3165,8 +3190,9 @@ async function loadDashEcole() {
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
                     <div>
                         <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--g2);text-shadow:0 0 14px rgba(204,68,255,.4)">${e.nom}</div>
+                        <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
                         ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
-                        <p style="font-size:.75rem;color:var(--text-muted);margin-top:.4rem">Fondée par <strong style="color:var(--text)">${e.fondateurNom}</strong> · ${membNbr} membre${membNbr > 1 ? 's' : ''}</p>
+                        <p style="font-size:.75rem;color:var(--text-muted);margin-top:.3rem">${membNbr} membre${membNbr > 1 ? 's' : ''}</p>
                     </div>
                     <span class="ecole-badge">Membre</span>
                 </div>
@@ -3355,6 +3381,15 @@ async function retirerMembreEcole(ecoleId, membreId, membreNom) {
     loadDashEcole();
 }
 
+function pentagChanged(el) {
+    if (el.value === 'aucun' && el.checked) {
+        document.querySelectorAll('#ie-pentagrames input[type="checkbox"]').forEach(cb => { if (cb.value !== 'aucun') cb.checked = false; });
+    } else if (el.checked) {
+        const aucun = document.getElementById('ie-penta-aucun');
+        if (aucun) aucun.checked = false;
+    }
+}
+
 function ouvrirIncanEcole(ecoleId) {
     document.getElementById('ie-ecole-id').value = ecoleId;
     document.getElementById('ie-nom').value   = '';
@@ -3363,6 +3398,7 @@ function ouvrirIncanEcole(ecoleId) {
     document.getElementById('ie-pts').value   = '0';
     const ieIncan = document.getElementById('ie-incantation');
     if (ieIncan) ieIncan.value = '';
+    document.querySelectorAll('#ie-pentagrames input[type="checkbox"]').forEach(cb => cb.checked = false);
     document.getElementById('ie-alert').style.display   = 'none';
     document.getElementById('ie-success').style.display = 'none';
     openModal('modal-incan-ecole');
@@ -3383,9 +3419,12 @@ async function confirmerCreerIncanEcole() {
 
     const incantationEl = document.getElementById('ie-incantation');
     const incantation   = incantationEl ? incantationEl.value.trim() : '';
+    const checkedPenta  = [...document.querySelectorAll('#ie-pentagrames input[type="checkbox"]:checked')].map(cb => cb.value);
+    const pentagrames   = checkedPenta.includes('aucun') ? [] : checkedPenta;
     await db.collection('incantations').add({
         nom, utilisation: desc,
         incantation,
+        pentagrames,
         cout: manip, ptsOcculte: pts,
         ecoleId,
         gradeOrdre: getGradeIndex(currentMembre.grade),

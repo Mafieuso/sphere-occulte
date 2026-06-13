@@ -402,6 +402,13 @@ a:hover { color:var(--gold-pale); }
 .membre-card-actions { display:flex; gap:.35rem; margin-left:auto; }
 .membre-suspended { opacity:.6; border-color:rgba(255,80,80,.25) !important; }
 
+/* ── Pentagrames picker ───────────────────────────────────────── */
+.pentag-pill { display:inline-flex; align-items:center; gap:.35rem; padding:.3rem .75rem; border-radius:20px; border:1px solid rgba(204,68,255,.3); background:rgba(204,68,255,.06); font-family:'Cinzel',serif; font-size:.75rem; color:var(--text-muted); cursor:pointer; transition:all .18s; user-select:none; }
+.pentag-pill:has(input:checked) { background:rgba(204,68,255,.22); border-color:var(--g2); color:var(--g2); box-shadow:0 0 10px rgba(204,68,255,.2); }
+.pentag-pill input[type="checkbox"] { display:none; }
+.pentag-none { border-color:rgba(255,255,255,.12); background:rgba(255,255,255,.03); }
+.pentag-none:has(input:checked) { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.3); color:var(--text); box-shadow:none; }
+
 /* ── Incantation grid ────────────────────────────────────────── */
 .incan-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.85rem; }
 .incan-card { display:flex; flex-direction:column; gap:.5rem; }

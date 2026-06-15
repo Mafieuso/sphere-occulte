@@ -3731,6 +3731,7 @@ function showNotifToast(id, n) {
     toast.innerHTML = `
         <div class="nt-sweep"></div>
         <div class="nt-label">${label}</div>
+        <div class="nt-sep"></div>
         <div class="nt-msg">${msg}</div>
         <div class="nt-actions">${actions}</div>
         <button class="nt-close" title="Masquer" onclick="masquerToast(this.closest('.notif-toast'))">✕</button>`;

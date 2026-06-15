@@ -70,6 +70,18 @@ service cloud.firestore {
       allow write: if isHautGrade();
     }
 
+    // ── Notifications ──────────────────────────────────────────
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.to == request.auth.uid || isHautGrade());
+      allow create: if isAuthenticated() &&
+        (isCollecteurOrHigher() || isHautGrade());
+      allow update: if isAuthenticated() &&
+        resource.data.to == request.auth.uid;
+      allow delete: if isAuthenticated() &&
+        (resource.data.to == request.auth.uid || isHautGrade());
+    }
+
     // ── Logs ───────────────────────────────────────────────────
     match /logs/{logId} {
       allow read:   if isHautGrade();

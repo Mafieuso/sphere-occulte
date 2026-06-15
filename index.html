@@ -369,7 +369,19 @@
     <a class="btn btn-ghost btn-sm" id="nl-auth" onclick="goTo('auth')" style="cursor:pointer">Connexion</a>
     <a class="btn btn-ghost btn-sm" id="nl-dash" style="display:none;cursor:pointer" onclick="goTo('dashboard')">Mon Espace</a>
     <a class="btn btn-ghost btn-sm" id="nl-admin" style="display:none;cursor:pointer" onclick="goTo('admin')">⚙ Admin</a>
+    <button id="notif-bell" style="display:none;position:relative" class="btn btn-ghost btn-sm" onclick="toggleNotifPanel()">
+      🔔<span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--crimson);color:#fff;font-size:.55rem;min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;pointer-events:none">0</span>
+    </button>
     <a class="btn btn-danger btn-sm" id="nl-logout" style="display:none;cursor:pointer" onclick="doLogout()">Déconnexion</a>
+  </div>
+
+  <!-- Panneau notifications -->
+  <div id="notif-panel" class="hidden" style="position:fixed;top:56px;right:1rem;width:340px;max-height:480px;overflow-y:auto;background:rgba(8,4,26,.97);border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:9000">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font-family:'Cinzel',serif;font-size:.78rem;color:var(--gold);letter-spacing:.1em">NOTIFICATIONS</span>
+      <button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="marquerToutLu()">Tout lu</button>
+    </div>
+    <div id="notif-list" style="min-height:60px"></div>
   </div>
 </nav>
 
@@ -1022,6 +1034,9 @@
           <div class="sidebar-nav-item" onclick="adminPanel('logs')" data-panel="logs" style="cursor:pointer">
             <span class="nav-icon">📜</span> Logs
           </div>
+          <div class="sidebar-nav-item" onclick="adminPanel('annonces')" data-panel="annonces" style="cursor:pointer">
+            <span class="nav-icon">📢</span> Annonces
+          </div>
           <div class="sidebar-nav-item" onclick="adminPanel('acces')" data-panel="acces" style="cursor:pointer">
             <span class="nav-icon">🔑</span> Accès &amp; Comptes
           </div>
@@ -1108,6 +1123,26 @@
             <div class="panel-title">🏛 Toutes les Écoles</div>
           </div>
           <div id="admin-ecoles-list"></div>
+        </div>
+
+        <!-- Panel : Annonces -->
+        <div class="panel" id="ap-annonces">
+          <div class="panel-hdr"><div class="panel-title">📢 Envoyer une Annonce</div></div>
+          <div class="glass-card" style="max-width:520px">
+            <div class="form-group">
+              <label class="form-label">Destinataire</label>
+              <select class="form-control" id="annonce-dest">
+                <option value="all">📣 Tous les membres</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Message</label>
+              <textarea class="form-control" id="annonce-msg" rows="3" placeholder="Votre annonce…"></textarea>
+            </div>
+            <div id="annonce-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
+            <div id="annonce-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
+            <button class="btn btn-primary" onclick="envoyerAnnonce()">📢 Envoyer</button>
+          </div>
         </div>
 
         <!-- Panel : Accès & Comptes (fusionné) -->
@@ -1384,6 +1419,7 @@ auth.onAuthStateChanged(async user => {
                 db.collection('membres').doc(user.uid).update({
                     lastLogin: firebase.firestore.Timestamp.now()
                 }).catch(() => {});
+                listenNotifications();
                 updateNavLinks();
                 if (currentMembre.firstLogin) {
                     showView('home');
@@ -1510,8 +1546,10 @@ function renderLbRows(containerId, membres, ecoleMap) {
             progressLabel = `${nextGrade.nom} dans ${nextGrade.minOcculte - pts} pts`;
         }
 
-        const ecoleName = ecoleMap && m.ecoleId && ecoleMap[m.ecoleId]
-            ? ecoleMap[m.ecoleId] : 'École Générale';
+        const ecoleData = ecoleMap && m.ecoleId ? ecoleMap[m.ecoleId] : null;
+        const ecoleName = ecoleData
+            ? (ecoleData.fondateurNom ? `École de ${ecoleData.fondateurNom}` : ecoleData.nom || 'École')
+            : 'École Générale';
 
         const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="font-size:.75rem">#${i+1}</span>`;
 
@@ -2180,7 +2218,7 @@ function loadDashClassement() {
     ]).then(([memSnap, ecoleSnap]) => {
         const membres = memSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const ecoleMap = {};
-        ecoleSnap.forEach(d => { ecoleMap[d.id] = d.data().nom; });
+        ecoleSnap.forEach(d => { ecoleMap[d.id] = d.data(); });
         renderLbRows('dash-lb-list', membres, ecoleMap);
     }).catch(() => {
         if (list) list.innerHTML = '<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">Erreur de chargement</div></div>';
@@ -2294,7 +2332,54 @@ function adminPanel(name) {
     if (name === 'savoirs')      loadAdminSavoirs();
     if (name === 'ecoles')       loadAdminEcoles();
     if (name === 'acces')        loadAdminAcces();
+    if (name === 'annonces')     loadAdminAnnonces();
     if (name === 'logs')         loadLogs();
+}
+
+async function loadAdminAnnonces() {
+    const snap = await db.collection('membres').get();
+    const sel = document.getElementById('annonce-dest');
+    if (!sel) return;
+    sel.innerHTML = '<option value="all">📣 Tous les membres</option>' +
+        snap.docs.filter(d => d.id !== currentMembre.id).map(d => {
+            const m = d.data();
+            const name = displayName(m) || m.steamId || d.id;
+            return `<option value="${d.id}">${name}</option>`;
+        }).join('');
+}
+
+async function envoyerAnnonce() {
+    const dest = document.getElementById('annonce-dest').value;
+    const msg  = document.getElementById('annonce-msg').value.trim();
+    if (!msg) { showAlert('annonce-alert', 'Le message est vide.', 'danger'); return; }
+
+    const notifBase = {
+        from:    currentMembre.id,
+        fromNom: displayName(currentMembre),
+        type:    'annonce',
+        message: `📢 ${msg}`,
+        lu:      false,
+        date:    firebase.firestore.Timestamp.now()
+    };
+
+    try {
+        if (dest === 'all') {
+            const snap  = await db.collection('membres').get();
+            const batch = db.batch();
+            snap.docs.forEach(d => {
+                if (d.id === currentMembre.id) return;
+                batch.set(db.collection('notifications').doc(), { ...notifBase, to: d.id });
+            });
+            await batch.commit();
+        } else {
+            await db.collection('notifications').add({ ...notifBase, to: dest });
+        }
+        await logAction('ANNONCE', msg.substring(0, 80), 0);
+        showAlert('annonce-success', '✅ Annonce envoyée !', 'success');
+        document.getElementById('annonce-msg').value = '';
+    } catch(err) {
+        showAlert('annonce-alert', 'Erreur : ' + err.message, 'danger');
+    }
 }
 
 // Filtre soumissions admin
@@ -2466,14 +2551,20 @@ async function loadAdminMembres(filtre = 'tous') {
             </div>
             <div class="membre-card-actions" style="flex-direction:column;gap:.35rem">
                 <button class="btn btn-ghost btn-sm" onclick="openMembreEdit('${m.id}')">✏️ Modifier</button>
-                <button class="btn btn-sm ${susp ? 'btn-primary' : 'btn-ghost'}" onclick="toggleSuspendMembre('${m.id}','${name.replace(/'/g,"\\'")}',${susp})">${susp ? '✅ Réactiver' : '🚫 Suspendre'}</button>
-                <button class="btn btn-danger btn-sm" onclick="supprimerMembre('${m.id}','${name.replace(/'/g,"\\'")}')">🗑 Supprimer</button>
+                <button class="btn btn-sm ${susp ? 'btn-primary' : 'btn-ghost'}" onclick="toggleSuspendMembre('${m.id}','${name.replace(/'/g,"\\'")}',${susp},'${(m.grade||'').replace(/'/g,"\\'")}' )">${susp ? '✅ Réactiver' : '🚫 Suspendre'}</button>
+                <button class="btn btn-danger btn-sm" onclick="supprimerMembre('${m.id}','${name.replace(/'/g,"\\'")}','${(m.grade||'').replace(/'/g,"\\'")}')">🗑 Supprimer</button>
             </div>
         </div>`;
     }).join('');
 }
 
-async function toggleSuspendMembre(id, nom, estSuspendu) {
+const GRADES_PROTEGES = ["Marchand des Âmes", "Monarque des Ombres"];
+
+async function toggleSuspendMembre(id, nom, estSuspendu, grade='') {
+    if (GRADES_PROTEGES.includes(grade)) {
+        alert(`⛔ Impossible — les membres de grade "${grade}" sont protégés contre les actions administratives.`);
+        return;
+    }
     const action = estSuspendu ? 'réactiver' : 'suspendre';
     if (!confirm(`${action.charAt(0).toUpperCase()+action.slice(1)} ${nom} ?`)) return;
     await db.collection('membres').doc(id).update({ suspended: !estSuspendu });
@@ -2484,6 +2575,10 @@ async function toggleSuspendMembre(id, nom, estSuspendu) {
 function openMembreEdit(membreId) {
     const m = allMembres.find(x => x.id === membreId);
     if (!m) return;
+    if (GRADES_PROTEGES.includes(m.grade)) {
+        alert(`⛔ Impossible — les membres de grade "${m.grade}" sont protégés contre les actions administratives.`);
+        return;
+    }
     document.getElementById('modal-membre-title').textContent = 'Modifier : ' + displayName(m);
     document.getElementById('edit-membre-id').value  = m.id;
     document.getElementById('edit-prenom').value     = m.prenom  || '';
@@ -2519,7 +2614,11 @@ async function sauvegarderMembre() {
     closeModal('modal-membre');
 }
 
-async function supprimerMembre(id, nom) {
+async function supprimerMembre(id, nom, grade='') {
+    if (GRADES_PROTEGES.includes(grade)) {
+        alert(`⛔ Impossible — les membres de grade "${grade}" sont protégés contre les actions administratives.`);
+        return;
+    }
     if (!confirm(`Supprimer définitivement ${nom} ?\n\nLe compte et toutes ses données seront effacés.`)) return;
 
     const memDoc = await db.collection('membres').doc(id).get();
@@ -3490,7 +3589,7 @@ async function rechercherMembreEcole() {
                 ? `<span class="ecole-badge">Déjà membre</span>`
                 : hasEcole
                     ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.4">Indisponible</button>`
-                    : `<button class="btn btn-violet btn-sm" onclick="confirmerAjoutMembre('${ecoleId}','${d.id}')">Ajouter</button>`
+                    : `<button class="btn btn-violet btn-sm" onclick="envoyerInvitation('${ecoleId}','${d.id}','${displayName(m).replace(/'/g,"\\'")}')">✉ Inviter</button>`
             }
         </div>`;
     }).join('');
@@ -3588,10 +3687,126 @@ async function supprimerIncanEcole(incanId, ecoleId) {
     loadDashEcole();
 }
 
+/* ── Notifications ─────────────────────────────────────── */
+let notifLive = null;
+
+function listenNotifications() {
+    if (notifLive) { notifLive(); notifLive = null; }
+    if (!currentMembre) return;
+    const bell  = document.getElementById('notif-bell');
+    const badge = document.getElementById('notif-badge');
+    if (bell) bell.style.display = '';
+    try {
+        notifLive = db.collection('notifications')
+            .where('to', '==', currentMembre.id)
+            .where('lu', '==', false)
+            .orderBy('date', 'desc')
+            .onSnapshot(snap => {
+                const count = snap.size;
+                if (badge) { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
+                renderNotifList(snap.docs);
+            }, () => {});
+    } catch(e) {}
+}
+
+function renderNotifList(docs) {
+    const list = document.getElementById('notif-list');
+    if (!list) return;
+    if (!docs.length) {
+        list.innerHTML = '<div style="padding:1.2rem;text-align:center;font-size:.82rem;color:var(--text-muted)">Aucune notification</div>';
+        return;
+    }
+    list.innerHTML = docs.map(d => {
+        const n = d.data();
+        if (n.type === 'invitation') {
+            return `<div style="padding:.85rem 1rem;border-bottom:1px solid rgba(255,255,255,.05)">
+                <div style="font-size:.83rem;color:var(--text);line-height:1.5">🏛 <strong style="color:var(--g2)">${n.fromNom}</strong> vous invite dans l'école <strong style="color:var(--gold)">${n.ecoleNom}</strong></div>
+                <div style="display:flex;gap:.5rem;margin-top:.55rem">
+                    <button class="btn btn-violet btn-sm" onclick="accepterInvitation('${d.id}','${n.ecoleId}')">✓ Accepter</button>
+                    <button class="btn btn-ghost btn-sm"  onclick="refuserInvitation('${d.id}')">✕ Refuser</button>
+                </div>
+            </div>`;
+        }
+        return `<div style="padding:.85rem 1rem;border-bottom:1px solid rgba(255,255,255,.05)">
+            <div style="font-size:.83rem;color:var(--text);line-height:1.5">${n.message || ''}</div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:.4rem;font-size:.7rem" onclick="marquerLu('${d.id}')">✓ Marquer lu</button>
+        </div>`;
+    }).join('');
+}
+
+function toggleNotifPanel() {
+    const panel = document.getElementById('notif-panel');
+    if (panel) panel.classList.toggle('hidden');
+}
+
+async function marquerLu(notifId) {
+    await db.collection('notifications').doc(notifId).update({ lu: true });
+}
+
+async function marquerToutLu() {
+    if (!currentMembre) return;
+    const snap = await db.collection('notifications')
+        .where('to', '==', currentMembre.id)
+        .where('lu', '==', false).get();
+    const batch = db.batch();
+    snap.docs.forEach(d => batch.update(d.ref, { lu: true }));
+    await batch.commit();
+}
+
+async function accepterInvitation(notifId, ecoleId) {
+    try {
+        const batch   = db.batch();
+        const ecoleRef = db.collection('ecoles').doc(ecoleId);
+        const memRef   = db.collection('membres').doc(currentMembre.id);
+        const notifRef = db.collection('notifications').doc(notifId);
+        batch.update(ecoleRef, { membres: firebase.firestore.FieldValue.arrayUnion(currentMembre.id) });
+        batch.update(memRef,   { ecoleId });
+        batch.update(notifRef, { lu: true });
+        await batch.commit();
+        currentMembre.ecoleId = ecoleId;
+        const panel = document.getElementById('notif-panel');
+        if (panel) panel.classList.add('hidden');
+        if (document.getElementById('v-dashboard')?.classList.contains('active')) loadDashEcole();
+    } catch(err) { alert('Erreur : ' + err.message); }
+}
+
+async function refuserInvitation(notifId) {
+    await db.collection('notifications').doc(notifId).update({ lu: true });
+}
+
+async function envoyerInvitation(ecoleId, membreId, membreNom) {
+    const alertEl = document.getElementById('add-membre-alert');
+    alertEl.style.display = 'none';
+    try {
+        const ecoleDoc = await db.collection('ecoles').doc(ecoleId).get();
+        await db.collection('notifications').add({
+            to:      membreId,
+            from:    currentMembre.id,
+            fromNom: displayName(currentMembre),
+            type:    'invitation',
+            ecoleId,
+            ecoleNom: ecoleDoc.data().nom,
+            lu:      false,
+            date:    firebase.firestore.Timestamp.now()
+        });
+        alertEl.className = 'alert alert-success';
+        alertEl.textContent = `✦ Invitation envoyée à ${membreNom} !`;
+        alertEl.style.display = '';
+        setTimeout(() => closeModal('modal-add-membre-ecole'), 1500);
+    } catch(err) {
+        alertEl.className = 'alert alert-danger';
+        alertEl.textContent = 'Erreur : ' + err.message;
+        alertEl.style.display = '';
+    }
+}
+
 async function doLogout() {
     if (dashLive)      { dashLive();      dashLive = null; }
     if (adminSoumLive) { adminSoumLive(); adminSoumLive = null; }
     if (adminMemLive)  { adminMemLive();  adminMemLive  = null; }
+    if (notifLive)     { notifLive();     notifLive     = null; }
+    const bell = document.getElementById('notif-bell');
+    if (bell) bell.style.display = 'none';
     currentMembre = null;
     await auth.signOut();
     goTo('home');

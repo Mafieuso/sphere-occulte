@@ -2335,10 +2335,11 @@ async function loadAdminAnnonces() {
     const sel = document.getElementById('annonce-dest');
     if (!sel) return;
     sel.innerHTML = '<option value="all">📣 Tous les membres</option>' +
-        snap.docs.filter(d => d.id !== currentMembre.id).map(d => {
-            const m = d.data();
+        snap.docs.map(d => {
+            const m    = d.data();
             const name = displayName(m) || m.steamId || d.id;
-            return `<option value="${d.id}">${name}</option>`;
+            const self = d.id === currentMembre.id ? ' 🧪 (moi)' : '';
+            return `<option value="${d.id}">${name}${self}</option>`;
         }).join('');
 }
 
@@ -3712,44 +3713,52 @@ function showNotifToast(id, n) {
     const container = document.getElementById('notif-toasts');
     if (!container) return;
 
-    const isInvit   = n.type === 'invitation';
-    const duree     = isInvit ? 0 : 7000; // invitations restent jusqu'à action
-    const label     = isInvit ? 'Invitation d\'École' : '◈ Annonce';
-    const msg       = isInvit
+    const isInvit = n.type === 'invitation';
+    const label   = isInvit ? '⚔ Invitation d\'École' : '◈ Annonce';
+    const msg     = isInvit
         ? `<strong>${n.fromNom || '?'}</strong> vous invite dans l'école <strong>${n.ecoleNom || '?'}</strong>`
         : (n.message || '');
 
-    const actions   = isInvit
+    const actions = isInvit
         ? `<button class="btn btn-violet btn-sm" onclick="accepterInvitationToast('${id}','${n.ecoleId}',this)">✓ Rejoindre</button>
            <button class="btn btn-ghost  btn-sm" onclick="refuserInvitationToast('${id}',this)">✕ Refuser</button>`
-        : `<button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="dismissToast(this.closest('.notif-toast'),'${id}')">✓ Lu</button>`;
-
-    const timerHtml = duree
-        ? `<div class="notif-timer" style="animation-duration:${duree}ms"></div>`
-        : '';
+        : `<button class="btn btn-violet btn-sm" style="font-size:.72rem" onclick="marquerLuEtDismiss(this.closest('.notif-toast'),'${id}')">✓ Marquer lu</button>
+           <button class="btn btn-ghost  btn-sm" style="font-size:.72rem" onclick="masquerToast(this.closest('.notif-toast'))">— Masquer</button>`;
 
     const toast = document.createElement('div');
     toast.className = 'notif-toast';
     toast.dataset.notifId = id;
     toast.innerHTML = `
-        <div class="notif-toast-label">${label}</div>
-        <div class="notif-toast-msg">${msg}</div>
+        <div class="notif-sweep"></div>
+        <div class="notif-toast-body">
+            <div class="notif-toast-label">${label}</div>
+            <div class="notif-toast-msg">${msg}</div>
+        </div>
         <div class="notif-toast-actions">${actions}</div>
-        <button class="notif-toast-close" onclick="dismissToast(this.closest('.notif-toast'),'${id}')">✕</button>
-        ${timerHtml}`;
+        <button class="notif-toast-close" title="Masquer" onclick="masquerToast(this.closest('.notif-toast'))">✕</button>`;
 
     container.appendChild(toast);
     requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('visible')));
-
-    if (duree) setTimeout(() => dismissToast(toast, id), duree);
 }
 
-function dismissToast(toastEl, notifId) {
+/* Masquer sans marquer lu — la notif reste dans Firestore */
+function masquerToast(toastEl) {
     if (!toastEl) return;
-    toastEl.style.transform = 'translateX(110%)';
+    toastEl.style.transform = 'translateY(-110%)';
     toastEl.style.opacity   = '0';
-    setTimeout(() => toastEl.remove(), 500);
+    setTimeout(() => toastEl.remove(), 450);
+}
+
+/* Marquer lu dans Firestore ET retirer le toast */
+function marquerLuEtDismiss(toastEl, notifId) {
     if (notifId) marquerLu(notifId);
+    masquerToast(toastEl);
+}
+
+/* Alias utilisé par les fonctions invitation */
+function dismissToast(toastEl, notifId) {
+    if (notifId) marquerLu(notifId);
+    masquerToast(toastEl);
 }
 
 function toggleNotifPanel() {

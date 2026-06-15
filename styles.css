@@ -402,60 +402,72 @@ a:hover { color:var(--gold-pale); }
 .membre-card-actions { display:flex; gap:.35rem; margin-left:auto; }
 .membre-suspended { opacity:.6; border-color:rgba(255,80,80,.25) !important; }
 
-/* ── Notification toasts (Bleach style) ─────────────────────── */
+/* ── Notification toasts — bande Bleach (haut de page) ──────── */
 #notif-toasts {
-    position: fixed; right: 0; top: 70px; z-index: 9500;
-    display: flex; flex-direction: column; gap: .45rem;
-    pointer-events: none; width: 370px; padding: .4rem 0;
+    position: fixed; left: 0; right: 0; top: 62px; z-index: 9500;
+    display: flex; flex-direction: column;
+    pointer-events: none;
 }
 .notif-toast {
     pointer-events: all;
-    background: linear-gradient(120deg, rgba(4,1,12,.98) 0%, rgba(16,3,6,.98) 100%);
-    border-top: 1px solid rgba(139,0,0,.3);
-    border-bottom: 1px solid rgba(139,0,0,.2);
-    border-left: 4px solid var(--crimson);
-    padding: .9rem 1.1rem .75rem 1rem;
-    box-shadow: -8px 0 50px rgba(139,0,0,.22), 0 12px 48px rgba(0,0,0,.85), inset 0 0 40px rgba(139,0,0,.04);
-    transform: translateX(110%);
-    transition: transform .5s cubic-bezier(0.16,1,0.3,1);
+    width: 100%;
+    background: linear-gradient(90deg,
+        rgba(4,1,12,.97) 0%,
+        rgba(22,4,8,.97) 40%,
+        rgba(30,6,10,.97) 60%,
+        rgba(4,1,12,.97) 100%);
+    border-top: 1px solid rgba(139,0,0,.25);
+    border-bottom: 3px solid var(--crimson);
+    padding: .75rem 2.5rem .75rem 1.8rem;
+    box-shadow: 0 8px 40px rgba(139,0,0,.28), 0 2px 0 rgba(139,0,0,.5);
+    transform: translateY(-110%);
+    opacity: 0;
+    transition: transform .45s cubic-bezier(0.16,1,0.3,1), opacity .3s ease;
     position: relative; overflow: hidden;
+    display: flex; align-items: center; gap: 1.4rem;
 }
 .notif-toast::before {
     content: '';
-    position: absolute; top: 0; left: 4px; right: 0; height: 1px;
-    background: linear-gradient(90deg, var(--crimson), rgba(139,0,0,.2), transparent);
+    position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, var(--crimson), rgba(139,0,0,.4));
 }
 .notif-toast::after {
     content: '⚔';
-    position: absolute; top: .65rem; right: 2.2rem;
-    font-size: .65rem; color: rgba(139,0,0,.35);
+    position: absolute; right: 2.8rem; top: 50%;
+    transform: translateY(-50%);
+    font-size: .75rem; color: rgba(139,0,0,.3);
     pointer-events: none;
 }
-.notif-toast.visible { transform: translateX(0); }
+/* ligne cramoisie qui balaie sur l'entrée */
+.notif-toast .notif-sweep {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, rgba(139,0,0,.08) 50%, transparent 100%);
+    animation: notif-sweep .6s ease forwards;
+}
+@keyframes notif-sweep { from { opacity:1; transform:translateX(-100%); } to { opacity:0; transform:translateX(100%); } }
+
+.notif-toast.visible { transform: translateY(0); opacity: 1; }
+
+.notif-toast-body { flex: 1; min-width: 0; }
 .notif-toast-label {
-    font-family: 'Cinzel', serif; font-size: .58rem;
-    letter-spacing: .22em; color: var(--crimson);
-    text-transform: uppercase; margin-bottom: .38rem;
+    font-family: 'Cinzel', serif; font-size: .55rem;
+    letter-spacing: .28em; color: var(--crimson);
+    text-transform: uppercase; margin-bottom: .28rem;
 }
 .notif-toast-msg {
-    font-size: .84rem; color: var(--text); line-height: 1.55;
-    padding-right: 1.4rem;
+    font-size: .88rem; color: var(--text); line-height: 1.5;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .notif-toast-msg strong { color: #fff; }
-.notif-toast-actions { display: flex; gap: .45rem; margin-top: .65rem; }
+.notif-toast-actions { display: flex; gap: .5rem; flex-shrink: 0; }
 .notif-toast-close {
-    position: absolute; top: .6rem; right: .7rem;
-    background: none; border: none; color: rgba(255,255,255,.2);
-    font-size: 1rem; cursor: pointer; line-height: 1;
+    position: absolute; top: 50%; right: .85rem;
+    transform: translateY(-50%);
+    background: none; border: none; color: rgba(255,255,255,.18);
+    font-size: .95rem; cursor: pointer; line-height: 1;
     transition: color .15s;
 }
 .notif-toast-close:hover { color: rgba(255,255,255,.6); }
-.notif-timer {
-    position: absolute; bottom: 0; left: 4px; height: 2px;
-    background: linear-gradient(90deg, var(--crimson), rgba(139,0,0,.3));
-    animation: notif-drain linear forwards;
-}
-@keyframes notif-drain { from { width:100% } to { width:0% } }
 
 /* ── Pentagrames picker ───────────────────────────────────────── */
 .pentag-pill { display:inline-flex; align-items:center; gap:.35rem; padding:.3rem .75rem; border-radius:20px; border:1px solid rgba(204,68,255,.3); background:rgba(204,68,255,.06); font-family:'Cinzel',serif; font-size:.75rem; color:var(--text-muted); cursor:pointer; transition:all .18s; user-select:none; }

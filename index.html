@@ -3694,19 +3694,17 @@ function listenNotifications() {
     try {
         notifLive = db.collection('notifications')
             .where('to', '==', currentMembre.id)
-            .where('lu', '==', false)
-            .orderBy('date', 'desc')
             .onSnapshot(snap => {
-                const count = snap.size;
+                const nonLus = snap.docs.filter(d => d.data().lu === false);
+                const count  = nonLus.length;
                 if (badge) { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
-                // Afficher un toast pour chaque nouvelle notification
-                snap.docs.forEach(d => {
+                nonLus.forEach(d => {
                     if (!shownToasts.has(d.id)) {
                         shownToasts.add(d.id);
                         showNotifToast(d.id, d.data());
                     }
                 });
-            }, () => {});
+            }, err => console.error('notif listener:', err));
     } catch(e) {}
 }
 
@@ -3759,11 +3757,9 @@ function toggleNotifPanel() {
     if (!currentMembre) return;
     db.collection('notifications')
         .where('to', '==', currentMembre.id)
-        .where('lu', '==', false)
-        .orderBy('date', 'desc')
         .get()
         .then(snap => {
-            snap.docs.forEach(d => {
+            snap.docs.filter(d => d.data().lu === false).forEach(d => {
                 if (!document.querySelector(`.notif-toast[data-notif-id="${d.id}"]`)) {
                     showNotifToast(d.id, d.data());
                 }

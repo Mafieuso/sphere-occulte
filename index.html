@@ -3714,8 +3714,7 @@ function showNotifToast(id, n) {
     if (!container) return;
 
     const isInvit = n.type === 'invitation';
-    const icon    = isInvit ? '⚔' : '📢';
-    const label   = isInvit ? 'Invitation d\'École' : 'Annonce';
+    const label   = isInvit ? '⚔ Invitation d\'École ⚔' : '◈  Annonce  ◈';
     const msg     = isInvit
         ? `<strong>${n.fromNom || '?'}</strong> vous invite à rejoindre l'école <strong>${n.ecoleNom || '?'}</strong>`
         : (n.message || '');
@@ -3723,7 +3722,7 @@ function showNotifToast(id, n) {
     const actions = isInvit
         ? `<button class="nt-btn nt-btn-accept" onclick="accepterInvitationToast('${id}','${n.ecoleId}',this)">✓ Rejoindre</button>
            <button class="nt-btn nt-btn-mute"   onclick="refuserInvitationToast('${id}',this)">✕ Refuser</button>`
-        : `<button class="nt-btn nt-btn-accept" onclick="marquerLuEtDismiss(this.closest('.notif-toast'),'${id}')">✓ Lu</button>
+        : `<button class="nt-btn nt-btn-accept" onclick="marquerLuEtDismiss(this.closest('.notif-toast'),'${id}')">✓ Marquer lu</button>
            <button class="nt-btn nt-btn-mute"   onclick="masquerToast(this.closest('.notif-toast'))">Masquer</button>`;
 
     const toast = document.createElement('div');
@@ -3731,12 +3730,8 @@ function showNotifToast(id, n) {
     toast.dataset.notifId = id;
     toast.innerHTML = `
         <div class="nt-sweep"></div>
-        <div class="nt-accent"></div>
-        <div class="nt-icon">${icon}</div>
-        <div class="nt-body">
-            <div class="nt-label">${label}</div>
-            <div class="nt-msg">${msg}</div>
-        </div>
+        <div class="nt-label">${label}</div>
+        <div class="nt-msg">${msg}</div>
         <div class="nt-actions">${actions}</div>
         <button class="nt-close" title="Masquer" onclick="masquerToast(this.closest('.notif-toast'))">✕</button>`;
 

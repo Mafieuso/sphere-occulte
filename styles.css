@@ -402,6 +402,61 @@ a:hover { color:var(--gold-pale); }
 .membre-card-actions { display:flex; gap:.35rem; margin-left:auto; }
 .membre-suspended { opacity:.6; border-color:rgba(255,80,80,.25) !important; }
 
+/* ── Notification toasts (Bleach style) ─────────────────────── */
+#notif-toasts {
+    position: fixed; right: 0; top: 70px; z-index: 9500;
+    display: flex; flex-direction: column; gap: .45rem;
+    pointer-events: none; width: 370px; padding: .4rem 0;
+}
+.notif-toast {
+    pointer-events: all;
+    background: linear-gradient(120deg, rgba(4,1,12,.98) 0%, rgba(16,3,6,.98) 100%);
+    border-top: 1px solid rgba(139,0,0,.3);
+    border-bottom: 1px solid rgba(139,0,0,.2);
+    border-left: 4px solid var(--crimson);
+    padding: .9rem 1.1rem .75rem 1rem;
+    box-shadow: -8px 0 50px rgba(139,0,0,.22), 0 12px 48px rgba(0,0,0,.85), inset 0 0 40px rgba(139,0,0,.04);
+    transform: translateX(110%);
+    transition: transform .5s cubic-bezier(0.16,1,0.3,1);
+    position: relative; overflow: hidden;
+}
+.notif-toast::before {
+    content: '';
+    position: absolute; top: 0; left: 4px; right: 0; height: 1px;
+    background: linear-gradient(90deg, var(--crimson), rgba(139,0,0,.2), transparent);
+}
+.notif-toast::after {
+    content: '⚔';
+    position: absolute; top: .65rem; right: 2.2rem;
+    font-size: .65rem; color: rgba(139,0,0,.35);
+    pointer-events: none;
+}
+.notif-toast.visible { transform: translateX(0); }
+.notif-toast-label {
+    font-family: 'Cinzel', serif; font-size: .58rem;
+    letter-spacing: .22em; color: var(--crimson);
+    text-transform: uppercase; margin-bottom: .38rem;
+}
+.notif-toast-msg {
+    font-size: .84rem; color: var(--text); line-height: 1.55;
+    padding-right: 1.4rem;
+}
+.notif-toast-msg strong { color: #fff; }
+.notif-toast-actions { display: flex; gap: .45rem; margin-top: .65rem; }
+.notif-toast-close {
+    position: absolute; top: .6rem; right: .7rem;
+    background: none; border: none; color: rgba(255,255,255,.2);
+    font-size: 1rem; cursor: pointer; line-height: 1;
+    transition: color .15s;
+}
+.notif-toast-close:hover { color: rgba(255,255,255,.6); }
+.notif-timer {
+    position: absolute; bottom: 0; left: 4px; height: 2px;
+    background: linear-gradient(90deg, var(--crimson), rgba(139,0,0,.3));
+    animation: notif-drain linear forwards;
+}
+@keyframes notif-drain { from { width:100% } to { width:0% } }
+
 /* ── Pentagrames picker ───────────────────────────────────────── */
 .pentag-pill { display:inline-flex; align-items:center; gap:.35rem; padding:.3rem .75rem; border-radius:20px; border:1px solid rgba(204,68,255,.3); background:rgba(204,68,255,.06); font-family:'Cinzel',serif; font-size:.75rem; color:var(--text-muted); cursor:pointer; transition:all .18s; user-select:none; }
 .pentag-pill:has(input:checked) { background:rgba(204,68,255,.22); border-color:var(--g2); color:var(--g2); box-shadow:0 0 10px rgba(204,68,255,.2); }

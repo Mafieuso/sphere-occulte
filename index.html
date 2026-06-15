@@ -375,14 +375,8 @@
     <a class="btn btn-danger btn-sm" id="nl-logout" style="display:none;cursor:pointer" onclick="doLogout()">Déconnexion</a>
   </div>
 
-  <!-- Panneau notifications -->
-  <div id="notif-panel" class="hidden" style="position:fixed;top:56px;right:1rem;width:340px;max-height:480px;overflow-y:auto;background:rgba(8,4,26,.97);border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:9000">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06)">
-      <span style="font-family:'Cinzel',serif;font-size:.78rem;color:var(--gold);letter-spacing:.1em">NOTIFICATIONS</span>
-      <button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="marquerToutLu()">Tout lu</button>
-    </div>
-    <div id="notif-list" style="min-height:60px"></div>
-  </div>
+  <!-- Container toasts notifications Bleach-style -->
+  <div id="notif-toasts"></div>
 </nav>
 
 <!-- ══════════════════════════════════════
@@ -3687,8 +3681,9 @@ async function supprimerIncanEcole(incanId, ecoleId) {
     loadDashEcole();
 }
 
-/* ── Notifications ─────────────────────────────────────── */
-let notifLive = null;
+/* ── Notifications — toasts Bleach-style ───────────────── */
+let notifLive   = null;
+const shownToasts = new Set();
 
 function listenNotifications() {
     if (notifLive) { notifLive(); notifLive = null; }
@@ -3704,39 +3699,76 @@ function listenNotifications() {
             .onSnapshot(snap => {
                 const count = snap.size;
                 if (badge) { badge.textContent = count; badge.style.display = count > 0 ? '' : 'none'; }
-                renderNotifList(snap.docs);
+                // Afficher un toast pour chaque nouvelle notification
+                snap.docs.forEach(d => {
+                    if (!shownToasts.has(d.id)) {
+                        shownToasts.add(d.id);
+                        showNotifToast(d.id, d.data());
+                    }
+                });
             }, () => {});
     } catch(e) {}
 }
 
-function renderNotifList(docs) {
-    const list = document.getElementById('notif-list');
-    if (!list) return;
-    if (!docs.length) {
-        list.innerHTML = '<div style="padding:1.2rem;text-align:center;font-size:.82rem;color:var(--text-muted)">Aucune notification</div>';
-        return;
-    }
-    list.innerHTML = docs.map(d => {
-        const n = d.data();
-        if (n.type === 'invitation') {
-            return `<div style="padding:.85rem 1rem;border-bottom:1px solid rgba(255,255,255,.05)">
-                <div style="font-size:.83rem;color:var(--text);line-height:1.5">🏛 <strong style="color:var(--g2)">${n.fromNom}</strong> vous invite dans l'école <strong style="color:var(--gold)">${n.ecoleNom}</strong></div>
-                <div style="display:flex;gap:.5rem;margin-top:.55rem">
-                    <button class="btn btn-violet btn-sm" onclick="accepterInvitation('${d.id}','${n.ecoleId}')">✓ Accepter</button>
-                    <button class="btn btn-ghost btn-sm"  onclick="refuserInvitation('${d.id}')">✕ Refuser</button>
-                </div>
-            </div>`;
-        }
-        return `<div style="padding:.85rem 1rem;border-bottom:1px solid rgba(255,255,255,.05)">
-            <div style="font-size:.83rem;color:var(--text);line-height:1.5">${n.message || ''}</div>
-            <button class="btn btn-ghost btn-sm" style="margin-top:.4rem;font-size:.7rem" onclick="marquerLu('${d.id}')">✓ Marquer lu</button>
-        </div>`;
-    }).join('');
+function showNotifToast(id, n) {
+    const container = document.getElementById('notif-toasts');
+    if (!container) return;
+
+    const isInvit   = n.type === 'invitation';
+    const duree     = isInvit ? 0 : 7000; // invitations restent jusqu'à action
+    const label     = isInvit ? 'Invitation d\'École' : '◈ Annonce';
+    const msg       = isInvit
+        ? `<strong>${n.fromNom || '?'}</strong> vous invite dans l'école <strong>${n.ecoleNom || '?'}</strong>`
+        : (n.message || '');
+
+    const actions   = isInvit
+        ? `<button class="btn btn-violet btn-sm" onclick="accepterInvitationToast('${id}','${n.ecoleId}',this)">✓ Rejoindre</button>
+           <button class="btn btn-ghost  btn-sm" onclick="refuserInvitationToast('${id}',this)">✕ Refuser</button>`
+        : `<button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="dismissToast(this.closest('.notif-toast'),'${id}')">✓ Lu</button>`;
+
+    const timerHtml = duree
+        ? `<div class="notif-timer" style="animation-duration:${duree}ms"></div>`
+        : '';
+
+    const toast = document.createElement('div');
+    toast.className = 'notif-toast';
+    toast.dataset.notifId = id;
+    toast.innerHTML = `
+        <div class="notif-toast-label">${label}</div>
+        <div class="notif-toast-msg">${msg}</div>
+        <div class="notif-toast-actions">${actions}</div>
+        <button class="notif-toast-close" onclick="dismissToast(this.closest('.notif-toast'),'${id}')">✕</button>
+        ${timerHtml}`;
+
+    container.appendChild(toast);
+    requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('visible')));
+
+    if (duree) setTimeout(() => dismissToast(toast, id), duree);
+}
+
+function dismissToast(toastEl, notifId) {
+    if (!toastEl) return;
+    toastEl.style.transform = 'translateX(110%)';
+    toastEl.style.opacity   = '0';
+    setTimeout(() => toastEl.remove(), 500);
+    if (notifId) marquerLu(notifId);
 }
 
 function toggleNotifPanel() {
-    const panel = document.getElementById('notif-panel');
-    if (panel) panel.classList.toggle('hidden');
+    // Ré-affiche les toasts non lus au clic sur la cloche
+    if (!currentMembre) return;
+    db.collection('notifications')
+        .where('to', '==', currentMembre.id)
+        .where('lu', '==', false)
+        .orderBy('date', 'desc')
+        .get()
+        .then(snap => {
+            snap.docs.forEach(d => {
+                if (!document.querySelector(`.notif-toast[data-notif-id="${d.id}"]`)) {
+                    showNotifToast(d.id, d.data());
+                }
+            });
+        }).catch(() => {});
 }
 
 async function marquerLu(notifId) {
@@ -3755,7 +3787,7 @@ async function marquerToutLu() {
 
 async function accepterInvitation(notifId, ecoleId) {
     try {
-        const batch   = db.batch();
+        const batch    = db.batch();
         const ecoleRef = db.collection('ecoles').doc(ecoleId);
         const memRef   = db.collection('membres').doc(currentMembre.id);
         const notifRef = db.collection('notifications').doc(notifId);
@@ -3764,14 +3796,24 @@ async function accepterInvitation(notifId, ecoleId) {
         batch.update(notifRef, { lu: true });
         await batch.commit();
         currentMembre.ecoleId = ecoleId;
-        const panel = document.getElementById('notif-panel');
-        if (panel) panel.classList.add('hidden');
         if (document.getElementById('v-dashboard')?.classList.contains('active')) loadDashEcole();
     } catch(err) { alert('Erreur : ' + err.message); }
 }
 
+async function accepterInvitationToast(notifId, ecoleId, btnEl) {
+    const toast = btnEl.closest('.notif-toast');
+    await accepterInvitation(notifId, ecoleId);
+    dismissToast(toast, null);
+}
+
 async function refuserInvitation(notifId) {
     await db.collection('notifications').doc(notifId).update({ lu: true });
+}
+
+async function refuserInvitationToast(notifId, btnEl) {
+    const toast = btnEl.closest('.notif-toast');
+    await refuserInvitation(notifId);
+    dismissToast(toast, null);
 }
 
 async function envoyerInvitation(ecoleId, membreId, membreNom) {

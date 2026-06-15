@@ -3714,28 +3714,31 @@ function showNotifToast(id, n) {
     if (!container) return;
 
     const isInvit = n.type === 'invitation';
-    const label   = isInvit ? '⚔ Invitation d\'École' : '◈ Annonce';
+    const icon    = isInvit ? '⚔' : '📢';
+    const label   = isInvit ? 'Invitation d\'École' : 'Annonce';
     const msg     = isInvit
-        ? `<strong>${n.fromNom || '?'}</strong> vous invite dans l'école <strong>${n.ecoleNom || '?'}</strong>`
+        ? `<strong>${n.fromNom || '?'}</strong> vous invite à rejoindre l'école <strong>${n.ecoleNom || '?'}</strong>`
         : (n.message || '');
 
     const actions = isInvit
-        ? `<button class="btn btn-violet btn-sm" onclick="accepterInvitationToast('${id}','${n.ecoleId}',this)">✓ Rejoindre</button>
-           <button class="btn btn-ghost  btn-sm" onclick="refuserInvitationToast('${id}',this)">✕ Refuser</button>`
-        : `<button class="btn btn-violet btn-sm" style="font-size:.72rem" onclick="marquerLuEtDismiss(this.closest('.notif-toast'),'${id}')">✓ Marquer lu</button>
-           <button class="btn btn-ghost  btn-sm" style="font-size:.72rem" onclick="masquerToast(this.closest('.notif-toast'))">— Masquer</button>`;
+        ? `<button class="nt-btn nt-btn-accept" onclick="accepterInvitationToast('${id}','${n.ecoleId}',this)">✓ Rejoindre</button>
+           <button class="nt-btn nt-btn-mute"   onclick="refuserInvitationToast('${id}',this)">✕ Refuser</button>`
+        : `<button class="nt-btn nt-btn-accept" onclick="marquerLuEtDismiss(this.closest('.notif-toast'),'${id}')">✓ Lu</button>
+           <button class="nt-btn nt-btn-mute"   onclick="masquerToast(this.closest('.notif-toast'))">Masquer</button>`;
 
     const toast = document.createElement('div');
     toast.className = 'notif-toast';
     toast.dataset.notifId = id;
     toast.innerHTML = `
-        <div class="notif-sweep"></div>
-        <div class="notif-toast-body">
-            <div class="notif-toast-label">${label}</div>
-            <div class="notif-toast-msg">${msg}</div>
+        <div class="nt-sweep"></div>
+        <div class="nt-accent"></div>
+        <div class="nt-icon">${icon}</div>
+        <div class="nt-body">
+            <div class="nt-label">${label}</div>
+            <div class="nt-msg">${msg}</div>
         </div>
-        <div class="notif-toast-actions">${actions}</div>
-        <button class="notif-toast-close" title="Masquer" onclick="masquerToast(this.closest('.notif-toast'))">✕</button>`;
+        <div class="nt-actions">${actions}</div>
+        <button class="nt-close" title="Masquer" onclick="masquerToast(this.closest('.notif-toast'))">✕</button>`;
 
     container.appendChild(toast);
     requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('visible')));

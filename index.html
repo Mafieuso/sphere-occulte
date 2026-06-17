@@ -3272,26 +3272,25 @@ async function loadPyramide() {
         drawLines();
 
         // Drag
-        let drag = null, offX = 0, offY = 0;
+        let drag = null, startLeft = 0, startTop = 0, startMX = 0, startMY = 0;
 
         canvas.querySelectorAll('.pyr-node').forEach(el => {
             el.addEventListener('mousedown', e => {
                 drag = el;
                 el.style.cursor = 'grabbing';
                 el.style.zIndex = '20';
-                el.style.boxShadow = `0 0 28px ${el.style.borderColor}, 0 6px 24px rgba(0,0,0,.7)`;
-                const r  = el.getBoundingClientRect();
-                offX = e.clientX - r.left;
-                offY = e.clientY - r.top;
+                startLeft = parseFloat(el.style.left) || 0;
+                startTop  = parseFloat(el.style.top)  || 0;
+                startMX   = e.clientX;
+                startMY   = e.clientY;
                 e.preventDefault();
             });
         });
 
         document.addEventListener('mousemove', e => {
             if (!drag) return;
-            const cr = canvas.getBoundingClientRect();
-            drag.style.left = (e.clientX - cr.left - offX) + 'px';
-            drag.style.top  = (e.clientY - cr.top  - offY) + 'px';
+            drag.style.left = (startLeft + e.clientX - startMX) + 'px';
+            drag.style.top  = (startTop  + e.clientY - startMY) + 'px';
             drawLines();
         });
 
@@ -3299,7 +3298,6 @@ async function loadPyramide() {
             if (!drag) return;
             drag.style.cursor = 'grab';
             drag.style.zIndex = '2';
-            drag.style.boxShadow = '';
             drag = null;
         });
     });

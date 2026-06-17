@@ -3280,10 +3280,9 @@ async function loadPyramide() {
                 el.style.cursor = 'grabbing';
                 el.style.zIndex = '20';
                 el.style.boxShadow = `0 0 28px ${el.style.borderColor}, 0 6px 24px rgba(0,0,0,.7)`;
-                const cr = canvas.getBoundingClientRect();
                 const r  = el.getBoundingClientRect();
-                offX = e.clientX - (r.left - cr.left);
-                offY = e.clientY - (r.top  - cr.top);
+                offX = e.clientX - r.left;
+                offY = e.clientY - r.top;
                 e.preventDefault();
             });
         });

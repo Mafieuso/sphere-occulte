@@ -1603,9 +1603,9 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
         const ecoleData = ecoleMap && m.ecoleId ? ecoleMap[m.ecoleId] : null;
         const fondEcole = !ecoleData && fondateurMap ? fondateurMap[m.id] : null;
         const ecoleName = ecoleData
-            ? (ecoleData.fondateurNom ? `École de ${ecoleData.fondateurNom}` : ecoleData.nom || 'École')
+            ? (ecoleData.nom || ecoleData.fondateurNom || 'École')
             : fondEcole
-                ? (fondEcole.nom || 'Mon École')
+                ? (typeof fondEcole === 'string' ? fondEcole : fondEcole.nom || 'Mon École')
                 : 'École Générale';
 
         const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="font-size:.75rem">#${i+1}</span>`;

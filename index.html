@@ -1659,7 +1659,7 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
                 <div class="lb-name" data-text="${name}">${name}</div>
                 <div class="lb-grade-row">
                     <span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span>
-                    <span class="lb-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</span>
+                    <span class="lb-ecole">${ecoleName === 'École Générale' ? '🏫 École Générale' : '🏛 École'}</span>
                 </div>
                 <div class="lb-stats-row">
                     <span class="lb-stat"><span class="lb-stat-icon">🔮</span>${pts}</span>
@@ -3930,25 +3930,27 @@ async function loadDashEcole() {
                             <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${displayName(mb)}${isSelf ? ' <span style="font-size:.6rem;color:var(--text-muted)">(vous)</span>' : ''}</div>
                             <div style="font-size:.72rem;color:var(--text-muted)">${mb.grade || ''}</div>
                         </div>
-                        <button class="btn ${isSelf ? 'btn-ghost' : 'btn-danger'} btn-sm"
-                            onclick="retirerMembreEcole('${ecoleDoc.id}','${s.id}','${displayName(mb).replace(/'/g,"\\'")}')">
-                            ${isSelf ? '⤴ Quitter' : '✕'}
-                        </button>
+                        ${isSelf ? `<button class="btn btn-ghost btn-sm" onclick="retirerMembreEcole('${ecoleDoc.id}','${s.id}','${displayName(mb).replace(/'/g,"\\'")}')">⤴ Quitter</button>` : ''}
                     </div>`;
                 }).join('')}
 
                 ${incanSnap.docs.length ? `
-                <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin:.9rem 0 .5rem">Incantations Exclusives</div>
-                ${incanSnap.docs.map(id => {
-                    const inc = id.data();
+                <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin:.9rem 0 .5rem">Incantations Exclusives (${incanSnap.docs.length})</div>
+                ${incanSnap.docs.map(docSnap => {
+                    const inc  = docSnap.data();
+                    incanCache.set(docSnap.id, inc);
                     const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
                     const cout = inc.cout || inc.pointsManipulation || 0;
-                    return `<div style="display:flex;align-items:center;gap:.65rem;padding:.45rem .6rem;background:rgba(204,68,255,.05);border:1px solid rgba(204,68,255,.15);border-radius:8px;margin-bottom:.35rem">
-                        <span style="color:var(--g2)">✦</span>
-                        <div style="flex:1">
+                    return `<div style="display:flex;align-items:center;gap:.65rem;padding:.5rem .7rem;background:rgba(204,68,255,.05);border:1px solid rgba(204,68,255,.15);border-radius:8px;margin-bottom:.35rem;cursor:pointer;transition:background .15s" onclick="viewIncanById('${docSnap.id}')" title="Voir les détails">
+                        <span style="color:var(--g2);font-size:1.1rem;flex-shrink:0">✦</span>
+                        <div style="flex:1;min-width:0">
                             <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${inc.nom}</div>
-                            <div style="font-size:.72rem;color:var(--text-muted)">${cout ? `+${cout} Manip.` : ''} ${pts ? `+${pts} Puiss.` : ''}</div>
+                            <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.2rem">
+                                ${cout ? `<span class="pts pts-manip" style="font-size:.68rem">+${cout} Manip.</span>` : ''}
+                                ${pts  ? `<span class="pts pts-occulte" style="font-size:.68rem">+${pts} Puiss.</span>` : ''}
+                            </div>
                         </div>
+                        <span style="font-size:.65rem;color:var(--text-muted);flex-shrink:0">▼ Détails</span>
                     </div>`;
                 }).join('')}` : `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.75rem">Aucune incantation exclusive pour l'instant.</p>`}`;
             return;

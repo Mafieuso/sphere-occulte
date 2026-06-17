@@ -1067,6 +1067,9 @@
           <div class="sidebar-nav-item admin-only" onclick="adminPanel('annonces')" data-panel="annonces" style="cursor:pointer">
             <span class="nav-icon">📢</span> Annonces
           </div>
+          <div class="sidebar-nav-item admin-only" onclick="adminPanel('pyramide')" data-panel="pyramide" style="cursor:pointer">
+            <span class="nav-icon">△</span> Pyramide
+          </div>
           <div class="sidebar-nav-item" onclick="adminPanel('acces')" data-panel="acces" style="cursor:pointer">
             <span class="nav-icon">🔑</span> Accès &amp; Comptes
           </div>
@@ -1216,6 +1219,12 @@
             <div class="panel-title">📜 Journal des Actions</div>
           </div>
           <div id="logs-list"></div>
+        </div>
+
+        <!-- Panel : Pyramide -->
+        <div class="panel" id="ap-pyramide">
+          <div class="panel-hdr"><div class="panel-title">△ La Pyramide des Ombres</div></div>
+          <div id="pyramide-wrap" style="max-width:720px;margin:0 auto"></div>
         </div>
 
       </div><!-- /admin-main -->
@@ -2377,6 +2386,7 @@ function adminPanel(name) {
     if (name === 'acces')        loadAdminAcces();
     if (name === 'annonces')     loadAdminAnnonces();
     if (name === 'logs')         loadLogs();
+    if (name === 'pyramide')     loadPyramide();
 }
 
 async function loadAdminAnnonces() {
@@ -2723,10 +2733,28 @@ async function sauvegarderMembre() {
         role:    newRole,
         absent:  document.getElementById('edit-absent').checked
     };
-    if (m && getGrade(newOcculte) !== m.grade)
-        data.dateEvolution = firebase.firestore.Timestamp.now();
+    const newGrade = getGrade(newOcculte);
+    const gradeChanged = m && newGrade !== m.grade;
+    if (gradeChanged) data.dateEvolution = firebase.firestore.Timestamp.now();
     await db.collection('membres').doc(id).update(data);
     await logAction('modif', `Modification de ${data.prenom} ${data.nom}`, 0);
+
+    // Notification de montée en grade
+    if (gradeChanged && getGradeIndex(newGrade) > getGradeIndex(m.grade)) {
+        const gradesScene = ["Collecteur d'Ombre", "Marchand des Âmes", "Monarque des Ombres"];
+        const adminNom = displayName(currentMembre);
+        let msg;
+        if (gradesScene.includes(newGrade)) {
+            msg = `Félicitations ! Vous accédez au grade <strong>${newGrade}</strong>.\n\nUne <strong>scène de montée en rang</strong> est requise avant de porter officiellement ce grade. Attendez la convocation officielle.\n\nIncantateur : <strong>${adminNom}</strong>`;
+        } else {
+            msg = `Félicitations ! Vous accédez au grade <strong>${newGrade}</strong>.`;
+        }
+        await db.collection('notifications').add({
+            to: id, type: 'annonce', message: msg,
+            fromNom: adminNom, lu: false,
+            date: firebase.firestore.Timestamp.now()
+        });
+    }
     closeModal('modal-membre');
 }
 
@@ -3136,6 +3164,41 @@ async function loadLogs() {
             <span class="log-date">${formatDate(l.date)}</span>
         </div>`;
     }).join('');
+}
+
+function loadPyramide() {
+    const wrap = document.getElementById('pyramide-wrap');
+    if (!wrap) return;
+    const TIERS = [
+        { grade: "Monarque des Ombres",  color: '#b8860b', bg: 'rgba(184,134,11,.12)' },
+        { grade: "Marchand des Âmes",    color: '#8b3a8b', bg: 'rgba(139,58,139,.10)' },
+        { grade: "Collecteur d'Ombre",   color: '#8b0000', bg: 'rgba(139,0,0,.10)'    },
+        { grade: "Marcheur",             color: '#4a6080', bg: 'rgba(74,96,128,.10)'  },
+        { grade: "Incantateur",          color: '#3a4a3a', bg: 'rgba(58,74,58,.10)'   },
+    ];
+    const byGrade = {};
+    TIERS.forEach(t => byGrade[t.grade] = []);
+    allMembres.forEach(m => { if (byGrade[m.grade]) byGrade[m.grade].push(m); });
+
+    const total = allMembres.length || 1;
+    wrap.innerHTML = `
+      <div style="font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.18em;color:var(--text-muted);text-align:center;margin-bottom:1.5rem;text-transform:uppercase">
+        ${total} membre${total > 1 ? 's' : ''} au total
+      </div>
+      ${TIERS.map((t, i) => {
+        const members = byGrade[t.grade] || [];
+        const pct = Math.max(20, Math.round((5 - i) / 5 * 100));
+        return `
+        <div style="margin:0 auto ${i < TIERS.length-1 ? '.35rem' : '0'};width:${pct}%;background:${t.bg};border:1px solid ${t.color}33;border-radius:6px;padding:.6rem .8rem;transition:width .4s">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${members.length ? '.45rem' : '0'}">
+            <span style="font-family:'Cinzel',serif;font-size:.72rem;color:${t.color};letter-spacing:.1em">${t.grade}</span>
+            <span style="font-size:.65rem;color:var(--text-muted);background:rgba(255,255,255,.06);padding:.15rem .45rem;border-radius:99px">${members.length}</span>
+          </div>
+          ${members.length ? `<div style="display:flex;flex-wrap:wrap;gap:.3rem">
+            ${members.map(m => `<span style="font-size:.68rem;padding:.2rem .5rem;background:rgba(255,255,255,.05);border:1px solid ${t.color}44;border-radius:4px;color:var(--text);white-space:nowrap" title="${m.pointsOcculte || 0} pts Occulte">${displayName(m)}</span>`).join('')}
+          </div>` : `<div style="font-size:.65rem;color:var(--text-muted);font-style:italic">Aucun membre</div>`}
+        </div>`;
+    }).join('')}`;
 }
 
 async function logAction(action, detail, pts) {
@@ -3725,6 +3788,13 @@ async function confirmerAjoutMembre(ecoleId, membreId) {
     const alertEl = document.getElementById('add-membre-alert');
     alertEl.style.display = 'none';
     try {
+        const ecoleSnap = await db.collection('ecoles').doc(ecoleId).get();
+        const membresList = (ecoleSnap.data()?.membres || []);
+        if (membresList.length >= 5) {
+            alertEl.textContent = '⛔ Cette école a atteint la limite de 5 membres.';
+            alertEl.style.display = '';
+            return;
+        }
         const batch   = db.batch();
         const ecoleRef = db.collection('ecoles').doc(ecoleId);
         const memRef   = db.collection('membres').doc(membreId);
@@ -3978,6 +4048,12 @@ async function marquerToutLu() {
 
 async function accepterInvitation(notifId, ecoleId) {
     try {
+        const ecoleSnap = await db.collection('ecoles').doc(ecoleId).get();
+        if ((ecoleSnap.data()?.membres || []).length >= 5) {
+            alert('⛔ Cette école a atteint la limite de 5 membres. Votre invitation est annulée.');
+            await db.collection('notifications').doc(notifId).update({ lu: true });
+            return;
+        }
         const batch    = db.batch();
         const ecoleRef = db.collection('ecoles').doc(ecoleId);
         const memRef   = db.collection('membres').doc(currentMembre.id);

@@ -1487,10 +1487,12 @@ auth.onAuthStateChanged(async user => {
 /* ═══════════════════════════════════════════════════════
    4. HOME VIEW
 ═══════════════════════════════════════════════════════ */
-let homeMembers  = [];
-let homeLive     = null;
-let filterGrade  = '';
-let filterPres   = false;
+let homeMembers      = [];
+let homeEcoleMap     = {};
+let homeFondateurMap = {};
+let homeLive         = null;
+let filterGrade      = '';
+let filterPres       = false;
 
 function loadHome() {
     // Légende grades
@@ -1513,6 +1515,16 @@ function loadHome() {
         initTilt();
     }
     if (homeLive) return;
+    // Charger les écoles une fois pour les noms dans le classement
+    db.collection('ecoles').get().then(snap => {
+        homeEcoleMap     = {};
+        homeFondateurMap = {};
+        snap.forEach(d => {
+            homeEcoleMap[d.id]                  = d.data().nom;
+            homeFondateurMap[d.data().fondateurId] = d.data().nom;
+        });
+        filtrerHome();
+    }).catch(() => {});
     homeLive = db.collection('membres').orderBy('pointsOcculte', 'desc').onSnapshot(snap => {
         homeMembers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         updateHomeStats();
@@ -1549,7 +1561,7 @@ function filtrerHome() {
     if (filterGrade) m = m.filter(x => x.grade === filterGrade);
     if (filterPres)  m = m.filter(x => !x.absent);
     if (sort === 'manip') m.sort((a, b) => (b.pointsManipulation || 0) - (a.pointsManipulation || 0));
-    renderLbRows('lb-list', m, null);
+    renderLbRows('lb-list', m, homeEcoleMap, homeFondateurMap);
 }
 
 function sortByGrade(membres) {

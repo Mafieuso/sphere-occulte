@@ -48,7 +48,7 @@
       </div>
     </div>
     <!-- Body -->
-    <div style="padding:1rem 1.3rem 1.5rem;display:flex;flex-direction:column;gap:.85rem">
+    <div id="lbp-body" style="padding:1rem 1.3rem 1.5rem;display:flex;flex-direction:column;gap:.85rem">
       <!-- École + absent -->
       <div style="display:flex;align-items:center;gap:.6rem">
         <div id="lbp-ecole" style="font-size:.8rem;color:var(--text-muted);flex:1"></div>
@@ -1553,8 +1553,9 @@ function loadHome() {
         homeEcoleMap     = {};
         homeFondateurMap = {};
         snap.forEach(d => {
-            homeEcoleMap[d.id]                  = d.data().nom;
-            homeFondateurMap[d.data().fondateurId] = d.data().nom;
+            const obj = { nom: d.data().nom || '', logoURL: d.data().logoURL || null };
+            homeEcoleMap[d.id]                     = obj;
+            homeFondateurMap[d.data().fondateurId] = obj;
         });
         filtrerHome();
     }).catch(() => {});
@@ -1635,7 +1636,9 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
 
         const ecoleData = ecoleMap && m.ecoleId ? ecoleMap[m.ecoleId] : null;
         const fondEcole = !ecoleData && fondateurMap ? fondateurMap[m.id] : null;
-        const ecoleName = ecoleData || fondEcole || 'École Générale';
+        const raw       = ecoleData || fondEcole;
+        const ecoleName = (typeof raw === 'string' ? raw : raw?.nom) || 'École Générale';
+        const ecoleLogo = (typeof raw === 'object' && raw) ? (raw.logoURL || null) : null;
 
         const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="font-size:.75rem">#${i+1}</span>`;
 
@@ -1643,7 +1646,7 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
             ? `<img src="${m.photoURL}" alt="" loading="lazy">`
             : `<div class="lb-photo-init" style="--grade-color:${color}">${init}</div>`;
 
-        lbCache[m.id] = { m, ecoleName, color };
+        lbCache[m.id] = { m, ecoleName, ecoleLogo, color };
 
         return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}" style="--grade-color:${color};cursor:pointer" onclick="openProfilLb('${m.id}')">
             <div class="lb-photo-panel">
@@ -1655,7 +1658,7 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
                 <div class="lb-name" data-text="${name}">${name}</div>
                 <div class="lb-grade-row">
                     <span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span>
-                    <span class="lb-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</span>
+                    <span class="lb-ecole">${ecoleLogo ? `<img src="${ecoleLogo}" style="width:13px;height:13px;border-radius:50%;object-fit:cover;vertical-align:-2px;margin-right:.2rem">` : (ecoleName === 'École Générale' ? '🏫 ' : '🏛 ')}${ecoleName}</span>
                 </div>
                 <div class="lb-stats-row">
                     <span class="lb-stat"><span class="lb-stat-icon">🔮</span>${pts}</span>
@@ -3217,26 +3220,97 @@ async function loadAdminEcoles() {
     let snap;
     try { snap = await db.collection('ecoles').orderBy('dateCreation','desc').get(); }
     catch(e) { snap = await db.collection('ecoles').get(); }
-    if (snap.empty) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🏛</div><div class="empty-text">Aucune école</div></div>'; return; }
-    list.innerHTML = snap.docs.map(doc => {
+    if (snap.empty) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">🏛</div><div class="empty-text">Aucune école</div></div>';
+        return;
+    }
+    const schoolData = await Promise.all(snap.docs.map(async doc => {
         const e = doc.data();
-        const logo = e.logoURL
-            ? `<img src="${e.logoURL}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0">`
-            : `<div style="width:48px;height:48px;border-radius:50%;background:rgba(139,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">🏛</div>`;
-        const membresCount = (e.membres || []).length;
-        return `<div class="glass-card" style="display:flex;align-items:center;gap:1rem;margin-bottom:.6rem;padding:.9rem 1rem">
-            ${logo}
-            <div style="flex:1;min-width:0">
-                <div style="font-family:'Cinzel',serif;font-size:.95rem;color:var(--text);font-weight:600">${e.nom}</div>
-                <div style="font-size:.75rem;color:var(--text-muted);margin:.15rem 0">Fondateur : ${e.fondateurNom || '?'} · ${membresCount} membre(s)</div>
-                ${e.description ? `<div style="font-size:.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.description}</div>` : ''}
+        const [membresSnaps, incanSnap] = await Promise.all([
+            Promise.all((e.membres || []).map(uid => db.collection('membres').doc(uid).get())),
+            db.collection('incantations').where('ecoleId', '==', doc.id).get()
+        ]);
+        return { doc, e, membres: membresSnaps.filter(s => s.exists), incanSnap };
+    }));
+
+    list.innerHTML = schoolData.map(({ doc, e, membres, incanSnap }) => {
+        const logoHtml = e.logoURL
+            ? `<img src="${e.logoURL}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(204,68,255,.35)">`
+            : `<div style="width:54px;height:54px;border-radius:50%;background:rgba(80,0,120,.4);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;border:2px solid rgba(204,68,255,.2)">🏛</div>`;
+
+        const membresHtml = membres.length
+            ? membres.map(s => {
+                const mb = s.data();
+                const init = ((mb.prenom||'')[0]||(mb.nom||'')[0]||'?').toUpperCase();
+                return `<div style="display:flex;align-items:center;gap:.55rem;padding:.35rem .55rem;background:rgba(255,255,255,.025);border-radius:7px;margin-bottom:.25rem">
+                    <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(100,20,140,.4);font-size:.72rem;color:var(--g2)">
+                        ${mb.photoURL?`<img src="${mb.photoURL}" style="width:100%;height:100%;object-fit:cover">`:init}
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:.8rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${displayName(mb)}</div>
+                        <div style="font-size:.67rem;color:var(--text-muted)">${mb.grade||''}</div>
+                    </div>
+                    <button class="btn btn-danger btn-sm" style="padding:.15rem .45rem;font-size:.68rem" onclick="adminRetirerMembreEcole('${doc.id}','${s.id}')">✕</button>
+                </div>`;
+            }).join('')
+            : `<p style="font-size:.75rem;color:var(--text-muted);padding:.25rem 0">Aucun membre.</p>`;
+
+        const incansHtml = incanSnap.docs.length
+            ? incanSnap.docs.map(id => {
+                const inc  = id.data();
+                const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
+                const cout = inc.cout || inc.pointsManipulation || 0;
+                return `<div style="display:flex;align-items:center;gap:.55rem;padding:.35rem .55rem;background:rgba(204,68,255,.04);border:1px solid rgba(204,68,255,.12);border-radius:7px;margin-bottom:.25rem">
+                    <span style="color:var(--g2);flex-shrink:0;font-size:.9rem">✦</span>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:.8rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${inc.nom}</div>
+                        <div style="font-size:.67rem;color:var(--text-muted)">${cout?`+${cout} Manip. `:''}${pts?`+${pts} Puiss.`:''}</div>
+                    </div>
+                    <button class="btn btn-danger btn-sm" style="padding:.15rem .45rem;font-size:.68rem" onclick="supprimerIncanEcole('${id.id}','${doc.id}')">✕</button>
+                </div>`;
+            }).join('')
+            : `<p style="font-size:.75rem;color:var(--text-muted);padding:.25rem 0">Aucune incantation exclusive.</p>`;
+
+        return `<div class="glass-card" style="margin-bottom:1.1rem;padding:0;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:.85rem;padding:.9rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)">
+                ${logoHtml}
+                <div style="flex:1;min-width:0">
+                    <div style="font-family:'Cinzel',serif;font-size:.97rem;color:var(--text);font-weight:600">${e.nom}</div>
+                    <div style="font-size:.72rem;color:var(--text-muted);margin:.18rem 0">
+                        Fondateur : <strong style="color:var(--gold)">${e.fondateurNom||'?'}</strong>
+                        &nbsp;·&nbsp; ${membres.length}/5 membres
+                        &nbsp;·&nbsp; ${incanSnap.docs.length} incantation(s)
+                    </div>
+                    ${e.description?`<div style="font-size:.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px">${e.description}</div>`:''}
+                </div>
+                <div style="display:flex;gap:.4rem;flex-shrink:0">
+                    <button class="btn btn-ghost btn-sm" onclick="adminEditEcole('${doc.id}')">✏️ Modifier</button>
+                    <button class="btn btn-danger btn-sm" onclick="adminDeleteEcole('${doc.id}','${(e.nom||'').replace(/'/g,"\\'")}')">🗑</button>
+                </div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
-                <button class="btn btn-ghost btn-sm" onclick="adminEditEcole('${doc.id}')">✏️ Modifier</button>
-                <button class="btn btn-danger btn-sm" onclick="adminDeleteEcole('${doc.id}','${(e.nom||'').replace(/'/g,"\\'")}')">🗑 Supprimer</button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:0">
+                <div style="padding:.8rem 1.1rem;border-right:1px solid rgba(255,255,255,.05)">
+                    <div style="font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.45rem">Membres (${membres.length})</div>
+                    ${membresHtml}
+                </div>
+                <div style="padding:.8rem 1.1rem">
+                    <div style="font-size:.62rem;color:var(--g2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.45rem">Incantations Exclusives (${incanSnap.docs.length})</div>
+                    ${incansHtml}
+                </div>
             </div>
         </div>`;
     }).join('');
+}
+
+async function adminRetirerMembreEcole(ecoleId, membreId) {
+    if (!confirm('Retirer ce membre de l\'école ?')) return;
+    try {
+        const batch = db.batch();
+        batch.update(db.collection('ecoles').doc(ecoleId), { membres: firebase.firestore.FieldValue.arrayRemove(membreId) });
+        batch.update(db.collection('membres').doc(membreId), { ecoleId: firebase.firestore.FieldValue.delete() });
+        await batch.commit();
+        loadAdminEcoles();
+    } catch(err) { alert('Erreur : ' + err.message); }
 }
 
 async function adminEditEcole(ecoleId) {
@@ -4336,7 +4410,7 @@ function animateCounter(el, target, duration) {
 function openProfilLb(uid) {
     const entry = lbCache[uid];
     if (!entry) return;
-    const { m, ecoleName, color } = entry;
+    const { m, ecoleName, ecoleLogo, color } = entry;
 
     const isMonarque = m.grade === 'Monarque des Ombres';
     const overlay    = document.getElementById('modal-lb-profil');
@@ -4381,7 +4455,12 @@ function openProfilLb(uid) {
     nameEl.style.textShadow   = isMonarque ? '0 0 20px rgba(200,0,255,.7),0 0 60px rgba(150,0,255,.35)' : '';
 
     document.getElementById('lbp-grade').innerHTML   = badgeGrade(m.grade);
-    document.getElementById('lbp-ecole').textContent = `${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}`;
+    const ecoleEl = document.getElementById('lbp-ecole');
+    if (ecoleLogo) {
+        ecoleEl.innerHTML = `<img src="${ecoleLogo}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:-4px;margin-right:.35rem">${ecoleName}`;
+    } else {
+        ecoleEl.textContent = `${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}`;
+    }
 
     // Absent
     document.getElementById('lbp-absent-badge').style.display = m.absent ? '' : 'none';

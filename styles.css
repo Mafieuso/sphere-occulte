@@ -763,6 +763,43 @@ textarea.form-control { resize:vertical; min-height:100px; }
   animation: lbp-photo-pulse 2.2s ease-in-out infinite;
 }
 
+@keyframes lbp-body-flicker {
+  0%,93%,100% { opacity:1; filter:none; }
+  94%  { opacity:.7; filter:brightness(1.5) saturate(1.8) hue-rotate(40deg); }
+  95%  { opacity:.88; filter:brightness(.8); }
+  96%  { opacity:.55; filter:brightness(1.3) hue-rotate(-25deg) saturate(2.5); }
+  97%  { opacity:.95; filter:none; }
+}
+@keyframes lbp-stat-distort {
+  0%,88%,100% { transform:none; filter:none; }
+  89%  { transform:translateX(-5px) skewX(-3deg); filter:hue-rotate(130deg) brightness(1.4); }
+  90%  { transform:translateX(6px)  skewX(2deg);  filter:hue-rotate(-70deg); }
+  91%  { transform:translateX(-2px); filter:brightness(1.6) saturate(3); }
+  92%  { transform:none; filter:none; }
+}
+@keyframes lbp-progress-glitch {
+  0%,90%,100% { opacity:1; transform:none; }
+  91%  { opacity:.4; transform:scaleX(1.04) translateX(-4px); filter:hue-rotate(180deg); }
+  92%  { opacity:.9; transform:scaleX(.97); }
+  93%  { opacity:1;  transform:none; filter:none; }
+}
+
+#modal-lb-profil.lbp--monarque #lbp-body {
+  animation: lbp-body-flicker 6s steps(1) infinite 1s;
+}
+#modal-lb-profil.lbp--monarque #lbp-pts {
+  animation: lbp-stat-distort 8s steps(1) infinite 0.5s;
+}
+#modal-lb-profil.lbp--monarque #lbp-manip {
+  animation: lbp-stat-distort 8s steps(1) infinite 2s;
+}
+#modal-lb-profil.lbp--monarque #lbp-progress-fill {
+  animation: lbp-progress-glitch 9s steps(1) infinite 3s;
+}
+#modal-lb-profil.lbp--monarque #lbp-projet {
+  animation: lbp-body-flicker 11s steps(1) infinite 4s;
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width:768px) {
     .grid-2,.grid-3 { grid-template-columns:1fr; }

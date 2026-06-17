@@ -1052,19 +1052,19 @@
           <div class="sidebar-nav-item" onclick="adminPanel('membres')" data-panel="membres" style="cursor:pointer">
             <span class="nav-icon">👥</span> Membres
           </div>
-          <div class="sidebar-nav-item" onclick="adminPanel('incantations')" data-panel="incantations" style="cursor:pointer">
+          <div class="sidebar-nav-item admin-only" onclick="adminPanel('incantations')" data-panel="incantations" style="cursor:pointer">
             <span class="nav-icon">✦</span> Incantations
           </div>
-          <div class="sidebar-nav-item" onclick="adminPanel('savoirs')" data-panel="savoirs" style="cursor:pointer">
+          <div class="sidebar-nav-item admin-only" onclick="adminPanel('savoirs')" data-panel="savoirs" style="cursor:pointer">
             <span class="nav-icon">📖</span> Savoirs Uniques
           </div>
-          <div class="sidebar-nav-item" onclick="adminPanel('ecoles')" data-panel="ecoles" style="cursor:pointer">
+          <div class="sidebar-nav-item admin-only" onclick="adminPanel('ecoles')" data-panel="ecoles" style="cursor:pointer">
             <span class="nav-icon">🏛</span> Écoles
           </div>
-          <div class="sidebar-nav-item" onclick="adminPanel('logs')" data-panel="logs" style="cursor:pointer">
+          <div class="sidebar-nav-item admin-only" onclick="adminPanel('logs')" data-panel="logs" style="cursor:pointer">
             <span class="nav-icon">📜</span> Logs
           </div>
-          <div class="sidebar-nav-item" onclick="adminPanel('annonces')" data-panel="annonces" style="cursor:pointer">
+          <div class="sidebar-nav-item admin-only" onclick="adminPanel('annonces')" data-panel="annonces" style="cursor:pointer">
             <span class="nav-icon">📢</span> Annonces
           </div>
           <div class="sidebar-nav-item" onclick="adminPanel('acces')" data-panel="acces" style="cursor:pointer">
@@ -1334,7 +1334,7 @@ let _transitioning = false;
 function goTo(target) {
     if (_transitioning) return;
     if ((target === 'dashboard' || target === 'admin') && !auth.currentUser) target = 'auth';
-    if (target === 'admin' && (!currentMembre || currentMembre.role !== 'admin')) target = 'dashboard';
+    if (target === 'admin' && (!currentMembre || !['admin','haut_grade'].includes(currentMembre.role))) target = 'dashboard';
 
     _transitioning = true;
     VEIL.classList.add('open');
@@ -1364,10 +1364,11 @@ function showView(name) {
 
 function updateNavLinks() {
     const user    = auth.currentUser;
-    const isAdmin = currentMembre && currentMembre.role === 'admin';
+    const isAdmin    = currentMembre && currentMembre.role === 'admin';
+    const canAdmin   = currentMembre && (currentMembre.role === 'admin' || currentMembre.role === 'haut_grade');
     setDisplay('nl-auth',   user ? 'none' : '');
     setDisplay('nl-dash',   user ? '' : 'none');
-    setDisplay('nl-admin',  (user && isAdmin) ? '' : 'none');
+    setDisplay('nl-admin',  (user && canAdmin) ? '' : 'none');
     setDisplay('nl-logout', user ? '' : 'none');
 }
 
@@ -2316,7 +2317,15 @@ let soumRefusPts      = null;
 let soumFilter        = 'attente';
 
 function loadAdminData() {
-    if (!currentMembre || currentMembre.role !== 'admin') return;
+    if (!currentMembre || !['admin','haut_grade'].includes(currentMembre.role)) return;
+
+    // Masquer les panels réservés à l'admin pur pour les haut_grade
+    const isAdmin = currentMembre.role === 'admin';
+    document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = isAdmin ? '' : 'none';
+    });
+    const titleEl = document.querySelector('.admin-sidebar-brand div:last-child');
+    if (titleEl) titleEl.textContent = isAdmin ? 'PANNEAU ADMIN' : 'PANNEAU HAUT GRADÉ';
 
     // Sidebar avatar
     const av = document.getElementById('adm-avatar-sm');
@@ -2456,6 +2465,7 @@ function renderSoumissions() {
                     ${s.statut === 'attente' ? `
                     <button class="btn btn-success btn-sm" onclick="validerSoum('${s.id}','${s.membreId}',${s.ptsGagnes || 0})">✓ Valider</button>
                     <button class="btn btn-danger btn-sm"  onclick="ouvrirRefus('${s.id}','${s.membreId}',${s.ptsGagnes || 0})">✗ Refuser</button>` : ''}
+                    ${currentMembre?.role === 'admin' ? `<button class="btn btn-ghost btn-sm" style="color:rgba(255,80,80,.6);font-size:.7rem" onclick="supprimerSoum('${s.id}')">🗑</button>` : ''}
                     <span class="soum-chev">▼</span>
                 </div>
             </div>
@@ -2487,36 +2497,73 @@ async function validerSoum(soumId, membreId, pts) {
     const soumRef = db.collection('soumissions').doc(soumId);
     const memRef  = db.collection('membres').doc(membreId);
 
-    // Lecture parallèle : membre + Monarques
-    const drainPts = pts > 0 ? Math.max(1, Math.floor(pts * 0.2)) : 0;
-    const [memDoc, monarqueSnap] = await Promise.all([
+    const drainMonarque  = pts > 0 ? Math.max(1, Math.floor(pts * 0.2)) : 0;
+    const drainFondateur = pts > 0 ? Math.max(1, Math.floor(pts * 0.1)) : 0;
+
+    // Lecture parallèle : membre + Monarques + soumission
+    const [memDoc, monarqueSnap, soumDoc] = await Promise.all([
         memRef.get(),
-        drainPts > 0
+        drainMonarque > 0
             ? db.collection('membres').where('grade', '==', 'Monarque des Ombres').get()
-            : Promise.resolve({ docs: [] })
+            : Promise.resolve({ docs: [] }),
+        soumRef.get()
     ]);
+
+    // Chercher le fondateur si incantation d'école
+    let fondateurId = null;
+    const incanId = soumDoc.data()?.incanId;
+    if (incanId && drainFondateur > 0) {
+        try {
+            const incanDoc = await db.collection('incantations').doc(incanId).get();
+            if (incanDoc.exists && incanDoc.data().ecoleId) {
+                const ecoleDoc = await db.collection('ecoles').doc(incanDoc.data().ecoleId).get();
+                if (ecoleDoc.exists) fondateurId = ecoleDoc.data().fondateurId;
+            }
+        } catch(e) {}
+    }
 
     const m          = memDoc.data();
     const newOcculte = (m.pointsOcculte || 0) + pts;
     const newGrade   = getGrade(newOcculte);
 
     batch.update(soumRef, { statut: 'valide', dateValidation: firebase.firestore.Timestamp.now() });
-    batch.update(memRef,  {
-        pointsOcculte: newOcculte,
-        grade: newGrade,
+    batch.update(memRef, {
+        pointsOcculte: newOcculte, grade: newGrade,
         ...(newGrade !== m.grade ? { dateEvolution: firebase.firestore.Timestamp.now() } : {})
     });
 
-    // Drain Monarque : +20% arrondi à l'entier (min 1) pour chaque Monarque des Ombres
+    // Monarque +20% (sur chaque Monarque existant)
     monarqueSnap.docs.forEach(mDoc => {
-        if (mDoc.id === membreId) return; // pas de drain si le membre IS le Monarque
+        if (mDoc.id === membreId || mDoc.id === fondateurId) return;
         const md = mDoc.data();
-        const newMOcculte = (md.pointsOcculte || 0) + drainPts;
-        batch.update(mDoc.ref, { pointsOcculte: newMOcculte, grade: getGrade(newMOcculte) });
+        const newMO = (md.pointsOcculte || 0) + drainMonarque;
+        batch.update(mDoc.ref, { pointsOcculte: newMO, grade: getGrade(newMO) });
     });
 
+    // Fondateur école +10% si incantation d'école utilisée
+    if (fondateurId && fondateurId !== membreId) {
+        const fondRef = db.collection('membres').doc(fondateurId);
+        const fondDoc = await fondRef.get();
+        if (fondDoc.exists) {
+            const fd = fondDoc.data();
+            // Le monarque prend toujours, même si c'est aussi le fondateur
+            const monarquePart = monarqueSnap.docs.some(d => d.id === fondateurId) ? drainMonarque : 0;
+            const newFO = (fd.pointsOcculte || 0) + drainFondateur + monarquePart;
+            batch.update(fondRef, { pointsOcculte: newFO, grade: getGrade(newFO) });
+        }
+    }
+
     await batch.commit();
-    await logAction('validation', `+${pts} pts → ${displayName(m)} (${newGrade})${monarqueSnap.docs.length ? ` | Monarque +${drainPts}` : ''}`, pts);
+    await logAction('validation',
+        `+${pts}pts → ${displayName(m)} (${newGrade})` +
+        (fondateurId ? ` | Fondateur +${drainFondateur}` : '') +
+        (monarqueSnap.docs.length ? ` | Monarque +${drainMonarque}` : ''), pts);
+}
+
+async function supprimerSoum(soumId) {
+    if (!confirm('Supprimer définitivement cette soumission ?')) return;
+    await db.collection('soumissions').doc(soumId).delete();
+    await logAction('SUPPRESSION SOUMISSION', soumId, 0);
 }
 
 function ouvrirRefus(soumId, membreId, pts) {
@@ -2612,6 +2659,11 @@ function openMembreEdit(membreId) {
     if (!m) return;
     if (GRADES_PROTEGES.includes(m.grade)) {
         alert(`⛔ Impossible — les membres de grade "${m.grade}" sont protégés contre les actions administratives.`);
+        return;
+    }
+    // Haut Gradé : ne peut modifier que les membres sous Collecteur d'Ombre
+    if (currentMembre.role === 'haut_grade' && getGradeIndex(m.grade) >= 2) {
+        alert(`⛔ En tant que Haut Gradé, vous ne pouvez modifier que les membres de grade inférieur à Collecteur d'Ombre.`);
         return;
     }
     document.getElementById('modal-membre-title').textContent = 'Modifier : ' + displayName(m);
@@ -2904,6 +2956,8 @@ async function loadAdminAcces() {
     }
     const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    const isAdmin = currentMembre?.role === 'admin';
+
     list.innerHTML = membres.map(m => {
         const name  = displayName(m) || m.steamId || m.id;
         const hasCo = !!m.lastLogin;
@@ -2921,17 +2975,28 @@ async function loadAdminAcces() {
 
         const safeNom = name.replace(/'/g,"\\'");
 
-        const codeRow = m.tempPassword
-            ? `<div style="display:flex;align-items:center;gap:.6rem;margin-top:.55rem;flex-wrap:wrap">
-                <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cinzel',serif;flex-shrink:0">🔑 Code :</span>
-                <code onclick="this.style.filter='none';this.nextElementSibling.style.display='none'"
-                      style="font-size:.82rem;color:var(--gold);letter-spacing:.1em;cursor:pointer;filter:blur(4px);transition:filter .2s">${m.tempPassword}</code>
-                <span style="font-size:.65rem;color:var(--text-muted)">← cliquer pour voir</span>
-                <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="regenererCode('${m.id}','${m.steamId}','${m.tempPassword}')">↻ Nouveau code</button>
-              </div>`
-            : isPW
-                ? `<div style="font-size:.68rem;color:var(--g3);margin-top:.4rem">✓ Mot de passe configuré par le membre</div>`
-                : `<div style="font-size:.68rem;color:var(--text-muted);margin-top:.4rem">⚠️ Code non retrouvé — recréez l'accès si besoin</div>`;
+        // Codes et révocation : admin seulement
+        const codeRow = isAdmin
+            ? (m.tempPassword
+                ? `<div style="display:flex;align-items:center;gap:.6rem;margin-top:.55rem;flex-wrap:wrap">
+                    <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cinzel',serif;flex-shrink:0">🔑 Code :</span>
+                    <code onclick="this.style.filter='none';this.nextElementSibling.style.display='none'"
+                          style="font-size:.82rem;color:var(--gold);letter-spacing:.1em;cursor:pointer;filter:blur(4px);transition:filter .2s">${m.tempPassword}</code>
+                    <span style="font-size:.65rem;color:var(--text-muted)">← cliquer pour voir</span>
+                    <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="regenererCode('${m.id}','${m.steamId}','${m.tempPassword}')">↻ Nouveau code</button>
+                  </div>`
+                : isPW
+                    ? `<div style="font-size:.68rem;color:var(--g3);margin-top:.4rem">✓ Mot de passe configuré par le membre</div>`
+                    : `<div style="font-size:.68rem;color:var(--text-muted);margin-top:.4rem">⚠️ Code non retrouvé — recréez l'accès si besoin</div>`)
+            : '';
+
+        const revokeBtn = isAdmin
+            ? `<button onclick="supprimerMembre('${m.id}','${safeNom}')"
+                    style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1px solid rgba(220,50,50,.4);background:rgba(220,50,50,.1);color:#e05050;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s"
+                    onmouseover="this.style.background='rgba(220,50,50,.3)'"
+                    onmouseout="this.style.background='rgba(220,50,50,.1)'"
+                    title="Révoquer l'accès">✕</button>`
+            : '';
 
         return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);margin-bottom:.55rem">
             <div style="width:9px;height:9px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:.55rem"></div>
@@ -2946,11 +3011,7 @@ async function loadAdminAcces() {
                 </div>
                 ${codeRow}
             </div>
-            <button onclick="supprimerMembre('${m.id}','${safeNom}')"
-                    style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1px solid rgba(220,50,50,.4);background:rgba(220,50,50,.1);color:#e05050;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s"
-                    onmouseover="this.style.background='rgba(220,50,50,.3)'"
-                    onmouseout="this.style.background='rgba(220,50,50,.1)'"
-                    title="Révoquer l'accès">✕</button>
+            ${revokeBtn}
         </div>`;
     }).join('');
 }
@@ -3411,6 +3472,7 @@ async function loadDashEcole() {
                     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
                         <button class="btn btn-violet btn-sm" onclick="ouvrirAddMembreEcole('${eDoc.id}')">+ Membre</button>
                         <button class="btn btn-ghost btn-sm"  onclick="ouvrirIncanEcole('${eDoc.id}')">✦ Incantation</button>
+                        <button class="btn btn-ghost btn-sm"  style="color:rgba(255,80,80,.6)" onclick="fondateurSupprimerEcole('${eDoc.id}','${e.nom.replace(/'/g,"\\'")}')">🗑 Supprimer</button>
                     </div>
                 </div>
 
@@ -3714,6 +3776,29 @@ async function confirmerCreerIncanEcole() {
     document.getElementById('ie-success').textContent = '✦ Incantation d\'école créée !';
     document.getElementById('ie-success').style.display = '';
     setTimeout(() => { closeModal('modal-incan-ecole'); loadDashEcole(); }, 1200);
+}
+
+async function fondateurSupprimerEcole(ecoleId, nom) {
+    if (!confirm(`Supprimer définitivement l'école "${nom}" ?\nTous les membres seront retirés et les incantations supprimées.`)) return;
+    try {
+        const batch = db.batch();
+        // Retirer ecoleId de tous les membres
+        const ecoleDoc = await db.collection('ecoles').doc(ecoleId).get();
+        const membres  = ecoleDoc.data()?.membres || [];
+        membres.forEach(uid => {
+            batch.update(db.collection('membres').doc(uid), {
+                ecoleId: firebase.firestore.FieldValue.delete()
+            });
+        });
+        // Supprimer les incantations d'école
+        const incanSnap = await db.collection('incantations').where('ecoleId', '==', ecoleId).get();
+        incanSnap.docs.forEach(d => batch.delete(d.ref));
+        // Supprimer l'école
+        batch.delete(db.collection('ecoles').doc(ecoleId));
+        await batch.commit();
+        await logAction('SUPPRESSION ÉCOLE', nom, 0);
+        loadDashEcole();
+    } catch(err) { alert('Erreur : ' + err.message); }
 }
 
 async function supprimerIncanEcole(incanId, ecoleId) {

@@ -3166,39 +3166,107 @@ async function loadLogs() {
     }).join('');
 }
 
-function loadPyramide() {
+async function loadPyramide() {
     const wrap = document.getElementById('pyramide-wrap');
     if (!wrap) return;
-    const TIERS = [
-        { grade: "Monarque des Ombres",  color: '#b8860b', bg: 'rgba(184,134,11,.12)' },
-        { grade: "Marchand des Âmes",    color: '#8b3a8b', bg: 'rgba(139,58,139,.10)' },
-        { grade: "Collecteur d'Ombre",   color: '#8b0000', bg: 'rgba(139,0,0,.10)'    },
-        { grade: "Marcheur",             color: '#4a6080', bg: 'rgba(74,96,128,.10)'  },
-        { grade: "Incantateur",          color: '#3a4a3a', bg: 'rgba(58,74,58,.10)'   },
-    ];
-    const byGrade = {};
-    TIERS.forEach(t => byGrade[t.grade] = []);
-    allMembres.forEach(m => { if (byGrade[m.grade]) byGrade[m.grade].push(m); });
+    wrap.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
 
-    const total = allMembres.length || 1;
-    wrap.innerHTML = `
-      <div style="font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.18em;color:var(--text-muted);text-align:center;margin-bottom:1.5rem;text-transform:uppercase">
-        ${total} membre${total > 1 ? 's' : ''} au total
-      </div>
-      ${TIERS.map((t, i) => {
-        const members = byGrade[t.grade] || [];
-        const pct = Math.max(20, Math.round((5 - i) / 5 * 100));
-        return `
-        <div style="margin:0 auto ${i < TIERS.length-1 ? '.35rem' : '0'};width:${pct}%;background:${t.bg};border:1px solid ${t.color}33;border-radius:6px;padding:.6rem .8rem;transition:width .4s">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${members.length ? '.45rem' : '0'}">
-            <span style="font-family:'Cinzel',serif;font-size:.72rem;color:${t.color};letter-spacing:.1em">${t.grade}</span>
-            <span style="font-size:.65rem;color:var(--text-muted);background:rgba(255,255,255,.06);padding:.15rem .45rem;border-radius:99px">${members.length}</span>
-          </div>
-          ${members.length ? `<div style="display:flex;flex-wrap:wrap;gap:.3rem">
-            ${members.map(m => `<span style="font-size:.68rem;padding:.2rem .5rem;background:rgba(255,255,255,.05);border:1px solid ${t.color}44;border-radius:4px;color:var(--text);white-space:nowrap" title="${m.pointsOcculte || 0} pts Occulte">${displayName(m)}</span>`).join('')}
-          </div>` : `<div style="font-size:.65rem;color:var(--text-muted);font-style:italic">Aucun membre</div>`}
+    const ecolesSnap = await db.collection('ecoles').get();
+    const ecoleMap = {};
+    ecolesSnap.docs.forEach(d => { ecoleMap[d.id] = d.data().fondateurId; });
+
+    const monarques = allMembres.filter(m => m.grade === "Monarque des Ombres");
+    const midTier   = allMembres.filter(m => ["Collecteur d'Ombre", "Marchand des Âmes"].includes(m.grade));
+    const bottom    = allMembres.filter(m => ["Incantateur", "Marcheur"].includes(m.grade));
+    const midIds    = new Set(midTier.map(m => m.id));
+
+    const defaultParent = monarques[0]?.id ?? null;
+    const parentOf = {};
+    bottom.forEach(m => {
+        const fondId = m.ecoleId ? ecoleMap[m.ecoleId] : null;
+        parentOf[m.id] = (fondId && midIds.has(fondId)) ? fondId : defaultParent;
+    });
+
+    const bottomSorted = [...bottom].sort((a, b) =>
+        (parentOf[a.id] || '').localeCompare(parentOf[b.id] || ''));
+
+    const gradeColor = g => ({
+        "Monarque des Ombres": '#b8860b',
+        "Marchand des Âmes":   '#8b3a8b',
+        "Collecteur d'Ombre":  '#8b0000',
+        "Marcheur":            '#4a6080',
+        "Incantateur":         '#555'
+    }[g] || '#555');
+
+    const nodeHtml = (m, sm) => {
+        const c = gradeColor(m.grade);
+        return `<div class="pyr-node" data-id="${m.id}" style="display:inline-flex;flex-direction:column;align-items:center;background:rgba(6,0,12,.85);border:1.5px solid ${c}99;border-radius:8px;padding:${sm ? '.28rem .55rem' : '.4rem .75rem'};min-width:${sm ? '76px' : '100px'};text-align:center">
+            <span style="font-family:'Cinzel',serif;font-size:${sm ? '.6rem' : '.67rem'};color:${c};white-space:nowrap">${displayName(m)}</span>
+            <span style="font-size:.52rem;color:rgba(255,255,255,.3);margin-top:.1rem">${m.pointsOcculte || 0} pts</span>
         </div>`;
-    }).join('')}`;
+    };
+
+    const lbl = (txt, c) =>
+        `<div style="font-family:'Cinzel Decorative',serif;font-size:.5rem;letter-spacing:.18em;color:${c};text-align:center;margin-bottom:.6rem;text-transform:uppercase">${txt}</div>`;
+
+    const tierDiv = (id, nodes) =>
+        `<div id="${id}" style="display:flex;justify-content:center;flex-wrap:wrap;gap:.65rem">${nodes}</div>`;
+
+    wrap.innerHTML = `
+      <div id="pyr-canvas" style="position:relative;padding:1.2rem 0 2.5rem;overflow:visible">
+        <svg id="pyr-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible"></svg>
+        <div style="position:relative;z-index:1">
+          ${lbl('Monarque des Ombres', '#b8860b')}
+          ${tierDiv('pyr-t1', monarques.length
+            ? monarques.map(m => nodeHtml(m, false)).join('')
+            : '<span style="font-size:.7rem;color:var(--text-muted);font-style:italic">Aucun Monarque</span>')}
+          <div style="height:68px"></div>
+          ${lbl("Collecteurs d'Ombre &amp; Marchands des Âmes", '#8b3a8b')}
+          ${tierDiv('pyr-t2', midTier.length
+            ? midTier.map(m => nodeHtml(m, false)).join('')
+            : '<span style="font-size:.7rem;color:var(--text-muted);font-style:italic">Aucun membre</span>')}
+          <div style="height:68px"></div>
+          ${lbl('Incantateurs &amp; Marcheurs', '#4a6080')}
+          ${tierDiv('pyr-t3', bottomSorted.length
+            ? bottomSorted.map(m => nodeHtml(m, true)).join('')
+            : '<span style="font-size:.7rem;color:var(--text-muted);font-style:italic">Aucun membre</span>')}
+        </div>
+      </div>`;
+
+    const connections = [];
+    monarques.forEach(mon => midTier.forEach(mid =>
+        connections.push({ from: mon.id, to: mid.id })));
+    bottom.forEach(m => {
+        if (parentOf[m.id]) connections.push({ from: parentOf[m.id], to: m.id });
+    });
+
+    requestAnimationFrame(() => {
+        const canvas = document.getElementById('pyr-canvas');
+        const svg    = document.getElementById('pyr-svg');
+        if (!canvas || !svg) return;
+        const cr = canvas.getBoundingClientRect();
+        svg.style.height = cr.height + 'px';
+
+        const center = id => {
+            const el = canvas.querySelector(`[data-id="${id}"]`);
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return { x: r.left - cr.left + r.width / 2, yTop: r.top - cr.top, yBot: r.bottom - cr.top };
+        };
+
+        connections.forEach(({ from, to }) => {
+            const f = center(from);
+            const t = center(to);
+            if (!f || !t) return;
+            const cy = (f.yBot + t.yTop) / 2;
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M${f.x},${f.yBot} C${f.x},${cy} ${t.x},${cy} ${t.x},${t.yTop}`);
+            path.setAttribute('stroke', 'rgba(139,0,0,.45)');
+            path.setAttribute('stroke-width', '1.5');
+            path.setAttribute('fill', 'none');
+            svg.appendChild(path);
+        });
+    });
 }
 
 async function logAction(action, detail, pts) {

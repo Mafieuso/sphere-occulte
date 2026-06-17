@@ -3899,10 +3899,13 @@ async function loadDashEcole() {
 
             html += `<div class="ecole-card" style="margin-bottom:1.5rem">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
-                    <div>
-                        <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--g2);text-shadow:0 0 12px rgba(204,68,255,.4)">${e.nom}</div>
-                        <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
-                        ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
+                    <div style="display:flex;align-items:center;gap:.85rem">
+                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(204,68,255,.4);box-shadow:0 0 14px rgba(204,68,255,.25)">` : `<div style="width:56px;height:56px;border-radius:50%;background:rgba(80,0,120,.45);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;border:2px solid rgba(204,68,255,.25)">🏛</div>`}
+                        <div>
+                            <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--g2);text-shadow:0 0 12px rgba(204,68,255,.4)">${e.nom}</div>
+                            <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
+                            ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
+                        </div>
                     </div>
                     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
                         <button class="btn btn-violet btn-sm" onclick="ouvrirAddMembreEcole('${eDoc.id}')">+ Membre</button>
@@ -3932,9 +3935,10 @@ async function loadDashEcole() {
                 <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin:.9rem 0 .5rem">Incantations Exclusives (${incanSnap.docs.length})</div>
                 ${incanSnap.docs.map(id => {
                     const inc = id.data();
+                    incanCache.set(id.id, inc);
                     const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
                     const cout = inc.cout || inc.pointsManipulation || 0;
-                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem .6rem;background:rgba(204,68,255,.05);border:1px solid rgba(204,68,255,.15);border-radius:8px;margin-bottom:.35rem">
+                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem .6rem;background:rgba(204,68,255,.05);border:1px solid rgba(204,68,255,.15);border-radius:8px;margin-bottom:.35rem;cursor:pointer" onclick="viewIncanById('${id.id}')" title="Voir les détails">
                         <span style="color:var(--g2);font-size:1rem">✦</span>
                         <div style="flex:1;min-width:0">
                             <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${inc.nom}</div>
@@ -3942,7 +3946,8 @@ async function loadDashEcole() {
                                 ${cout ? `+${cout} Manip.` : ''} ${pts ? `+${pts} Puiss.` : ''}
                             </div>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="supprimerIncanEcole('${id.id}','${eDoc.id}')">✕</button>
+                        <span style="font-size:.65rem;color:var(--text-muted);flex-shrink:0">▼ Détails</span>
+                        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();supprimerIncanEcole('${id.id}','${eDoc.id}')">✕</button>
                     </div>`;
                 }).join('')}` : ''}
             </div>`;
@@ -3979,10 +3984,13 @@ async function loadDashEcole() {
             const membNbr = membresValides.length;
             document.getElementById('ecole-membre-card').innerHTML = `
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
-                    <div>
-                        <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--g2);text-shadow:0 0 14px rgba(204,68,255,.4)">${e.nom}</div>
-                        <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
-                        ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
+                    <div style="display:flex;align-items:center;gap:.85rem">
+                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(204,68,255,.4);box-shadow:0 0 14px rgba(204,68,255,.25)">` : `<div style="width:52px;height:52px;border-radius:50%;background:rgba(80,0,120,.45);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;border:2px solid rgba(204,68,255,.25)">🏛</div>`}
+                        <div>
+                            <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--g2);text-shadow:0 0 14px rgba(204,68,255,.4)">${e.nom}</div>
+                            <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
+                            ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
+                        </div>
                     </div>
                     <span class="ecole-badge">Membre</span>
                 </div>

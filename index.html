@@ -2647,6 +2647,14 @@ async function toggleSuspendMembre(id, nom, estSuspendu, grade='') {
         alert(`⛔ Impossible — les membres de grade "${grade}" sont protégés contre les actions administratives.`);
         return;
     }
+    if (currentMembre.role === 'haut_grade' && getGradeIndex(grade) >= 2) {
+        alert(`⛔ En tant que Haut Gradé, vous ne pouvez pas suspendre un membre de grade Collecteur d'Ombre ou supérieur.`);
+        return;
+    }
+    if (currentMembre.role === 'haut_grade' && id === currentMembre.id) {
+        alert(`⛔ Vous ne pouvez pas vous suspendre vous-même.`);
+        return;
+    }
     const action = estSuspendu ? 'réactiver' : 'suspendre';
     if (!confirm(`${action.charAt(0).toUpperCase()+action.slice(1)} ${nom} ?`)) return;
     await db.collection('membres').doc(id).update({ suspended: !estSuspendu });
@@ -2661,10 +2669,16 @@ function openMembreEdit(membreId) {
         alert(`⛔ Impossible — les membres de grade "${m.grade}" sont protégés contre les actions administratives.`);
         return;
     }
-    // Haut Gradé : ne peut modifier que les membres sous Collecteur d'Ombre
-    if (currentMembre.role === 'haut_grade' && getGradeIndex(m.grade) >= 2) {
-        alert(`⛔ En tant que Haut Gradé, vous ne pouvez modifier que les membres de grade inférieur à Collecteur d'Ombre.`);
-        return;
+    // Haut Gradé : ne peut modifier que les membres sous Collecteur d'Ombre, pas lui-même
+    if (currentMembre.role === 'haut_grade') {
+        if (membreId === currentMembre.id) {
+            alert(`⛔ Vous ne pouvez pas modifier votre propre compte depuis le panneau admin.`);
+            return;
+        }
+        if (getGradeIndex(m.grade) >= 2) {
+            alert(`⛔ En tant que Haut Gradé, vous ne pouvez pas modifier un membre de grade Collecteur d'Ombre ou supérieur.`);
+            return;
+        }
     }
     document.getElementById('modal-membre-title').textContent = 'Modifier : ' + displayName(m);
     document.getElementById('edit-membre-id').value  = m.id;
@@ -2675,6 +2689,13 @@ function openMembreEdit(membreId) {
     document.getElementById('edit-occulte').value    = m.pointsOcculte      || 0;
     document.getElementById('edit-role').value       = m.role    || 'membre';
     document.getElementById('edit-absent').checked   = !!m.absent;
+    // Masquer les rôles élevés pour les Haut Gradé
+    const roleSelect = document.getElementById('edit-role');
+    roleSelect.querySelectorAll('option').forEach(opt => {
+        const restricted = ['haut_grade','admin'].includes(opt.value);
+        opt.hidden   = currentMembre.role === 'haut_grade' && restricted;
+        opt.disabled = currentMembre.role === 'haut_grade' && restricted;
+    });
     openModal('modal-membre');
 }
 
@@ -2684,6 +2705,14 @@ async function sauvegarderMembre() {
     const newOcculte = parseInt(val('edit-occulte')) || 0;
     const newManip   = parseInt(val('edit-manip'))   || 0;
     const m          = allMembres.find(x => x.id === id);
+    const newRole    = val('edit-role');
+
+    // Haut Gradé ne peut pas promouvoir en haut_grade ou admin
+    if (currentMembre.role === 'haut_grade' && ['haut_grade','admin'].includes(newRole)) {
+        alert(`⛔ Vous n'avez pas la permission d'attribuer le rôle "${newRole}".`);
+        return;
+    }
+
     const data = {
         prenom:  val('edit-prenom').trim(),
         nom:     val('edit-nom').trim(),
@@ -2691,7 +2720,7 @@ async function sauvegarderMembre() {
         pointsManipulation: newManip,
         pointsOcculte:      newOcculte,
         grade:   getGrade(newOcculte),
-        role:    val('edit-role'),
+        role:    newRole,
         absent:  document.getElementById('edit-absent').checked
     };
     if (m && getGrade(newOcculte) !== m.grade)

@@ -1635,11 +1635,7 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
 
         const ecoleData = ecoleMap && m.ecoleId ? ecoleMap[m.ecoleId] : null;
         const fondEcole = !ecoleData && fondateurMap ? fondateurMap[m.id] : null;
-        const ecoleName = ecoleData
-            ? (ecoleData.nom || ecoleData.fondateurNom || 'École')
-            : fondEcole
-                ? (typeof fondEcole === 'string' ? fondEcole : fondEcole.nom || 'Mon École')
-                : 'École Générale';
+        const ecoleName = ecoleData || fondEcole || 'École Générale';
 
         const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="font-size:.75rem">#${i+1}</span>`;
 
@@ -1659,7 +1655,7 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
                 <div class="lb-name" data-text="${name}">${name}</div>
                 <div class="lb-grade-row">
                     <span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span>
-                    <span class="lb-ecole">${ecoleName === 'École Générale' ? '🏫 École Générale' : '🏛 École'}</span>
+                    <span class="lb-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</span>
                 </div>
                 <div class="lb-stats-row">
                     <span class="lb-stat"><span class="lb-stat-icon">🔮</span>${pts}</span>
@@ -4324,19 +4320,40 @@ function openLightbox(src) {
 }
 
 /* ── Profil Classement ──────────────────────────────────────── */
+function animateCounter(el, target, duration) {
+    if (!el) return;
+    duration = duration || 700;
+    const start = performance.now();
+    const step  = now => {
+        const p = Math.min((now - start) / duration, 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(e * target).toLocaleString();
+        if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
 function openProfilLb(uid) {
     const entry = lbCache[uid];
     if (!entry) return;
     const { m, ecoleName, color } = entry;
 
-    // Rang (position dans le cache trié)
+    const isMonarque = m.grade === 'Monarque des Ombres';
+    const overlay    = document.getElementById('modal-lb-profil');
+    overlay.classList.toggle('lbp--monarque', isMonarque);
+
+    // Rang
     const allIds = Object.keys(lbCache);
     const rank   = allIds.indexOf(uid) + 1;
 
     // Banner
     document.documentElement.style.setProperty('--lbp-color', color);
     const banner = document.getElementById('lbp-banner');
-    banner.style.background = `linear-gradient(150deg, ${color}55 0%, rgba(8,8,14,.95) 80%)`;
+    if (isMonarque) {
+        banner.style.background = 'linear-gradient(150deg, #1a0035 0%, #0a000f 60%, rgba(8,8,14,.98) 100%)';
+    } else {
+        banner.style.background = `linear-gradient(150deg, ${color}55 0%, rgba(8,8,14,.95) 80%)`;
+    }
 
     // Badge de rang
     const rankEl = document.getElementById('lbp-rank-badge');
@@ -4347,21 +4364,31 @@ function openProfilLb(uid) {
 
     // Photo
     const photoEl = document.getElementById('lbp-photo');
+    photoEl.style.animation = '';
     if (m.photoURL) {
-        photoEl.innerHTML = `<img src="${m.photoURL}" style="width:100%;height:100%;object-fit:cover">`;
+        photoEl.innerHTML  = `<img src="${m.photoURL}" style="width:100%;height:100%;object-fit:cover">`;
     } else {
         photoEl.textContent = (m.prenom || m.nom || '?')[0].toUpperCase();
-        photoEl.style.color = color;
+        photoEl.style.color = isMonarque ? '#cc44ff' : color;
     }
 
-    document.getElementById('lbp-name').textContent  = displayName(m);
+    // Nom avec data-text pour glitch
+    const nameEl = document.getElementById('lbp-name');
+    const name   = displayName(m);
+    nameEl.textContent        = name;
+    nameEl.dataset.text       = name;
+    nameEl.style.color        = isMonarque ? '#e8c0ff' : '#fff';
+    nameEl.style.textShadow   = isMonarque ? '0 0 20px rgba(200,0,255,.7),0 0 60px rgba(150,0,255,.35)' : '';
+
     document.getElementById('lbp-grade').innerHTML   = badgeGrade(m.grade);
     document.getElementById('lbp-ecole').textContent = `${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}`;
-    document.getElementById('lbp-pts').textContent   = (m.pointsOcculte      || 0).toLocaleString();
-    document.getElementById('lbp-manip').textContent = (m.pointsManipulation || 0).toLocaleString();
 
     // Absent
     document.getElementById('lbp-absent-badge').style.display = m.absent ? '' : 'none';
+
+    // Stats — compteurs animés
+    animateCounter(document.getElementById('lbp-pts'),   m.pointsOcculte      || 0, 800);
+    animateCounter(document.getElementById('lbp-manip'), m.pointsManipulation || 0, 950);
 
     // Barre de progression
     const gradeIdx  = getGradeIndex(m.grade);
@@ -4375,14 +4402,14 @@ function openProfilLb(uid) {
         document.getElementById('lbp-progress-label').textContent = `→ ${nextGrade.nom}`;
         document.getElementById('lbp-progress-info').textContent  = `${nextGrade.minOcculte - pts} pts restants`;
         const fill = document.getElementById('lbp-progress-fill');
-        fill.style.width      = pct + '%';
-        fill.style.background = `linear-gradient(90deg, ${color}, rgba(255,255,255,.35))`;
+        fill.style.width      = '0%';
+        setTimeout(() => { fill.style.width = pct + '%'; fill.style.background = isMonarque ? 'linear-gradient(90deg,#7700ff,#ff00ff)' : `linear-gradient(90deg,${color},rgba(255,255,255,.35))`; }, 80);
         progWrap.style.display = '';
     } else {
         progWrap.style.display = 'none';
     }
 
-    // Projet occulte (texte complet)
+    // Projet occulte
     const projetWrap = document.getElementById('lbp-projet-wrap');
     const projetEl   = document.getElementById('lbp-projet');
     if (m.projetOcculte) {

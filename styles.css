@@ -704,6 +704,65 @@ textarea.form-control { resize:vertical; min-height:100px; }
 @keyframes animate-float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
 @keyframes border-glow  { 0%,100%{border-color:rgba(201,165,42,.2)} 50%{border-color:rgba(201,165,42,.5)} }
 
+/* ── Modal Profil Classement ─────────────────────────────────── */
+@keyframes lbp-in {
+  from { opacity:0; transform:scale(.84) translateY(28px); }
+  to   { opacity:1; transform:none; }
+}
+@keyframes lbp-monarque-glow {
+  0%,100% { box-shadow:0 0 60px rgba(120,0,220,.45),0 0 140px rgba(80,0,180,.2),0 0 0 1px rgba(180,0,255,.25); }
+  50%     { box-shadow:0 0 110px rgba(200,0,255,.7),0 0 220px rgba(150,0,255,.35),0 0 0 1px rgba(255,0,255,.55); }
+}
+@keyframes lbp-glitch {
+  0%,82%,100% { transform:none; filter:none; }
+  83%  { transform:skewX(-5deg) translateX(-3px); filter:hue-rotate(90deg); }
+  85%  { transform:skewX(4deg)  translateX(4px);  filter:hue-rotate(-60deg); }
+  87%  { transform:skewX(-2deg) translateX(-2px); filter:none; }
+  89%  { transform:skewX(3deg);                   filter:hue-rotate(30deg); }
+  91%  { transform:none; filter:none; }
+}
+@keyframes lbp-photo-pulse {
+  0%,100% { box-shadow:0 0 0 3px rgba(200,0,255,.45),0 0 24px rgba(180,0,255,.25); }
+  50%     { box-shadow:0 0 0 6px rgba(255,0,255,.85),0 0 50px rgba(220,0,255,.55),0 0 90px rgba(180,0,255,.25); }
+}
+@keyframes lbp-scanline {
+  0%   { background-position:0 0; }
+  100% { background-position:0 200px; }
+}
+
+/* Toutes fiches — entrée dramatique */
+#modal-lb-profil .modal-box {
+  animation: lbp-in .38s cubic-bezier(.18,.89,.32,1.18) both;
+}
+/* Fiche Monarque */
+#modal-lb-profil.lbp--monarque .modal-box {
+  animation: lbp-in .38s cubic-bezier(.18,.89,.32,1.18) both,
+             lbp-monarque-glow 2.8s ease-in-out infinite .38s;
+  border: 1px solid rgba(180,0,255,.4) !important;
+}
+#modal-lb-profil.lbp--monarque #lbp-banner::after {
+  content:''; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.18) 3px,rgba(0,0,0,.18) 4px);
+  animation: lbp-scanline 6s linear infinite;
+}
+#modal-lb-profil.lbp--monarque #lbp-name {
+  position:relative;
+  animation: lbp-glitch 4.5s steps(1) infinite;
+}
+#modal-lb-profil.lbp--monarque #lbp-name::before,
+#modal-lb-profil.lbp--monarque #lbp-name::after {
+  content: attr(data-text); position:absolute; inset:0; pointer-events:none;
+}
+#modal-lb-profil.lbp--monarque #lbp-name::before {
+  color:#ff003c; animation: glitch-clip-1 3.5s steps(1) infinite;
+}
+#modal-lb-profil.lbp--monarque #lbp-name::after {
+  color:#7700ff; animation: glitch-clip-2 3.5s steps(1) infinite .25s;
+}
+#modal-lb-profil.lbp--monarque #lbp-photo {
+  animation: lbp-photo-pulse 2.2s ease-in-out infinite;
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width:768px) {
     .grid-2,.grid-3 { grid-template-columns:1fr; }

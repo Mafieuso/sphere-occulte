@@ -38,13 +38,14 @@
 <div class="modal-overlay hidden" id="modal-lb-profil" onclick="closeModal('modal-lb-profil')">
   <div class="modal-box" style="max-width:440px;padding:0;overflow:hidden;border-radius:16px" onclick="event.stopPropagation()">
     <!-- Banner -->
-    <div id="lbp-banner" style="height:155px;position:relative;display:flex;align-items:flex-end;padding:1rem 1.2rem;flex-shrink:0">
+    <div id="lbp-banner" style="height:185px;position:relative;display:flex;align-items:flex-end;padding:1rem 1.2rem;flex-shrink:0">
       <div id="lbp-rank-badge" style="position:absolute;top:.75rem;left:.85rem"></div>
       <button class="modal-close" onclick="closeModal('modal-lb-profil')" style="position:absolute;top:.6rem;right:.6rem;z-index:2">✕</button>
-      <div id="lbp-photo" style="width:82px;height:82px;border-radius:50%;border:3px solid var(--lbp-color,var(--crimson));overflow:hidden;flex-shrink:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.6)"></div>
+      <div id="lbp-photo" style="width:108px;height:108px;border-radius:50%;border:3px solid var(--lbp-color,var(--crimson));overflow:hidden;flex-shrink:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-weight:700;box-shadow:0 4px 24px rgba(0,0,0,.7)"></div>
       <div style="margin-left:1rem;padding-bottom:.1rem;min-width:0">
         <div id="lbp-name" style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
         <div id="lbp-grade" style="margin-top:.3rem"></div>
+        <div id="lbp-titre" style="margin-top:.3rem"></div>
       </div>
     </div>
     <!-- Body -->
@@ -319,6 +320,10 @@
         <label class="form-label">Description (optionnel)</label>
         <textarea class="form-control" id="ecole-desc" rows="3" placeholder="Doctrine, objectifs, spécialisation…"></textarea>
       </div>
+      <div class="form-group">
+        <label class="form-label">✦ Savoir Unique (optionnel)</label>
+        <textarea class="form-control" id="ecole-savoir" rows="2" placeholder="Capacité ou connaissance exclusive transmise aux membres de votre école…"></textarea>
+      </div>
       <div id="ecole-alert" class="alert alert-danger" style="display:none;margin-bottom:.75rem"></div>
       <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
         <button class="btn btn-ghost" onclick="closeModal('modal-creer-ecole')">Annuler</button>
@@ -383,11 +388,11 @@
       <div class="grid-2">
         <div class="form-group">
           <label class="form-label">Manipulation Occulte</label>
-          <input class="form-control" type="number" id="ie-manip" min="0" value="0">
+          <input class="form-control" type="number" id="ie-manip" min="0" max="5" value="0">
         </div>
         <div class="form-group">
           <label class="form-label">Puissance Occulte</label>
-          <input class="form-control" type="number" id="ie-pts" min="0" value="0">
+          <input class="form-control" type="number" id="ie-pts" min="0" max="5" value="0">
         </div>
       </div>
       <div id="ie-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
@@ -2591,7 +2596,7 @@ function renderSoumissions() {
                     ${s.statut === 'attente' ? `
                     <button class="btn btn-success btn-sm" onclick="validerSoum('${s.id}','${s.membreId}',${s.ptsGagnes || 0},${s.manipGagnes || 0})">✓ Valider</button>
                     <button class="btn btn-danger btn-sm"  onclick="ouvrirRefus('${s.id}','${s.membreId}',${s.ptsGagnes || 0})">✗ Refuser</button>` : ''}
-                    ${currentMembre?.role === 'admin' ? `<button class="btn btn-ghost btn-sm" style="color:rgba(255,80,80,.6);font-size:.7rem" onclick="supprimerSoum('${s.id}')">🗑</button>` : ''}
+                    ${currentMembre?.role === 'admin' ? `<button class="btn btn-danger btn-sm" style="font-size:.72rem;padding:.22rem .55rem" onclick="supprimerSoum('${s.id}')" title="Supprimer ce rapport">🗑 Suppr.</button>` : ''}
                     <span class="soum-chev">▼</span>
                 </div>
             </div>
@@ -3317,8 +3322,9 @@ async function adminEditEcole(ecoleId) {
     const doc = await db.collection('ecoles').doc(ecoleId).get();
     const e = doc.data();
     document.getElementById('ecole-edit-id').value = ecoleId;
-    document.getElementById('ecole-nom').value = e.nom || '';
-    document.getElementById('ecole-desc').value = e.description || '';
+    document.getElementById('ecole-nom').value   = e.nom || '';
+    document.getElementById('ecole-desc').value  = e.description || '';
+    document.getElementById('ecole-savoir').value = e.savoirUnique || '';
     document.getElementById('modal-ecole-title').textContent = 'Modifier l\'École (Admin)';
     document.getElementById('ecole-alert').style.display = 'none';
     ecoleLogoB64 = null;
@@ -3900,7 +3906,7 @@ async function loadDashEcole() {
             html += `<div class="ecole-card" style="margin-bottom:1.5rem">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
                     <div style="display:flex;align-items:center;gap:.85rem">
-                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(204,68,255,.4);box-shadow:0 0 14px rgba(204,68,255,.25)">` : `<div style="width:56px;height:56px;border-radius:50%;background:rgba(80,0,120,.45);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;border:2px solid rgba(204,68,255,.25)">🏛</div>`}
+                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(204,68,255,.4);box-shadow:0 0 18px rgba(204,68,255,.3)">` : `<div style="width:90px;height:90px;border-radius:50%;background:rgba(80,0,120,.45);display:flex;align-items:center;justify-content:center;font-size:2.2rem;flex-shrink:0;border:2px solid rgba(204,68,255,.25)">🏛</div>`}
                         <div>
                             <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--g2);text-shadow:0 0 12px rgba(204,68,255,.4)">${e.nom}</div>
                             <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
@@ -3950,6 +3956,11 @@ async function loadDashEcole() {
                         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();supprimerIncanEcole('${id.id}','${eDoc.id}')">✕</button>
                     </div>`;
                 }).join('')}` : ''}
+                ${e.savoirUnique ? `
+                <div style="margin-top:.9rem;padding:.75rem 1rem;background:rgba(201,165,42,.06);border:1px solid rgba(201,165,42,.22);border-radius:10px">
+                    <div style="font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:.4rem">✦ Savoir Unique de l'École</div>
+                    <div style="font-size:.82rem;color:var(--text);line-height:1.65;font-style:italic">${e.savoirUnique}</div>
+                </div>` : ''}
             </div>`;
         }
 
@@ -3985,7 +3996,7 @@ async function loadDashEcole() {
             document.getElementById('ecole-membre-card').innerHTML = `
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
                     <div style="display:flex;align-items:center;gap:.85rem">
-                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(204,68,255,.4);box-shadow:0 0 14px rgba(204,68,255,.25)">` : `<div style="width:52px;height:52px;border-radius:50%;background:rgba(80,0,120,.45);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;border:2px solid rgba(204,68,255,.25)">🏛</div>`}
+                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(204,68,255,.4);box-shadow:0 0 18px rgba(204,68,255,.3)">` : `<div style="width:80px;height:80px;border-radius:50%;background:rgba(80,0,120,.45);display:flex;align-items:center;justify-content:center;font-size:1.9rem;flex-shrink:0;border:2px solid rgba(204,68,255,.25)">🏛</div>`}
                         <div>
                             <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--g2);text-shadow:0 0 14px rgba(204,68,255,.4)">${e.nom}</div>
                             <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
@@ -4030,7 +4041,12 @@ async function loadDashEcole() {
                         </div>
                         <span style="font-size:.65rem;color:var(--text-muted);flex-shrink:0">▼ Détails</span>
                     </div>`;
-                }).join('')}` : `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.75rem">Aucune incantation exclusive pour l'instant.</p>`}`;
+                }).join('')}` : `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.75rem">Aucune incantation exclusive pour l'instant.</p>`}
+                ${e.savoirUnique ? `
+                <div style="margin-top:.9rem;padding:.75rem 1rem;background:rgba(201,165,42,.06);border:1px solid rgba(201,165,42,.22);border-radius:10px">
+                    <div style="font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:.4rem">✦ Savoir Unique de l'École</div>
+                    <div style="font-size:.82rem;color:var(--text);line-height:1.65;font-style:italic">${e.savoirUnique}</div>
+                </div>` : ''}`;
             return;
         }
     }
@@ -4085,6 +4101,7 @@ async function confirmerCreerEcole() {
     const editId = document.getElementById('ecole-edit-id').value;
     const nom    = document.getElementById('ecole-nom').value.trim();
     const desc   = document.getElementById('ecole-desc').value.trim();
+    const savoir = document.getElementById('ecole-savoir').value.trim();
     const alertEl = document.getElementById('ecole-alert');
     alertEl.style.display = 'none';
 
@@ -4092,7 +4109,7 @@ async function confirmerCreerEcole() {
 
     if (editId) {
         // Mode modification (admin ou fondateur)
-        const updateData = { nom, description: desc };
+        const updateData = { nom, description: desc, savoirUnique: savoir };
         if (ecoleLogoB64) updateData.logoURL = ecoleLogoB64;
         await db.collection('ecoles').doc(editId).update(updateData);
         await logAction('MODIFICATION ÉCOLE', nom, 0);
@@ -4112,7 +4129,7 @@ async function confirmerCreerEcole() {
     }
 
     const ecoleData = {
-        nom, description: desc,
+        nom, description: desc, savoirUnique: savoir,
         fondateurId: currentMembre.id,
         fondateurNom: displayName(currentMembre),
         membres: [],
@@ -4240,8 +4257,9 @@ async function ouvrirModifierEcole(ecoleId) {
     if (!doc.exists) return;
     const e = doc.data();
     document.getElementById('ecole-edit-id').value  = ecoleId;
-    document.getElementById('ecole-nom').value       = e.nom || '';
-    document.getElementById('ecole-desc').value      = e.description || '';
+    document.getElementById('ecole-nom').value        = e.nom || '';
+    document.getElementById('ecole-desc').value       = e.description || '';
+    document.getElementById('ecole-savoir').value     = e.savoirUnique || '';
     document.getElementById('modal-ecole-title').textContent = 'Modifier l\'École';
     ecoleLogoB64 = null;
     const prev = document.getElementById('ecole-logo-preview');
@@ -4283,9 +4301,11 @@ async function confirmerCreerIncanEcole() {
     const alertEl = document.getElementById('ie-alert');
     alertEl.style.display = 'none';
 
-    if (!nom)   { alertEl.textContent = 'Le nom est obligatoire.';   alertEl.style.display = ''; return; }
-    if (!desc)  { alertEl.textContent = 'La description est obligatoire.'; alertEl.style.display = ''; return; }
-    if (!ecoleId) { alertEl.textContent = 'École manquante.'; alertEl.style.display = ''; return; }
+    if (!nom)     { alertEl.textContent = 'Le nom est obligatoire.';                               alertEl.style.display = ''; return; }
+    if (!desc)    { alertEl.textContent = 'La description est obligatoire.';                       alertEl.style.display = ''; return; }
+    if (!ecoleId) { alertEl.textContent = 'École manquante.';                                     alertEl.style.display = ''; return; }
+    if (manip > 5){ alertEl.textContent = 'La Manipulation Occulte ne peut pas dépasser 5.';     alertEl.style.display = ''; return; }
+    if (pts   > 5){ alertEl.textContent = 'La Puissance Occulte ne peut pas dépasser 5.';        alertEl.style.display = ''; return; }
 
     const incantationEl = document.getElementById('ie-incantation');
     const incantation   = incantationEl ? incantationEl.value.trim() : '';
@@ -4462,7 +4482,33 @@ function openProfilLb(uid) {
     nameEl.style.color        = isMonarque ? '#e8c0ff' : '#fff';
     nameEl.style.textShadow   = isMonarque ? '0 0 20px rgba(200,0,255,.7),0 0 60px rgba(150,0,255,.35)' : '';
 
-    document.getElementById('lbp-grade').innerHTML   = badgeGrade(m.grade);
+    document.getElementById('lbp-grade').innerHTML = badgeGrade(m.grade);
+
+    // Titres automatiques selon seuils
+    const titreEl  = document.getElementById('lbp-titre');
+    const pts0     = m.pointsOcculte      || 0;
+    const manip0   = m.pointsManipulation || 0;
+    const titresPts = [
+        { min:1500, label:'Dieu des Ombres',       color:'#ffe066', icon:'👁' },
+        { min: 800, label:'Archonte Maudit',        color:'#e8c0ff', icon:'💀' },
+        { min: 400, label:'Seigneur Occulte',       color:'#cc88ff', icon:'🔮' },
+        { min: 150, label:'Invocateur Confirmé',    color:'#9966cc', icon:'✦'  },
+        { min:  50, label:'Éveillé des Ombres',     color:'#7755aa', icon:'🌑' },
+    ];
+    const titresManip = [
+        { min:300, label:'Démon Incarné',           color:'#ff44aa', icon:'😈' },
+        { min:150, label:'Maître des Fils Noirs',   color:'#cc44ff', icon:'🕸'  },
+        { min: 50, label:'Enchanteur des Esprits',  color:'#9944cc', icon:'🌀' },
+        { min: 20, label:'Faiseur de Doutes',       color:'#7733aa', icon:'🌫'  },
+    ];
+    const tPts   = titresPts.find(t   => pts0   >= t.min);
+    const tManip = titresManip.find(t => manip0 >= t.min);
+    const titre  = (tManip && (!tPts || tManip.min >= tPts.min)) ? tManip : tPts;
+    if (titre) {
+        titreEl.innerHTML = `<span style="font-size:.65rem;letter-spacing:.1em;color:${titre.color};font-family:'Cinzel',serif;opacity:.9">${titre.icon} ${titre.label}</span>`;
+    } else {
+        titreEl.innerHTML = '';
+    }
     const ecoleEl = document.getElementById('lbp-ecole');
     if (ecoleLogo) {
         ecoleEl.innerHTML = `<img src="${ecoleLogo}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:-4px;margin-right:.35rem">${ecoleName}`;

@@ -508,6 +508,45 @@ a:hover { color:var(--gold-pale); }
 .log-pts { display:flex; gap:.35rem; }
 .log-date { color:var(--text-muted); white-space:nowrap; font-size:.72rem; }
 
+/* ── Glitch Monarque des Ombres ──────────────────────────────── */
+@keyframes glitch-skew {
+    0%,100% { transform: skewX(0deg); }
+    20%      { transform: skewX(-3deg); }
+    40%      { transform: skewX(2deg); }
+    60%      { transform: skewX(-1deg); }
+    80%      { transform: skewX(3deg); }
+}
+@keyframes glitch-clip-1 {
+    0%,100% { clip-path: inset(0 0 100% 0); opacity: 0; }
+    10%,30% { clip-path: inset(10% 0 60% 0); opacity: .7; transform: translate(-3px, 1px); }
+    20%      { clip-path: inset(40% 0 30% 0); opacity: .5; transform: translate(3px, -1px); }
+    50%      { clip-path: inset(0 0 100% 0); opacity: 0; }
+}
+@keyframes glitch-clip-2 {
+    0%,100% { clip-path: inset(0 0 100% 0); opacity: 0; }
+    15%,35% { clip-path: inset(55% 0 10% 0); opacity: .6; transform: translate(3px, 2px); }
+    25%      { clip-path: inset(70% 0 5% 0); opacity: .4; transform: translate(-3px, -2px); }
+    55%      { clip-path: inset(0 0 100% 0); opacity: 0; }
+}
+
+.lb-card--monarque:hover { animation: glitch-skew .4s steps(2) infinite; }
+
+.lb-card--monarque:hover .lb-name { position: relative; }
+.lb-card--monarque:hover .lb-name::before,
+.lb-card--monarque:hover .lb-name::after {
+    content: attr(data-text);
+    position: absolute; inset: 0;
+    color: inherit;
+}
+.lb-card--monarque:hover .lb-name::before {
+    color: #ff003c;
+    animation: glitch-clip-1 .6s steps(1) infinite;
+}
+.lb-card--monarque:hover .lb-name::after {
+    color: #00ffe7;
+    animation: glitch-clip-2 .6s steps(1) infinite .1s;
+}
+
 /* ── Stat cards ──────────────────────────────────────────────── */
 .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.9rem; margin-bottom:1.4rem; }
 .stat-card {

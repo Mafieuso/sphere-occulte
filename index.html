@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -25,6 +25,42 @@
 </div>
 
 <!-- ═══ MODALES (hors #app pour z-index correct) ═══ -->
+
+<!-- Lightbox image -->
+<div class="modal-overlay hidden" id="modal-lightbox" onclick="closeModal('modal-lightbox')">
+  <div style="position:relative;max-width:92vw;max-height:90vh;display:flex;align-items:center;justify-content:center" onclick="event.stopPropagation()">
+    <img id="lightbox-img" src="" style="max-width:88vw;max-height:86vh;border-radius:8px;box-shadow:0 0 60px rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.08)">
+    <button class="modal-close" onclick="closeModal('modal-lightbox')" style="position:absolute;top:-1rem;right:-1rem">✕</button>
+  </div>
+</div>
+
+<!-- Modal Profil Classement -->
+<div class="modal-overlay hidden" id="modal-lb-profil" onclick="closeModal('modal-lb-profil')">
+  <div class="modal-box" style="max-width:420px;padding:0;overflow:hidden" onclick="event.stopPropagation()">
+    <div id="lbp-banner" style="height:120px;position:relative;display:flex;align-items:flex-end;padding:1rem">
+      <div id="lbp-photo" style="width:72px;height:72px;border-radius:50%;border:3px solid var(--lbp-color,var(--crimson));overflow:hidden;flex-shrink:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700"></div>
+      <div style="margin-left:.9rem;padding-bottom:.25rem">
+        <div id="lbp-name" style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#fff"></div>
+        <div id="lbp-grade" style="margin-top:.2rem"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-lb-profil')" style="position:absolute;top:.6rem;right:.6rem">✕</button>
+    </div>
+    <div style="padding:1rem 1.4rem 1.4rem">
+      <div id="lbp-ecole" style="font-size:.78rem;color:var(--text-muted);margin-bottom:.9rem"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.9rem">
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.7rem;text-align:center">
+          <div style="font-size:.6rem;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.3rem">Puissance Occulte</div>
+          <div id="lbp-pts" style="font-family:'Cinzel',serif;font-size:1.3rem;color:var(--gold)"></div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.7rem;text-align:center">
+          <div style="font-size:.6rem;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.3rem">Manipulation Occ.</div>
+          <div id="lbp-manip" style="font-family:'Cinzel',serif;font-size:1.3rem;color:var(--g2)"></div>
+        </div>
+      </div>
+      <div id="lbp-projet" style="font-size:.82rem;color:var(--text-muted);font-style:italic;line-height:1.5"></div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal Refus -->
 <div class="modal-overlay hidden" id="modal-refus">
@@ -1514,6 +1550,8 @@ function sortByGrade(membres) {
     });
 }
 
+const lbCache = {};  // uid → { membre, ecoleName }
+
 function renderLbRows(containerId, membres, ecoleMap) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -1551,14 +1589,16 @@ function renderLbRows(containerId, membres, ecoleMap) {
             ? `<img src="${m.photoURL}" alt="" loading="lazy">`
             : `<div class="lb-photo-init" style="--grade-color:${color}">${init}</div>`;
 
-        return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}" style="--grade-color:${color}">
+        lbCache[m.id] = { m, ecoleName, color };
+
+        return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}" style="--grade-color:${color};cursor:pointer" onclick="openProfilLb('${m.id}')">
             <div class="lb-photo-panel">
                 ${photoSide}
                 <div class="lb-photo-fade"></div>
             </div>
             <div class="lb-body">
                 <div class="lb-rank-medal">${rankLabel}</div>
-                <div class="lb-name">${name}</div>
+                <div class="lb-name" data-text="${name}">${name}</div>
                 <div class="lb-grade-row">
                     <span class="grade-badge ${gradeDef.css}">${gradeDef.icon} ${gradeDef.nom}</span>
                     <span class="lb-ecole">${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}</span>
@@ -1995,7 +2035,7 @@ function loadMesSoumissions() {
                     </table>
                     ${s.usage ? `<p style="color:var(--text-muted);font-size:.82rem;margin-top:.5rem;border-top:1px solid rgba(255,255,255,.06);padding-top:.5rem">${s.usage}</p>` : ''}
                     ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.4rem">⚠ Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
-                    ${s.screenshot ? `<div class="soum-screens" style="margin-top:.6rem"><img src="${s.screenshot}" loading="lazy" style="max-width:100%;border-radius:8px"></div>` : ''}
+                    ${s.screenshot ? `<div class="soum-screens" style="margin-top:.6rem"><img src="${s.screenshot}" loading="lazy" style="max-width:100%;border-radius:8px;cursor:zoom-in" onclick="openLightbox(this.src)" title="Cliquer pour agrandir"></div>` : ''}
                 </div>
             </div>`;
         }).join('');
@@ -2196,7 +2236,7 @@ function loadRapports() {
                         ${s.cible        ? `<tr><td style="color:var(--text-muted);padding:.2rem 0">Cible :</td><td style="color:var(--text-light)">${s.cible}</td></tr>` : ''}
                     </table>
                     ${s.usage ? `<p style="font-size:.82rem;color:var(--text-muted);margin-top:.4rem;padding-top:.4rem;border-top:1px solid rgba(255,255,255,.05);line-height:1.6">${s.usage}</p>` : ''}
-                    ${s.screenshot ? `<div class="soum-screens" style="margin-top:.6rem"><img src="${s.screenshot}" loading="lazy" style="max-width:100%;border-radius:8px"></div>` : ''}
+                    ${s.screenshot ? `<div class="soum-screens" style="margin-top:.6rem"><img src="${s.screenshot}" loading="lazy" style="max-width:100%;border-radius:8px;cursor:zoom-in" onclick="openLightbox(this.src)" title="Cliquer pour agrandir"></div>` : ''}
                 </div>
             </div>`;
         }).join('');
@@ -2428,7 +2468,7 @@ function renderSoumissions() {
                 </table>
                 ${s.usage       ? `<div class="soum-desc-box">${s.usage}</div>` : (s.description ? `<div class="soum-desc-box">${s.description}</div>` : '')}
                 ${s.raisonRefus ? `<p style="color:#dd6d6d;font-size:.8rem;margin-top:.4rem">⚠ Motif : ${s.raisonRefus}${s.commentaireRefus ? ' — ' + s.commentaireRefus : ''}</p>` : ''}
-                ${s.screenshot ? `<div class="soum-screens"><img src="${s.screenshot}" loading="lazy" onclick="this.style.width=this.style.width?'':'100%'" title="Cliquer pour agrandir"></div>` : ''}
+                ${s.screenshot ? `<div class="soum-screens"><img src="${s.screenshot}" loading="lazy" style="cursor:zoom-in" onclick="openLightbox(this.src)" title="Cliquer pour agrandir"></div>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -3738,6 +3778,39 @@ function showNotifToast(id, n) {
 
     container.appendChild(toast);
     requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('visible')));
+}
+
+/* ── Lightbox ───────────────────────────────────────────────── */
+function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    openModal('modal-lightbox');
+}
+
+/* ── Profil Classement ──────────────────────────────────────── */
+function openProfilLb(uid) {
+    const entry = lbCache[uid];
+    if (!entry) return;
+    const { m, ecoleName, color } = entry;
+
+    const banner = document.getElementById('lbp-banner');
+    banner.style.background = `linear-gradient(135deg, ${color}33 0%, rgba(0,0,0,.7) 100%)`;
+    document.documentElement.style.setProperty('--lbp-color', color);
+
+    const photoEl = document.getElementById('lbp-photo');
+    if (m.photoURL) {
+        photoEl.innerHTML = `<img src="${m.photoURL}" style="width:100%;height:100%;object-fit:cover">`;
+    } else {
+        photoEl.textContent = (m.prenom || m.nom || '?')[0].toUpperCase();
+        photoEl.style.color = color;
+    }
+
+    document.getElementById('lbp-name').textContent  = displayName(m);
+    document.getElementById('lbp-grade').innerHTML   = badgeGrade(m.grade);
+    document.getElementById('lbp-ecole').textContent = `${ecoleName === 'École Générale' ? '🏫' : '🏛'} ${ecoleName}`;
+    document.getElementById('lbp-pts').textContent   = m.pointsOcculte      || 0;
+    document.getElementById('lbp-manip').textContent = m.pointsManipulation || 0;
+    document.getElementById('lbp-projet').textContent = m.projetOcculte ? `📜 ${m.projetOcculte}` : '';
+    openModal('modal-lb-profil');
 }
 
 /* Masquer sans marquer lu — la notif reste dans Firestore */

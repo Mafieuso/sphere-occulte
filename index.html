@@ -1562,7 +1562,7 @@ function sortByGrade(membres) {
 
 const lbCache = {};  // uid → { membre, ecoleName }
 
-function renderLbRows(containerId, membres, ecoleMap) {
+function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
     const el = document.getElementById(containerId);
     if (!el) return;
     if (!membres.length) {
@@ -1589,9 +1589,12 @@ function renderLbRows(containerId, membres, ecoleMap) {
         }
 
         const ecoleData = ecoleMap && m.ecoleId ? ecoleMap[m.ecoleId] : null;
+        const fondEcole = !ecoleData && fondateurMap ? fondateurMap[m.id] : null;
         const ecoleName = ecoleData
             ? (ecoleData.fondateurNom ? `École de ${ecoleData.fondateurNom}` : ecoleData.nom || 'École')
-            : 'École Générale';
+            : fondEcole
+                ? (fondEcole.nom || 'Mon École')
+                : 'École Générale';
 
         const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="font-size:.75rem">#${i+1}</span>`;
 
@@ -2262,8 +2265,12 @@ function loadDashClassement() {
     ]).then(([memSnap, ecoleSnap]) => {
         const membres = memSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const ecoleMap = {};
-        ecoleSnap.forEach(d => { ecoleMap[d.id] = d.data(); });
-        renderLbRows('dash-lb-list', membres, ecoleMap);
+        const fondateurMap = {};
+        ecoleSnap.forEach(d => {
+            ecoleMap[d.id] = d.data();
+            fondateurMap[d.data().fondateurId] = d.data();
+        });
+        renderLbRows('dash-lb-list', membres, ecoleMap, fondateurMap);
     }).catch(() => {
         if (list) list.innerHTML = '<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-text">Erreur de chargement</div></div>';
     });
@@ -3487,9 +3494,13 @@ async function loadChannel() {
         }
     }
 
-    // Map ecoleId → nom
+    // Map ecoleId → nom et fondateurId → nom
     const ecoleMap = {};
-    ecoleSnap.forEach(d => { ecoleMap[d.id] = d.data().nom; });
+    const fondateurMap = {};
+    ecoleSnap.forEach(d => {
+        ecoleMap[d.id] = d.data().nom;
+        fondateurMap[d.data().fondateurId] = d.data().nom;
+    });
 
     if (memSnap.empty) {
         grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔮</div><div class="empty-text">Aucun membre</div></div>';
@@ -3518,7 +3529,9 @@ async function loadChannel() {
         // École
         const ecoleName = m.ecoleId && ecoleMap[m.ecoleId]
             ? ecoleMap[m.ecoleId]
-            : 'École Générale';
+            : fondateurMap[m.id]
+                ? fondateurMap[m.id]
+                : 'École Générale';
 
         // Avatar
         const init = ((m.prenom || '')[0] || '?').toUpperCase();
@@ -3699,6 +3712,7 @@ async function loadDashEcole() {
                     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
                         <button class="btn btn-violet btn-sm" onclick="ouvrirAddMembreEcole('${eDoc.id}')">+ Membre</button>
                         <button class="btn btn-ghost btn-sm"  onclick="ouvrirIncanEcole('${eDoc.id}')">✦ Incantation</button>
+                        <button class="btn btn-ghost btn-sm"  onclick="ouvrirModifierEcole('${eDoc.id}')">✏ Modifier</button>
                         <button class="btn btn-ghost btn-sm"  style="color:rgba(255,80,80,.6)" onclick="fondateurSupprimerEcole('${eDoc.id}','${e.nom.replace(/'/g,"\\'")}')">🗑 Supprimer</button>
                     </div>
                 </div>
@@ -3752,19 +3766,41 @@ async function loadDashEcole() {
             if (emptyEl) emptyEl.style.display = 'none';
             memEl.style.display = '';
 
-            const membNbr = (e.membres || []).length;
+            const membresSnaps = await Promise.all((e.membres || []).map(uid => db.collection('membres').doc(uid).get()));
+            const membresValides = membresSnaps.filter(s => s.exists);
+            const membNbr = membresValides.length;
             document.getElementById('ecole-membre-card').innerHTML = `
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
                     <div>
                         <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--g2);text-shadow:0 0 14px rgba(204,68,255,.4)">${e.nom}</div>
                         <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
                         ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
-                        <p style="font-size:.75rem;color:var(--text-muted);margin-top:.3rem">${membNbr} membre${membNbr > 1 ? 's' : ''}</p>
                     </div>
                     <span class="ecole-badge">Membre</span>
                 </div>
+
+                <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:.5rem">Membres (${membNbr})</div>
+                ${membresValides.map(s => {
+                    const mb = s.data();
+                    const init = ((mb.prenom||'')[0]||(mb.nom||'')[0]||'?').toUpperCase();
+                    const isSelf = s.id === currentMembre.id;
+                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem .6rem;background:rgba(255,255,255,.025);border-radius:8px;margin-bottom:.35rem">
+                        <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(204,68,255,.3);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(100,20,140,.5),rgba(60,0,90,.5));font-family:'Cinzel',serif;font-size:.8rem;color:var(--g2)">
+                            ${mb.photoURL ? `<img src="${mb.photoURL}" style="width:100%;height:100%;object-fit:cover">` : init}
+                        </div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${displayName(mb)}${isSelf ? ' <span style="font-size:.6rem;color:var(--text-muted)">(vous)</span>' : ''}</div>
+                            <div style="font-size:.72rem;color:var(--text-muted)">${mb.grade || ''}</div>
+                        </div>
+                        <button class="btn ${isSelf ? 'btn-ghost' : 'btn-danger'} btn-sm"
+                            onclick="retirerMembreEcole('${ecoleDoc.id}','${s.id}','${displayName(mb).replace(/'/g,"\\'")}')">
+                            ${isSelf ? '⤴ Quitter' : '✕'}
+                        </button>
+                    </div>`;
+                }).join('')}
+
                 ${incanSnap.docs.length ? `
-                <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin:.75rem 0 .5rem">Incantations Exclusives</div>
+                <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin:.9rem 0 .5rem">Incantations Exclusives</div>
                 ${incanSnap.docs.map(id => {
                     const inc = id.data();
                     const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
@@ -3945,14 +3981,45 @@ async function confirmerAjoutMembre(ecoleId, membreId) {
 }
 
 async function retirerMembreEcole(ecoleId, membreId, membreNom) {
-    if (!confirm(`Retirer ${membreNom} de l'école ?`)) return;
-    const batch    = db.batch();
-    const ecoleRef = db.collection('ecoles').doc(ecoleId);
-    const memRef   = db.collection('membres').doc(membreId);
-    batch.update(ecoleRef, { membres: firebase.firestore.FieldValue.arrayRemove(membreId) });
-    batch.update(memRef,   { ecoleId: firebase.firestore.FieldValue.delete() });
-    await batch.commit();
+    const isSelf = membreId === currentMembre.id;
+    const msg = isSelf ? `Quitter l'école ?` : `Retirer ${membreNom} de l'école ?`;
+    if (!confirm(msg)) return;
+    try {
+        const batch    = db.batch();
+        const ecoleRef = db.collection('ecoles').doc(ecoleId);
+        const memRef   = db.collection('membres').doc(membreId);
+        batch.update(ecoleRef, { membres: firebase.firestore.FieldValue.arrayRemove(membreId) });
+        batch.update(memRef,   { ecoleId: firebase.firestore.FieldValue.delete() });
+        await batch.commit();
+    } catch(err) {
+        // Si seul le doc membre échoue (permissions), mettre à jour l'école seule
+        try {
+            await db.collection('ecoles').doc(ecoleId).update({
+                membres: firebase.firestore.FieldValue.arrayRemove(membreId)
+            });
+            if (isSelf) await db.collection('membres').doc(membreId).update({
+                ecoleId: firebase.firestore.FieldValue.delete()
+            });
+        } catch(e2) { alert('Erreur : ' + e2.message); return; }
+    }
+    if (isSelf) currentMembre.ecoleId = null;
     loadDashEcole();
+}
+
+async function ouvrirModifierEcole(ecoleId) {
+    const doc = await db.collection('ecoles').doc(ecoleId).get();
+    if (!doc.exists) return;
+    const e = doc.data();
+    document.getElementById('ecole-edit-id').value  = ecoleId;
+    document.getElementById('ecole-nom').value       = e.nom || '';
+    document.getElementById('ecole-desc').value      = e.description || '';
+    document.getElementById('modal-ecole-title').textContent = 'Modifier l\'École';
+    ecoleLogoB64 = null;
+    const prev = document.getElementById('ecole-logo-preview');
+    if (prev) prev.innerHTML = e.logoURL
+        ? `<img src="${e.logoURL}" style="width:64px;height:64px;border-radius:50%;object-fit:cover">`
+        : '🏛';
+    openModal('modal-creer-ecole');
 }
 
 function pentagChanged(el) {

@@ -59,7 +59,9 @@ service cloud.firestore {
       allow create: if isCollecteurOrHigher() &&
         request.resource.data.fondateurId == request.auth.uid;
       allow update: if isAuthenticated() &&
-        (resource.data.fondateurId == request.auth.uid || isHautGrade());
+        (resource.data.fondateurId == request.auth.uid ||
+         isHautGrade() ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['membres']));
       allow delete: if isAuthenticated() &&
         (resource.data.fondateurId == request.auth.uid || isHautGrade());
     }

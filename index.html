@@ -3190,83 +3190,153 @@ async function loadPyramide() {
     const bottomSorted = [...bottom].sort((a, b) =>
         (parentOf[a.id] || '').localeCompare(parentOf[b.id] || ''));
 
+    const connections = [];
+    monarques.forEach(mon => midTier.forEach(mid => connections.push({ from: mon.id, to: mid.id })));
+    bottom.forEach(m => { if (parentOf[m.id]) connections.push({ from: parentOf[m.id], to: m.id }); });
+
+    const NODE_W = 160, NODE_H = 70, GAP = 24;
+    const T1_Y = 50, T2_Y = 250, T3_Y = 450, CANVAS_H = 580;
+
     const gradeColor = g => ({
-        "Monarque des Ombres": '#b8860b',
-        "Marchand des Âmes":   '#8b3a8b',
-        "Collecteur d'Ombre":  '#8b0000',
-        "Marcheur":            '#4a6080',
-        "Incantateur":         '#555'
-    }[g] || '#555');
+        "Monarque des Ombres": '#c9930a',
+        "Marchand des Âmes":   '#9b4a9b',
+        "Collecteur d'Ombre":  '#b00000',
+        "Marcheur":            '#5a7090',
+        "Incantateur":         '#6a6a7a'
+    }[g] || '#6a6a7a');
 
-    const nodeHtml = (m, sm) => {
-        const c = gradeColor(m.grade);
-        return `<div class="pyr-node" data-id="${m.id}" style="display:inline-flex;flex-direction:column;align-items:center;background:rgba(6,0,12,.85);border:1.5px solid ${c}99;border-radius:8px;padding:${sm ? '.28rem .55rem' : '.4rem .75rem'};min-width:${sm ? '76px' : '100px'};text-align:center">
-            <span style="font-family:'Cinzel',serif;font-size:${sm ? '.6rem' : '.67rem'};color:${c};white-space:nowrap">${displayName(m)}</span>
-            <span style="font-size:.52rem;color:rgba(255,255,255,.3);margin-top:.1rem">${m.pointsOcculte || 0} pts</span>
-        </div>`;
-    };
-
-    const lbl = (txt, c) =>
-        `<div style="font-family:'Cinzel Decorative',serif;font-size:.5rem;letter-spacing:.18em;color:${c};text-align:center;margin-bottom:.6rem;text-transform:uppercase">${txt}</div>`;
-
-    const tierDiv = (id, nodes) =>
-        `<div id="${id}" style="display:flex;justify-content:center;flex-wrap:wrap;gap:.65rem">${nodes}</div>`;
+    const gradeShort = g => ({
+        "Collecteur d'Ombre": "Collecteur d'Ombre",
+        "Marchand des Âmes": "Marchand des Âmes"
+    }[g] || g);
 
     wrap.innerHTML = `
-      <div id="pyr-canvas" style="position:relative;padding:1.2rem 0 2.5rem;overflow:visible">
-        <svg id="pyr-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible"></svg>
-        <div style="position:relative;z-index:1">
-          ${lbl('Monarque des Ombres', '#b8860b')}
-          ${tierDiv('pyr-t1', monarques.length
-            ? monarques.map(m => nodeHtml(m, false)).join('')
-            : '<span style="font-size:.7rem;color:var(--text-muted);font-style:italic">Aucun Monarque</span>')}
-          <div style="height:68px"></div>
-          ${lbl("Collecteurs d'Ombre &amp; Marchands des Âmes", '#8b3a8b')}
-          ${tierDiv('pyr-t2', midTier.length
-            ? midTier.map(m => nodeHtml(m, false)).join('')
-            : '<span style="font-size:.7rem;color:var(--text-muted);font-style:italic">Aucun membre</span>')}
-          <div style="height:68px"></div>
-          ${lbl('Incantateurs &amp; Marcheurs', '#4a6080')}
-          ${tierDiv('pyr-t3', bottomSorted.length
-            ? bottomSorted.map(m => nodeHtml(m, true)).join('')
-            : '<span style="font-size:.7rem;color:var(--text-muted);font-style:italic">Aucun membre</span>')}
-        </div>
+      <p style="font-size:.72rem;color:var(--text-muted);text-align:center;margin-bottom:1rem;font-style:italic">
+        Glissez les cases pour réorganiser l'affichage
+      </p>
+      <div id="pyr-canvas" style="position:relative;width:100%;height:${CANVAS_H}px;overflow:visible;touch-action:none">
+        <svg id="pyr-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:0"></svg>
       </div>`;
 
-    const connections = [];
-    monarques.forEach(mon => midTier.forEach(mid =>
-        connections.push({ from: mon.id, to: mid.id })));
-    bottom.forEach(m => {
-        if (parentOf[m.id]) connections.push({ from: parentOf[m.id], to: m.id });
+    const canvas = document.getElementById('pyr-canvas');
+    const svg    = document.getElementById('pyr-svg');
+
+    // Tier labels
+    [
+        { text: 'Monarque des Ombres',                        color: '#c9930a', y: T1_Y - 28 },
+        { text: "Collecteurs d'Ombre & Marchands des Âmes",   color: '#9b4a9b', y: T2_Y - 28 },
+        { text: 'Incantateurs & Marcheurs',                   color: '#5a7090', y: T3_Y - 28 },
+    ].forEach(l => {
+        const d = document.createElement('div');
+        d.style.cssText = `position:absolute;left:0;right:0;text-align:center;font-family:'Cinzel Decorative',serif;font-size:.58rem;letter-spacing:.15em;color:${l.color};text-transform:uppercase;top:${l.y}px;pointer-events:none;z-index:0`;
+        d.textContent = l.text;
+        canvas.appendChild(d);
     });
+
+    // Place nodes
+    const tierXs = (count, cw) => {
+        if (!count) return [];
+        const total = count * NODE_W + (count - 1) * GAP;
+        const sx = Math.max(0, (cw - total) / 2);
+        return Array.from({ length: count }, (_, i) => sx + i * (NODE_W + GAP));
+    };
 
     requestAnimationFrame(() => {
-        const canvas = document.getElementById('pyr-canvas');
-        const svg    = document.getElementById('pyr-svg');
-        if (!canvas || !svg) return;
-        const cr = canvas.getBoundingClientRect();
-        svg.style.height = cr.height + 'px';
+        const cw = canvas.clientWidth;
+        [[monarques, T1_Y], [midTier, T2_Y], [bottomSorted, T3_Y]].forEach(([members, ty]) => {
+            const xs = tierXs(members.length, cw);
+            members.forEach((m, i) => {
+                const c = gradeColor(m.grade);
+                const el = document.createElement('div');
+                el.className = 'pyr-node';
+                el.dataset.id = m.id;
+                el.style.cssText = `position:absolute;left:${xs[i]}px;top:${ty}px;width:${NODE_W}px;height:${NODE_H}px;
+                    background:rgba(6,0,12,.92);border:2px solid ${c}cc;border-radius:10px;
+                    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;
+                    cursor:grab;user-select:none;box-shadow:0 0 14px ${c}22;z-index:2;`;
+                el.innerHTML = `
+                    <span style="font-family:'Cinzel',serif;font-size:.88rem;font-weight:700;color:${c};
+                        white-space:nowrap;max-width:${NODE_W - 16}px;overflow:hidden;text-overflow:ellipsis">${displayName(m)}</span>
+                    <span style="font-size:.65rem;color:rgba(255,255,255,.5)">${gradeShort(m.grade)}</span>
+                    <span style="font-size:.6rem;color:rgba(255,255,255,.3)">${m.pointsOcculte || 0} pts</span>`;
+                canvas.appendChild(el);
+            });
+            if (!members.length) {
+                const d = document.createElement('div');
+                d.style.cssText = `position:absolute;left:0;right:0;text-align:center;font-size:.78rem;color:var(--text-muted);font-style:italic;top:${ty + NODE_H / 2 - 9}px`;
+                d.textContent = 'Aucun membre';
+                canvas.appendChild(d);
+            }
+        });
 
-        const center = id => {
-            const el = canvas.querySelector(`[data-id="${id}"]`);
-            if (!el) return null;
-            const r = el.getBoundingClientRect();
-            return { x: r.left - cr.left + r.width / 2, yTop: r.top - cr.top, yBot: r.bottom - cr.top };
-        };
+        drawLines();
 
-        connections.forEach(({ from, to }) => {
-            const f = center(from);
-            const t = center(to);
-            if (!f || !t) return;
-            const cy = (f.yBot + t.yTop) / 2;
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', `M${f.x},${f.yBot} C${f.x},${cy} ${t.x},${cy} ${t.x},${t.yTop}`);
-            path.setAttribute('stroke', 'rgba(139,0,0,.45)');
-            path.setAttribute('stroke-width', '1.5');
-            path.setAttribute('fill', 'none');
-            svg.appendChild(path);
+        // Drag
+        let drag = null, offX = 0, offY = 0;
+
+        canvas.querySelectorAll('.pyr-node').forEach(el => {
+            el.addEventListener('mousedown', e => {
+                drag = el;
+                el.style.cursor = 'grabbing';
+                el.style.zIndex = '20';
+                el.style.boxShadow = `0 0 28px ${el.style.borderColor}, 0 6px 24px rgba(0,0,0,.7)`;
+                const cr = canvas.getBoundingClientRect();
+                const r  = el.getBoundingClientRect();
+                offX = e.clientX - (r.left - cr.left);
+                offY = e.clientY - (r.top  - cr.top);
+                e.preventDefault();
+            });
+        });
+
+        document.addEventListener('mousemove', e => {
+            if (!drag) return;
+            const cr = canvas.getBoundingClientRect();
+            drag.style.left = (e.clientX - cr.left - offX) + 'px';
+            drag.style.top  = (e.clientY - cr.top  - offY) + 'px';
+            drawLines();
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (!drag) return;
+            drag.style.cursor = 'grab';
+            drag.style.zIndex = '2';
+            drag.style.boxShadow = '';
+            drag = null;
         });
     });
+
+    function drawLines() {
+        svg.innerHTML = '';
+        const cr = canvas.getBoundingClientRect();
+        connections.forEach(({ from, to }) => {
+            const fEl = canvas.querySelector(`[data-id="${from}"]`);
+            const tEl = canvas.querySelector(`[data-id="${to}"]`);
+            if (!fEl || !tEl) return;
+            const fr = fEl.getBoundingClientRect();
+            const tr = tEl.getBoundingClientRect();
+            const x1 = fr.left - cr.left + fr.width / 2;
+            const y1 = fr.bottom - cr.top;
+            const x2 = tr.left - cr.left + tr.width / 2;
+            const y2 = tr.top - cr.top;
+            const cy = (y1 + y2) / 2;
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M${x1},${y1} C${x1},${cy} ${x2},${cy} ${x2},${y2}`);
+            path.setAttribute('stroke', 'rgba(180,0,0,.55)');
+            path.setAttribute('stroke-width', '2');
+            path.setAttribute('fill', 'none');
+            // dot at start
+            const c1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            c1.setAttribute('cx', x1); c1.setAttribute('cy', y1); c1.setAttribute('r', '3');
+            c1.setAttribute('fill', 'rgba(180,0,0,.6)');
+            // dot at end
+            const c2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            c2.setAttribute('cx', x2); c2.setAttribute('cy', y2); c2.setAttribute('r', '3');
+            c2.setAttribute('fill', 'rgba(180,0,0,.6)');
+            svg.appendChild(path);
+            svg.appendChild(c1);
+            svg.appendChild(c2);
+        });
+    }
 }
 
 async function logAction(action, detail, pts) {

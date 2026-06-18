@@ -354,26 +354,64 @@
 
 <!-- Modal : Créer une incantation d'école -->
 <div class="modal-overlay hidden" id="modal-incan-ecole">
-  <div class="modal-box" style="max-width:480px">
+  <div class="modal-box" style="max-width:520px">
     <div class="modal-head">
-      <span class="modal-head-title">Incantation d'École</span>
+      <span class="modal-head-title">✦ Incantation d'École</span>
       <button class="modal-close-btn" onclick="closeModal('modal-incan-ecole')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="max-height:80vh;overflow-y:auto;padding-right:.5rem">
       <input type="hidden" id="ie-ecole-id">
-      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem">Cette incantation sera <strong style="color:var(--g2)">exclusive</strong> aux membres de votre école.</p>
-      <div class="form-group">
-        <label class="form-label">Nom</label>
-        <input class="form-control" type="text" id="ie-nom" placeholder="Ex : Invocation des Ombres Liées" required>
+      <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1.1rem">Cette incantation sera <strong style="color:var(--g2)">exclusive</strong> aux membres de votre école.</p>
+
+      <!-- Identité -->
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Nom <span style="color:#f87171">*</span></label>
+          <input class="form-control" type="text" id="ie-nom" placeholder="Ex : Invocation des Ombres Liées" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catégorie</label>
+          <input class="form-control" type="text" id="ie-cat" placeholder="Combat, Manipulation…">
+        </div>
       </div>
+
+      <!-- Utilisation -->
       <div class="form-group">
-        <label class="form-label">Description / Utilisation</label>
-        <textarea class="form-control" id="ie-desc" rows="2" placeholder="Effet, conditions d'utilisation…" required></textarea>
+        <label class="form-label">Dans quel cas l'utiliser <span style="color:#f87171">*</span></label>
+        <textarea class="form-control" id="ie-desc" rows="2" placeholder="Conditions, contexte d'utilisation…" required></textarea>
       </div>
+
+      <!-- Objet requis -->
       <div class="form-group">
-        <label class="form-label">Incantation</label>
-        <textarea class="form-control" id="ie-incantation" rows="3" placeholder="Écrivez ici le texte de l'incantation…"></textarea>
+        <label class="form-label">Objet requis <span style="font-size:.7rem;color:var(--text-muted)">(optionnel)</span></label>
+        <input class="form-control" type="text" id="ie-objet" placeholder="Ex : Pentacle de Sang, Fiole d'Âme…">
       </div>
+
+      <!-- Explication -->
+      <div class="form-group">
+        <label class="form-label">Explication <span style="font-size:.7rem;color:var(--text-muted)">(optionnel)</span></label>
+        <textarea class="form-control" id="ie-explication" rows="2" placeholder="Détails supplémentaires, mécanismes…"></textarea>
+      </div>
+
+      <!-- Socle -->
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Socle <span style="font-size:.7rem;color:var(--text-muted)">(optionnel)</span></label>
+          <input class="form-control" type="text" id="ie-socle" placeholder="Nom du socle…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description du socle</label>
+          <input class="form-control" type="text" id="ie-socle-desc" placeholder="Effet du socle…">
+        </div>
+      </div>
+
+      <!-- Texte incantation -->
+      <div class="form-group">
+        <label class="form-label">Texte de l'incantation <span style="font-size:.7rem;color:var(--text-muted)">(optionnel)</span></label>
+        <textarea class="form-control" id="ie-incantation" rows="3" placeholder="Paroles à prononcer…" style="font-style:italic"></textarea>
+      </div>
+
+      <!-- Pentagrames -->
       <div class="form-group">
         <label class="form-label">Pentagrames requis</label>
         <div id="ie-pentagrames" style="display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.3rem">
@@ -385,16 +423,19 @@
           <label class="pentag-pill pentag-none"><input type="checkbox" value="aucun" id="ie-penta-aucun" onchange="pentagChanged(this)"> ✗ Aucun requis</label>
         </div>
       </div>
+
+      <!-- Points (max 5 chacun) -->
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Manipulation Occulte</label>
+          <label class="form-label">Manipulation Occulte <span style="font-size:.68rem;color:var(--text-muted)">max 5</span></label>
           <input class="form-control" type="number" id="ie-manip" min="0" max="5" value="0">
         </div>
         <div class="form-group">
-          <label class="form-label">Puissance Occulte</label>
+          <label class="form-label">Puissance Occulte <span style="font-size:.68rem;color:var(--text-muted)">max 5</span></label>
           <input class="form-control" type="number" id="ie-pts" min="0" max="5" value="0">
         </div>
       </div>
+
       <div id="ie-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.75rem"></div>
       <div id="ie-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
       <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
@@ -1840,8 +1881,9 @@ function viewIncan(data) {
                ${data.descriptionSocle ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem;line-height:1.6">${data.descriptionSocle}</div>` : ''}
            </div>` : '';
 
-    const incantText = data.texteIncantation
-        ? `<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba(0,0,0,.35);border-radius:8px;border:1px solid rgba(255,255,255,.05);font-style:italic;font-size:.82rem;color:rgba(201,165,42,.85);line-height:1.9;white-space:pre-wrap">${data.texteIncantation}</div>` : '';
+    const incantRaw  = data.texteIncantation || data.incantation || '';
+    const incantText = incantRaw
+        ? `<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba(0,0,0,.35);border-radius:8px;border:1px solid rgba(255,255,255,.05);font-style:italic;font-size:.82rem;color:rgba(201,165,42,.85);line-height:1.9;white-space:pre-wrap">${incantRaw}</div>` : '';
 
     document.getElementById('view-incan-body').innerHTML = `
         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
@@ -4352,12 +4394,13 @@ function pentagChanged(el) {
 
 function ouvrirIncanEcole(ecoleId) {
     document.getElementById('ie-ecole-id').value = ecoleId;
-    document.getElementById('ie-nom').value   = '';
-    document.getElementById('ie-desc').value  = '';
+    ['ie-nom','ie-desc','ie-cat','ie-objet','ie-explication',
+     'ie-socle','ie-socle-desc','ie-incantation'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
     document.getElementById('ie-manip').value = '0';
     document.getElementById('ie-pts').value   = '0';
-    const ieIncan = document.getElementById('ie-incantation');
-    if (ieIncan) ieIncan.value = '';
     document.querySelectorAll('#ie-pentagrames input[type="checkbox"]').forEach(cb => cb.checked = false);
     document.getElementById('ie-alert').style.display   = 'none';
     document.getElementById('ie-success').style.display = 'none';
@@ -4379,13 +4422,20 @@ async function confirmerCreerIncanEcole() {
     if (manip > 5){ alertEl.textContent = 'La Manipulation Occulte ne peut pas dépasser 5.';     alertEl.style.display = ''; return; }
     if (pts   > 5){ alertEl.textContent = 'La Puissance Occulte ne peut pas dépasser 5.';        alertEl.style.display = ''; return; }
 
-    const incantationEl = document.getElementById('ie-incantation');
-    const incantation   = incantationEl ? incantationEl.value.trim() : '';
-    const checkedPenta  = [...document.querySelectorAll('#ie-pentagrames input[type="checkbox"]:checked')].map(cb => cb.value);
-    const pentagrames   = checkedPenta.includes('aucun') ? [] : checkedPenta;
-    await db.collection('incantations').add({
+    const texteIncantation = (document.getElementById('ie-incantation')?.value || '').trim();
+    const categorie        = (document.getElementById('ie-cat')?.value         || '').trim();
+    const objetRequis      = (document.getElementById('ie-objet')?.value       || '').trim();
+    const explication      = (document.getElementById('ie-explication')?.value || '').trim();
+    const socle            = (document.getElementById('ie-socle')?.value       || '').trim();
+    const descriptionSocle = (document.getElementById('ie-socle-desc')?.value  || '').trim();
+    const checkedPenta     = [...document.querySelectorAll('#ie-pentagrames input[type="checkbox"]:checked')].map(cb => cb.value);
+    const pentagrames      = checkedPenta.includes('aucun') ? [] : checkedPenta;
+
+    const docData = {
         nom, utilisation: desc,
-        incantation,
+        texteIncantation, categorie,
+        objetRequis, explication,
+        socle, descriptionSocle,
         pentagrames,
         cout: manip, ptsOcculte: pts,
         ecoleId,
@@ -4393,7 +4443,10 @@ async function confirmerCreerIncanEcole() {
         createdBy: currentMembre.id,
         createdByNom: displayName(currentMembre),
         dateCreation: firebase.firestore.Timestamp.now()
-    });
+    };
+    // Nettoyer les champs vides pour ne pas polluer Firestore
+    Object.keys(docData).forEach(k => { if (docData[k] === '') delete docData[k]; });
+    await db.collection('incantations').add(docData);
 
     document.getElementById('ie-success').textContent = '✦ Incantation d\'école créée !';
     document.getElementById('ie-success').style.display = '';

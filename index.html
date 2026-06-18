@@ -202,6 +202,17 @@
   </div>
 </div>
 
+<!-- Modal Détail Pyramide -->
+<div class="modal-overlay hidden" id="modal-pyr-detail" onclick="closeModal('modal-pyr-detail')">
+  <div class="modal-box" style="max-width:460px" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <span class="modal-head-title" id="pyr-detail-title">Détail des points</span>
+      <button class="modal-close-btn" onclick="closeModal('modal-pyr-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="pyr-detail-body" style="max-height:70vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- Modal Savoir Unique -->
 <div class="modal-overlay hidden" id="modal-savoir">
   <div class="modal-box" style="max-width:540px">
@@ -2444,8 +2455,10 @@ function loadRapports() {
                         <span style="color:var(--text-light);font-size:.83rem">— ${s.incanNom || ''}</span>
                         <span style="color:var(--text-muted);font-size:.75rem">📅 ${dateAffichee}</span>
                     </div>
-                    <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+                    <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap">
                         <span class="pts pts-occulte">+${s.ptsGagnes || 0} Puiss. Occ.</span>
+                        ${s.manipGagnes ? `<span class="pts pts-manip">+${s.manipGagnes} Manip. Occ.</span>` : ''}
+                        ${(currentMembre?.role === 'admin' || currentMembre?.role === 'haut_grade') ? `<button class="btn btn-danger btn-sm" style="padding:.15rem .45rem;font-size:.7rem" onclick="event.stopPropagation();supprimerRapport('${d.id}')">🗑</button>` : ''}
                         <span class="soum-chev">▼</span>
                     </div>
                 </div>
@@ -2795,6 +2808,13 @@ async function supprimerSoum(soumId) {
     if (!confirm('Supprimer définitivement cette soumission ?')) return;
     await db.collection('soumissions').doc(soumId).delete();
     await logAction('SUPPRESSION SOUMISSION', soumId, 0);
+}
+
+async function supprimerRapport(soumId) {
+    if (!confirm('Supprimer définitivement ce rapport ? Cette action est irréversible.')) return;
+    await db.collection('soumissions').doc(soumId).delete();
+    await logAction('SUPPRESSION RAPPORT', soumId, 0);
+    loadRapports();
 }
 
 function ouvrirRefus(soumId, membreId, pts) {
@@ -3644,11 +3664,12 @@ async function loadPyramide() {
         drawLines();
 
         // Drag
-        let drag = null, startLeft = 0, startTop = 0, startMX = 0, startMY = 0;
+        let drag = null, startLeft = 0, startTop = 0, startMX = 0, startMY = 0, didDrag = false;
 
         canvas.querySelectorAll('.pyr-node').forEach(el => {
             el.addEventListener('mousedown', e => {
                 drag = el;
+                didDrag = false;
                 el.style.cursor = 'grabbing';
                 el.style.zIndex = '20';
                 startLeft = parseFloat(el.style.left) || 0;
@@ -3657,12 +3678,20 @@ async function loadPyramide() {
                 startMY   = e.clientY;
                 e.preventDefault();
             });
+            el.addEventListener('click', () => {
+                if (didDrag) return;
+                const memId  = el.dataset.id;
+                const memObj = allMembres.find(m => m.id === memId);
+                if (memObj) loadPyrDetail(memId, displayName(memObj));
+            });
         });
 
         document.addEventListener('mousemove', e => {
             if (!drag) return;
-            drag.style.left = (startLeft + e.clientX - startMX) + 'px';
-            drag.style.top  = (startTop  + e.clientY - startMY) + 'px';
+            const dx = e.clientX - startMX, dy = e.clientY - startMY;
+            if (Math.abs(dx) > 4 || Math.abs(dy) > 4) didDrag = true;
+            drag.style.left = (startLeft + dx) + 'px';
+            drag.style.top  = (startTop  + dy) + 'px';
             drawLines();
         });
 
@@ -3705,6 +3734,51 @@ async function loadPyramide() {
             svg.appendChild(c1);
             svg.appendChild(c2);
         });
+    }
+}
+
+async function loadPyrDetail(membreId, membreNom) {
+    document.getElementById('pyr-detail-title').textContent = membreNom;
+    const body = document.getElementById('pyr-detail-body');
+    body.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    openModal('modal-pyr-detail');
+    try {
+        const snap = await db.collection('soumissions')
+            .where('membreId', '==', membreId)
+            .where('statut', '==', 'valide')
+            .get();
+        if (snap.empty) {
+            body.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Aucun rapport validé</div></div>';
+            return;
+        }
+        const docs = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => {
+                const ta = a.dateValidation || a.dateCreation;
+                const tb = b.dateValidation || b.dateCreation;
+                if (!ta || !tb) return 0;
+                return (tb.toDate ? tb.toDate() : new Date(tb)) - (ta.toDate ? ta.toDate() : new Date(ta));
+            });
+        const totalPts   = docs.reduce((s, d) => s + (d.ptsGagnes   || 0), 0);
+        const totalManip = docs.reduce((s, d) => s + (d.manipGagnes || 0), 0);
+        body.innerHTML = `
+            <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+                <span class="pts pts-occulte">Total : ${totalPts} Puiss. Occ.</span>
+                ${totalManip ? `<span class="pts pts-manip">Total : ${totalManip} Manip. Occ.</span>` : ''}
+            </div>
+            ${docs.map(r => `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem .7rem;border-radius:8px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);margin-bottom:.4rem">
+                <div style="min-width:0">
+                    <div style="font-size:.83rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.incanNom || '—'}</div>
+                    <div style="font-size:.7rem;color:var(--text-muted)">📅 ${r.dateRap || formatDate(r.dateValidation || r.dateCreation)}</div>
+                </div>
+                <div style="display:flex;gap:.35rem;flex-shrink:0;flex-wrap:wrap">
+                    ${r.ptsGagnes   ? `<span class="pts pts-occulte" style="font-size:.7rem;padding:.15rem .45rem">+${r.ptsGagnes} Puiss.</span>` : ''}
+                    ${r.manipGagnes ? `<span class="pts pts-manip"   style="font-size:.7rem;padding:.15rem .45rem">+${r.manipGagnes} Manip.</span>` : ''}
+                </div>
+            </div>`).join('')}`;
+    } catch(err) {
+        body.innerHTML = `<p style="color:var(--danger);font-size:.82rem">Erreur : ${err.message}</p>`;
     }
 }
 

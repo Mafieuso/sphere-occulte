@@ -236,6 +236,14 @@
         <label class="form-label">Contenu détaillé</label>
         <textarea class="form-control" id="edit-savoir-contenu" rows="5" placeholder="Explication complète du savoir…"></textarea>
       </div>
+      <div class="form-group">
+        <label class="form-label">Illustration (optionnel)</label>
+        <div id="savoir-img-preview" onclick="document.getElementById('savoir-img-input').click()" style="width:100%;height:130px;border:2px dashed rgba(204,68,255,.25);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(0,0,0,.2);transition:border-color .2s" onmouseover="this.style.borderColor='rgba(204,68,255,.55)'" onmouseout="this.style.borderColor='rgba(204,68,255,.25)'">
+          <span id="savoir-img-hint" style="font-size:.78rem;color:var(--text-muted);pointer-events:none">+ Cliquer pour ajouter une image</span>
+          <img id="savoir-img-thumb" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:8px">
+        </div>
+        <input type="file" id="savoir-img-input" accept="image/*" style="display:none" onchange="previewSavoirImg(this)">
+      </div>
       <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
         <button class="btn btn-ghost" onclick="closeModal('modal-savoir')">Annuler</button>
         <button class="btn btn-primary" onclick="sauvegarderSavoir()">Sauvegarder</button>
@@ -1233,6 +1241,7 @@
         <div class="panel" id="ap-membres">
           <div class="panel-hdr">
             <div class="panel-title">👥 Membres de l'Ordre</div>
+            <button class="btn btn-ghost btn-sm" onclick="adminReparerEcoles()" title="Répare les membres dont le champ école ne correspond plus à leur école réelle">🔧 Réparer écoles</button>
           </div>
           <div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">
             <button class="btn btn-sm btn-violet" id="btn-filtre-actifs"  onclick="loadAdminMembres('actifs')">✅ Actifs (connectés + profil)</button>
@@ -2503,13 +2512,16 @@ function loadDashSavoirs() {
                 lastGradeOrdre = gradeIdx;
                 html += `<div style="font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.1em;color:${gradeDef?.couleur || 'var(--gold)'};margin:1rem 0 .5rem;text-transform:uppercase">✦ ${gradeDef?.nom || 'Niveau ' + gradeIdx}</div>`;
             }
-            html += `<div class="glass-card incan-card" style="margin-bottom:.6rem">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
-                    <strong style="color:var(--gold);font-size:.9rem">${s.nom || 'Savoir Inconnu'}</strong>
-                    ${s.categorie ? `<span class="badge badge-attente" style="font-size:.68rem">${s.categorie}</span>` : ''}
+            html += `<div class="glass-card incan-card" style="margin-bottom:.6rem;padding:0;overflow:hidden">
+                ${s.imageB64 ? `<img src="${s.imageB64}" style="width:100%;height:160px;object-fit:cover;display:block">` : ''}
+                <div style="padding:.9rem 1rem">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+                        <strong style="color:var(--gold);font-size:.9rem">${s.nom || 'Savoir Inconnu'}</strong>
+                        ${s.categorie ? `<span class="badge badge-attente" style="font-size:.68rem">${s.categorie}</span>` : ''}
+                    </div>
+                    ${s.description ? `<p style="color:var(--text-muted);font-size:.82rem;margin:.5rem 0 0">${s.description}</p>` : ''}
+                    ${s.contenu ? `<div style="font-size:.82rem;color:var(--text-light);margin-top:.75rem;padding:.6rem;background:rgba(0,0,0,.25);border-radius:6px;line-height:1.7">${s.contenu.replace(/\n/g, '<br>')}</div>` : ''}
                 </div>
-                ${s.description ? `<p style="color:var(--text-muted);font-size:.82rem;margin:.5rem 0 0">${s.description}</p>` : ''}
-                ${s.contenu ? `<div style="font-size:.82rem;color:var(--text-light);margin-top:.75rem;padding:.6rem;background:rgba(0,0,0,.25);border-radius:6px;line-height:1.7">${s.contenu.replace(/\n/g, '<br>')}</div>` : ''}
             </div>`;
         });
         list.innerHTML = html;
@@ -3142,20 +3154,36 @@ function loadAdminSavoirs() {
             const s    = d.data();
             const gIdx = s.gradeOrdre || 0;
             const gDef = GRADES[gIdx];
-            return `<div class="incan-card glass-card" style="position:relative">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
-                    <strong style="color:var(--gold)">${s.nom || 'Sans nom'}</strong>
-                    <span class="badge" style="background:${gDef?.couleur || 'var(--gold)'}22;color:${gDef?.couleur || 'var(--gold)'};">${gDef?.nom || 'Incantateur'}</span>
-                </div>
-                ${s.categorie ? `<span style="font-size:.72rem;color:var(--text-muted)">${s.categorie}</span>` : ''}
-                ${s.description ? `<p style="color:var(--text-muted);font-size:.8rem;margin:.4rem 0 0">${s.description}</p>` : ''}
-                <div style="display:flex;gap:.4rem;margin-top:.75rem">
-                    <button class="btn btn-ghost btn-sm" onclick="openSavoirModal('${d.id}')">✎ Éditer</button>
-                    <button class="btn btn-danger btn-sm" onclick="supprimerSavoir('${d.id}')">✕</button>
+            return `<div class="incan-card glass-card" style="position:relative;padding:0;overflow:hidden">
+                ${s.imageB64 ? `<img src="${s.imageB64}" style="width:100%;height:90px;object-fit:cover;display:block">` : ''}
+                <div style="padding:.75rem .9rem">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+                        <strong style="color:var(--gold)">${s.nom || 'Sans nom'}</strong>
+                        <span class="badge" style="background:${gDef?.couleur || 'var(--gold)'}22;color:${gDef?.couleur || 'var(--gold)'};">${gDef?.nom || 'Incantateur'}</span>
+                    </div>
+                    ${s.categorie ? `<span style="font-size:.72rem;color:var(--text-muted)">${s.categorie}</span>` : ''}
+                    ${s.description ? `<p style="color:var(--text-muted);font-size:.8rem;margin:.4rem 0 0">${s.description}</p>` : ''}
+                    <div style="display:flex;gap:.4rem;margin-top:.75rem">
+                        <button class="btn btn-ghost btn-sm" onclick="openSavoirModal('${d.id}')">✎ Éditer</button>
+                        <button class="btn btn-danger btn-sm" onclick="supprimerSavoir('${d.id}')">✕</button>
+                    </div>
                 </div>
             </div>`;
         }).join('');
     });
+}
+
+function previewSavoirImg(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        savoirImgB64 = e.target.result;
+        document.getElementById('savoir-img-thumb').src          = savoirImgB64;
+        document.getElementById('savoir-img-thumb').style.display = 'block';
+        document.getElementById('savoir-img-hint').style.display  = 'none';
+    };
+    reader.readAsDataURL(file);
 }
 
 function openSavoirModal(id) {
@@ -3166,16 +3194,27 @@ function openSavoirModal(id) {
     document.getElementById('edit-savoir-contenu').value = '';
     document.getElementById('edit-savoir-grade').value   = '0';
     document.getElementById('savoir-modal-title').textContent = id ? 'Modifier le Savoir' : 'Nouveau Savoir Unique';
+    savoirImgB64 = null;
+    document.getElementById('savoir-img-thumb').src          = '';
+    document.getElementById('savoir-img-thumb').style.display = 'none';
+    document.getElementById('savoir-img-hint').style.display  = '';
+    document.getElementById('savoir-img-input').value         = '';
 
     if (id) {
         db.collection('savoirsUniques').doc(id).get().then(doc => {
             if (!doc.exists) return;
             const s = doc.data();
-            document.getElementById('edit-savoir-nom').value     = s.nom     || '';
-            document.getElementById('edit-savoir-cat').value     = s.categorie || '';
-            document.getElementById('edit-savoir-desc').value    = s.description || '';
-            document.getElementById('edit-savoir-contenu').value = s.contenu   || '';
+            document.getElementById('edit-savoir-nom').value     = s.nom        || '';
+            document.getElementById('edit-savoir-cat').value     = s.categorie  || '';
+            document.getElementById('edit-savoir-desc').value    = s.description|| '';
+            document.getElementById('edit-savoir-contenu').value = s.contenu    || '';
             document.getElementById('edit-savoir-grade').value   = String(s.gradeOrdre || 0);
+            if (s.imageB64) {
+                savoirImgB64 = s.imageB64;
+                document.getElementById('savoir-img-thumb').src          = s.imageB64;
+                document.getElementById('savoir-img-thumb').style.display = 'block';
+                document.getElementById('savoir-img-hint').style.display  = 'none';
+            }
         });
     }
     openModal('modal-savoir');
@@ -3186,12 +3225,13 @@ async function sauvegarderSavoir() {
     const gradeOrdre = parseInt(val('edit-savoir-grade')) || 0;
     const gradeDef   = GRADES[gradeOrdre];
     const data = {
-        nom:        val('edit-savoir-nom').trim(),
-        categorie:  val('edit-savoir-cat').trim(),
+        nom:         val('edit-savoir-nom').trim(),
+        categorie:   val('edit-savoir-cat').trim(),
         description: val('edit-savoir-desc').trim(),
-        contenu:    val('edit-savoir-contenu').trim(),
-        gradeOrdre, gradeRequis: gradeDef?.nom || 'Incantateur'
+        contenu:     val('edit-savoir-contenu').trim(),
+        gradeOrdre,  gradeRequis: gradeDef?.nom || 'Incantateur'
     };
+    if (savoirImgB64) data.imageB64 = savoirImgB64;
     if (!data.nom) return alert('Le nom est requis.');
     if (id) {
         await db.collection('savoirsUniques').doc(id).update(data);
@@ -3206,6 +3246,32 @@ async function supprimerSavoir(id) {
     if (!confirm('Supprimer ce Savoir Unique ?')) return;
     await db.collection('savoirsUniques').doc(id).delete();
     loadAdminSavoirs();
+}
+
+async function adminReparerEcoles() {
+    if (!confirm('Réparer les membres dont le champ école est incohérent avec les données de l\'école ?\n\nCela corrige les membres qui semblent "dans une école" sans y être réellement listés.')) return;
+    try {
+        const [memSnap, ecoSnap] = await Promise.all([
+            db.collection('membres').get(),
+            db.collection('ecoles').get()
+        ]);
+        const ecoMembres = {};
+        ecoSnap.docs.forEach(d => { ecoMembres[d.id] = d.data().membres || []; });
+        const batch = db.batch();
+        let count = 0;
+        memSnap.docs.forEach(d => {
+            const m = d.data();
+            if (!m.ecoleId) return;
+            const listeEcole = ecoMembres[m.ecoleId];
+            if (!listeEcole || !listeEcole.includes(d.id)) {
+                batch.update(d.ref, { ecoleId: firebase.firestore.FieldValue.delete() });
+                count++;
+            }
+        });
+        if (!count) { alert('Aucune incohérence détectée — tout est en ordre.'); return; }
+        await batch.commit();
+        alert(`${count} membre(s) réparé(s) avec succès.`);
+    } catch(err) { alert('Erreur : ' + err.message); }
 }
 
 // Admin — accès membres (statut connexion + mot de passe)
@@ -4175,7 +4241,8 @@ async function loadDashEcole() {
     }
 }
 
-let ecoleLogoB64 = null;
+let ecoleLogoB64  = null;
+let savoirImgB64  = null;
 
 function ecoleLogoChosen(input) {
     const file = input.files[0];
@@ -4346,9 +4413,9 @@ async function retirerMembreEcole(ecoleId, membreId, membreNom) {
             await db.collection('ecoles').doc(ecoleId).update({
                 membres: firebase.firestore.FieldValue.arrayRemove(membreId)
             });
-            if (isSelf) await db.collection('membres').doc(membreId).update({
+            await db.collection('membres').doc(membreId).update({
                 ecoleId: firebase.firestore.FieldValue.delete()
-            });
+            }).catch(() => {});
         } catch(e2) { alert('Erreur : ' + e2.message); return; }
     }
     if (isSelf) currentMembre.ecoleId = null;

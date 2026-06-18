@@ -72,6 +72,12 @@ service cloud.firestore {
       allow write: if isHautGrade();
     }
 
+    // ── Règlement ──────────────────────────────────────────────
+    match /reglement/{regleId} {
+      allow read: if isAuthenticated();
+      allow write: if isHautGrade();
+    }
+
     // ── Notifications ──────────────────────────────────────────
     match /notifications/{notifId} {
       allow read: if isAuthenticated() &&

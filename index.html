@@ -945,7 +945,7 @@
           </p>
           <div id="dash-regle-list"><div class="empty-state"><div class="loader"></div></div></div>
 
-          <div class="glass-card" style="display:none;margin-bottom:.75rem;border-left:3px solid var(--gold)">
+          <div class="glass-card regle-statique" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
             <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE I — Accès à la Salle de la Sphère Occulte</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Aucun démon n'est autorisé à pénétrer au sein de la Salle de la Sphère Occulte.<br>
@@ -4938,15 +4938,15 @@ async function supprimerRegle(id) {
 async function loadDashReglement() {
     const list = document.getElementById('dash-regle-list');
     if (!list) return;
-    // Masquer les règles statiques restantes
-    document.querySelectorAll('#p-reglement .glass-card').forEach(el => el.style.display = 'none');
-    list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+    list.innerHTML = '';
     try {
         const snap = await db.collection('reglement').orderBy('ordre').get();
         if (snap.empty) {
-            list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚖</div><div class="empty-text">Aucune règle publiée</div></div>';
+            // Pas de règles dans Firestore → garder le HTML statique visible
             return;
         }
+        // Des règles Firestore existent → masquer le HTML statique (enfants directs seulement)
+        document.querySelectorAll('#p-reglement > .glass-card').forEach(el => el.style.display = 'none');
         list.innerHTML = snap.docs.map(d => {
             const r = d.data();
             return `<div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
@@ -4954,7 +4954,10 @@ async function loadDashReglement() {
                 <p style="font-size:.84rem;color:var(--text-light);line-height:1.65;white-space:pre-wrap;margin:0">${r.contenu || ''}</p>
             </div>`;
         }).join('');
-    } catch(err) { list.innerHTML = `<p style="color:#f87171">Erreur : ${err.message}</p>`; }
+    } catch(err) {
+        // En cas d'erreur (règles Firestore, réseau) → garder le HTML statique visible
+        list.innerHTML = '';
+    }
 }
 
 // Démarrage : loading en attendant onAuthStateChanged

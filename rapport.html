@@ -16,13 +16,13 @@
     width: 44px; height: 44px; background: var(--bg3);
     border: 2px solid var(--border2); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--gold);
+    font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; color: var(--gold);
 }
-.profile-name { font-family: 'Cinzel', serif; font-size: .95rem; }
+.profile-name { font-family: 'Cormorant Garamond', serif; font-size: .95rem; }
 .profile-pts  { font-size: .8rem; color: var(--text-dim); margin-top: .1rem; }
 .pts-bar { display: flex; gap: 1rem; }
 .pts-item { text-align: center; }
-.pts-val { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.2rem; }
+.pts-val { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 1.2rem; }
 .pts-lbl { font-size: .72rem; color: var(--text-dim); letter-spacing: .06em; }
 .layout { display: grid; grid-template-columns: 1fr 1.6fr; gap: 1.5rem; align-items: start; }
 .type-selector { display: flex; gap: .5rem; flex-wrap: wrap; }
@@ -30,10 +30,10 @@
     flex: 1; min-width: 110px;
     background: var(--bg3); border: 1px solid var(--border2);
     color: var(--text-dim); padding: .7rem .5rem; border-radius: 6px;
-    cursor: pointer; font-family: 'Nunito', sans-serif; font-size: .85rem;
+    cursor: pointer; font-family: 'Karla', sans-serif; font-size: .85rem;
     text-align: center; transition: all .2s;
 }
-.type-btn.active { border-color: var(--gold-dim); color: var(--gold); background: rgba(100,70,0,.15); }
+.type-btn.active { border-color: var(--gold-dim); color: var(--gold); background: rgba(0,100,92,.15); }
 .incan-select-wrap { display: none; margin-top: .75rem; }
 .incan-select-wrap.visible { display: block; }
 .upload-area {
@@ -232,24 +232,47 @@ function renderProfil() {
 }
 
 // ── Incantations ───────────────────────────────────────────────
+// Normalise les champs : les incantations d'école (créées depuis "Mon École")
+// utilisent cout/ptsOcculte au lieu de pointsManipulation/pointsOcculte, et n'ont pas de gradeRequis.
+function normaliserIncan(i) {
+    i.pointsManipulation = i.cout ?? i.pointsManipulation ?? 0;
+    i.pointsOcculte      = i.ptsOcculte ?? i.pointsOcculte ?? 0;
+    if (!i.gradeRequis) i.gradeRequis = i.ecoleId ? "École" : (GRADES[i.gradeOrdre || 0]?.nom || 'Incantateur');
+    return i;
+}
+
 async function loadIncantations() {
-    const snap = await db.collection('incantations').orderBy('gradeOrdre').orderBy('nom').get();
-    allIncantations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const memEcoleId = currentMembre.ecoleId || null;
+    const gradeOrdre  = GRADES.findIndex(g => g.nom === currentMembre.grade);
+
+    const queries = [db.collection('incantations').orderBy('nom').get()];
+    if (memEcoleId) queries.push(db.collection('incantations').where('ecoleId', '==', memEcoleId).get());
+
+    const [pubSnap, ecoleSnap] = await Promise.all(queries);
+
+    const pubAccessible = pubSnap.docs
+        .filter(d => {
+            const i = d.data();
+            return !i.ecoleId && (i.gradeOrdre !== undefined ? i.gradeOrdre : 0) <= gradeOrdre;
+        })
+        .map(d => normaliserIncan({ id: d.id, ...d.data() }));
+
+    const ecoleAccessible = (ecoleSnap ? ecoleSnap.docs : [])
+        .map(d => normaliserIncan({ id: d.id, ...d.data() }));
+
+    allIncantations = [...pubAccessible, ...ecoleAccessible];
     peuplerSelectIncantation();
 }
 
 function peuplerSelectIncantation() {
     const sel = document.getElementById('select-incantation');
-    const gradeOrdre = GRADES.findIndex(g => g.nom === currentMembre.grade);
     sel.innerHTML = '<option value="">— Choisir une incantation —</option>';
-    allIncantations
-        .filter(i => i.gradeOrdre <= gradeOrdre)
-        .forEach(i => {
-            const opt = document.createElement('option');
-            opt.value = i.id;
-            opt.textContent = `${i.nom} (${i.gradeRequis})`;
-            sel.appendChild(opt);
-        });
+    allIncantations.forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.id;
+        opt.textContent = i.ecoleId ? `🏛 ${i.nom} (École)` : `${i.nom} (${i.gradeRequis})`;
+        sel.appendChild(opt);
+    });
 }
 
 function onIncantationChange() {
@@ -425,7 +448,7 @@ async function loadHistorique() {
         let incanHTML = '';
         if (s.incantationNom) incanHTML = `<div class="history-type" style="margin-top:.25rem">🔮 ${s.incantationNom}</div>`;
         let commentHTML = '';
-        if (s.commentaire) commentHTML = `<div class="history-desc" style="color:#c9a52a80; font-style:italic">${s.commentaire}</div>`;
+        if (s.commentaire) commentHTML = `<div class="history-desc" style="color:#4fd6c880; font-style:italic">${s.commentaire}</div>`;
         return `<div class="history-item">
             <div class="history-header">
                 <span>${badgeStatut} <span class="history-type">${typeLabel}</span></span>

@@ -43,7 +43,7 @@
       <button class="modal-close" onclick="closeModal('modal-lb-profil')" style="position:absolute;top:.6rem;right:.6rem;z-index:2">✕</button>
       <div id="lbp-photo" style="width:108px;height:108px;border-radius:50%;border:3px solid var(--lbp-color,var(--crimson));overflow:hidden;flex-shrink:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-weight:700;box-shadow:0 4px 24px rgba(0,0,0,.7)"></div>
       <div style="margin-left:1rem;padding-bottom:.1rem;min-width:0">
-        <div id="lbp-name" style="font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <div id="lbp-name" style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
         <div id="lbp-grade" style="margin-top:.3rem"></div>
         <div id="lbp-titre" style="margin-top:.3rem"></div>
       </div>
@@ -57,13 +57,13 @@
       </div>
       <!-- Stats -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
-        <div style="background:rgba(201,165,42,.07);border:1px solid rgba(201,165,42,.2);border-radius:10px;padding:.85rem;text-align:center">
+        <div style="background:rgba(42,201,188,.07);border:1px solid rgba(42,201,188,.2);border-radius:10px;padding:.85rem;text-align:center">
           <div style="font-size:.57rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">Puissance Occulte</div>
-          <div id="lbp-pts" style="font-family:'Cinzel',serif;font-size:1.5rem;font-weight:700;color:var(--gold)"></div>
+          <div id="lbp-pts" style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:var(--gold)"></div>
         </div>
-        <div style="background:rgba(180,60,255,.07);border:1px solid rgba(180,60,255,.2);border-radius:10px;padding:.85rem;text-align:center">
+        <div style="background:rgba(255,158,60,.07);border:1px solid rgba(255,158,60,.2);border-radius:10px;padding:.85rem;text-align:center">
           <div style="font-size:.57rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">Manipulation Occ.</div>
-          <div id="lbp-manip" style="font-family:'Cinzel',serif;font-size:1.5rem;font-weight:700;color:#b060f0"></div>
+          <div id="lbp-manip" style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:#f0a860"></div>
         </div>
       </div>
       <!-- Progress -->
@@ -194,8 +194,8 @@
 <!-- Modal : Détail d'une incantation -->
 <div class="modal-overlay hidden" id="modal-incan-view">
   <div class="modal-box" style="max-width:600px;max-height:88vh;overflow-y:auto">
-    <div class="modal-head" style="position:sticky;top:0;background:#0f0819;z-index:1;padding-bottom:.75rem;border-bottom:1px solid rgba(255,255,255,.06)">
-      <span class="modal-head-title" id="view-incan-title" style="font-family:'Cinzel',serif;letter-spacing:.05em">—</span>
+    <div class="modal-head" style="position:sticky;top:0;background:#191008;z-index:1;padding-bottom:.75rem;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span class="modal-head-title" id="view-incan-title" style="font-family:'Cormorant Garamond',serif;letter-spacing:.05em">—</span>
       <button class="modal-close-btn" onclick="closeModal('modal-incan-view')">✕</button>
     </div>
     <div class="modal-body" id="view-incan-body" style="padding-top:.75rem"></div>
@@ -249,7 +249,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Illustration (optionnel)</label>
-        <div id="savoir-img-preview" onclick="document.getElementById('savoir-img-input').click()" style="width:100%;height:130px;border:2px dashed rgba(204,68,255,.25);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(0,0,0,.2);transition:border-color .2s" onmouseover="this.style.borderColor='rgba(204,68,255,.55)'" onmouseout="this.style.borderColor='rgba(204,68,255,.25)'">
+        <div id="savoir-img-preview" onclick="document.getElementById('savoir-img-input').click()" style="width:100%;height:130px;border:2px dashed rgba(255,162,68,.25);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(0,0,0,.2);transition:border-color .2s" onmouseover="this.style.borderColor='rgba(255,162,68,.55)'" onmouseout="this.style.borderColor='rgba(255,162,68,.25)'">
           <span id="savoir-img-hint" style="font-size:.78rem;color:var(--text-muted);pointer-events:none">+ Cliquer pour ajouter une image</span>
           <img id="savoir-img-thumb" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:8px">
         </div>
@@ -324,7 +324,7 @@
       <input type="hidden" id="ecole-edit-id">
       <div class="form-group" style="display:flex;align-items:center;gap:1rem">
         <div id="ecole-logo-preview" onclick="document.getElementById('ecole-logo-input').click()"
-          style="width:64px;height:64px;border-radius:12px;overflow:hidden;border:2px dashed rgba(201,165,42,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.03);flex-shrink:0;font-size:1.6rem;color:var(--text-muted)">🏛</div>
+          style="width:64px;height:64px;border-radius:12px;overflow:hidden;border:2px dashed rgba(42,201,188,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.03);flex-shrink:0;font-size:1.6rem;color:var(--text-muted)">🏛</div>
         <div>
           <div class="form-label" style="margin-bottom:.3rem">Logo de l'école</div>
           <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('ecole-logo-input').click()">Choisir une image</button>
@@ -541,7 +541,7 @@
     <div class="ring ring-3"></div>
     <div class="ring-center" style="font-size:2rem">⬡</div>
   </div>
-  <p style="font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.3em;color:var(--text-muted);text-transform:uppercase;margin-top:1.5rem">
+  <p style="font-family:'Cormorant Garamond',serif;font-size:.7rem;letter-spacing:.3em;color:var(--text-muted);text-transform:uppercase;margin-top:1.5rem">
     INITIALISATION DU NEXUS OCCULTE…
   </p>
 </div>
@@ -663,8 +663,8 @@
         </div>
 
         <!-- ── Setup initial (visible seulement si aucun membre) ── -->
-        <div id="setup-admin" style="display:none;margin-top:1rem;padding:1rem;background:rgba(201,165,42,.06);border:1px solid rgba(201,165,42,.25);border-radius:12px">
-          <div style="font-family:'Cinzel',serif;font-size:.75rem;color:var(--gold);letter-spacing:.1em;margin-bottom:.6rem;text-align:center">⬡ INITIALISATION — PREMIER COMPTE</div>
+        <div id="setup-admin" style="display:none;margin-top:1rem;padding:1rem;background:rgba(42,201,188,.06);border:1px solid rgba(42,201,188,.25);border-radius:12px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:.75rem;color:var(--gold);letter-spacing:.1em;margin-bottom:.6rem;text-align:center">⬡ INITIALISATION — PREMIER COMPTE</div>
           <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:.9rem;text-align:center;line-height:1.55">Aucun membre détecté. Créez votre compte <strong style="color:var(--gold)">Monarque</strong>.</p>
           <form onsubmit="creerCompteAdmin(event)">
             <div class="grid-2">
@@ -845,11 +845,11 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
                   <div>
                     <div style="font-size:.65rem;color:var(--text-muted);margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.07em">Puissance Occulte</div>
-                    <input class="form-control" type="number" id="rap-pts" readonly placeholder="—" style="opacity:.7;cursor:default;color:var(--gold);font-family:'Cinzel',serif;text-align:center">
+                    <input class="form-control" type="number" id="rap-pts" readonly placeholder="—" style="opacity:.7;cursor:default;color:var(--gold);font-family:'Cormorant Garamond',serif;text-align:center">
                   </div>
                   <div>
                     <div style="font-size:.65rem;color:var(--text-muted);margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.07em">Manipulation Occ.</div>
-                    <input class="form-control" type="number" id="rap-cout" readonly placeholder="—" style="opacity:.7;cursor:default;color:#b060ef;font-family:'Cinzel',serif;text-align:center">
+                    <input class="form-control" type="number" id="rap-cout" readonly placeholder="—" style="opacity:.7;cursor:default;color:#efa860;font-family:'Cormorant Garamond',serif;text-align:center">
                   </div>
                 </div>
               </div>
@@ -905,9 +905,9 @@
 
           <!-- Création d'incantation — Collecteur d'Ombre et plus -->
           <div id="dash-incan-create" style="display:none;margin-bottom:1.25rem">
-            <div class="glass-card" style="border-color:rgba(201,165,42,.35)">
+            <div class="glass-card" style="border-color:rgba(42,201,188,.35)">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
-                <span style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold)">✦ Créer une incantation</span>
+                <span style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold)">✦ Créer une incantation</span>
                 <button class="btn btn-gold btn-sm" onclick="toggleDashCreateForm()">+ Nouvelle</button>
               </div>
               <form id="dash-create-form" style="display:none;margin-top:.75rem" onsubmit="creerIncanMembre(event)">
@@ -965,7 +965,7 @@
           <div id="dash-regle-list"><div class="empty-state"><div class="loader"></div></div></div>
 
           <div class="glass-card regle-statique" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE I — Accès à la Salle de la Sphère Occulte</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE I — Accès à la Salle de la Sphère Occulte</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Aucun démon n'est autorisé à pénétrer au sein de la Salle de la Sphère Occulte.<br>
               Tout accès est strictement soumis à l'autorisation préalable d'un <strong>Marcheur des Voiles</strong> ou d'un rang supérieur.
@@ -973,7 +973,7 @@
           </div>
 
           <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE II — Usage du Pentacle lors des Incantations</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE II — Usage du Pentacle lors des Incantations</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               À l'issue de toute incantation, le pentacle utilisé doit impérativement être <strong>retiré</strong>.<br>
               Tout manquement à cette obligation entraînera des sanctions immédiates.
@@ -981,7 +981,7 @@
           </div>
 
           <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE III — Déplacements en Zone</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE III — Déplacements en Zone</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Les Incantateurs ne sont pas autorisés à sortir en Zone.<br>
               Une exception ne peut être accordée que sur ordre explicite d'une <strong>Excellence</strong> ou d'une <strong>Excellence Suprême</strong>, et uniquement sous leur escorte directe.
@@ -989,7 +989,7 @@
           </div>
 
           <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE IV — Accès à la Salle du Pentacle</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE IV — Accès à la Salle du Pentacle</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Toute entrée dans la Salle du Pentacle exige :
             </p>
@@ -1002,14 +1002,14 @@
           </div>
 
           <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE V — Incantateurs en Formation</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE V — Incantateurs en Formation</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Tout Incantateur comptabilisant moins de <strong>six (6) incantations réussies</strong> devra, sauf ordre contraire formel, être obligatoirement accompagné d'un <strong>Marcheur des Voiles</strong> ou plus lors de chaque incantation.
             </p>
           </div>
 
           <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VI — Doute et Discipline</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VI — Doute et Discipline</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               En cas de doute, <strong>n'agissez pas</strong>.<br>
               Il est impératif de se référer à un Marcheur des Voiles, ou à toute autorité supérieure compétente.<br>
@@ -1018,7 +1018,7 @@
           </div>
 
           <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VII — Archivage des Incantations</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VII — Archivage des Incantations</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Toute incantation doit être rigoureusement répertoriée dans la catégorie <strong>Incantations Réussies</strong> du Parchemin Discord.<br>
               À défaut, elle ne sera ni comptabilisée, ni prise en compte dans votre évolution hiérarchique.
@@ -1026,15 +1026,15 @@
           </div>
 
           <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VIII — Temps de Repos</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE VIII — Temps de Repos</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Les incantations ne peuvent être utilisées <strong>qu'une fois par jour</strong>.<br>
               Si vous réalisez deux fois la même incantation dans la même journée, cela n'améliorera pas vos capacités.
             </p>
           </div>
 
-          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid #c0392b">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:#e74c3c;margin-bottom:.4rem">RÈGLE IX — Obligation d'Évolution</div>
+          <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid #502bc0">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:#e74c3c;margin-bottom:.4rem">RÈGLE IX — Obligation d'Évolution</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Si vous n'évoluez pas pendant <strong>une semaine</strong>, vous serez marqué.<br>
               Si la semaine d'après toujours rien n'est fait, une <strong>sanction</strong> sera appliquée à la hauteur des capacités de cette Sphère.
@@ -1042,7 +1042,7 @@
           </div>
 
           <div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE X — Appel aux Initiés</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">RÈGLE X — Appel aux Initiés</div>
             <p style="font-size:.84rem;color:var(--text-light);line-height:1.6">
               Lorsque vous réalisez une incantation ou une manipulation de l'énergie occulte pouvant être montrée au grand public, vous devrez <strong>appeler les Initiés en priorité</strong>.<br>
               Ils sont potentiellement de futurs membres de la Sphère et doivent être traités avec précaution et exemplarité.
@@ -1160,15 +1160,15 @@
             <div class="ring ring-3"></div>
             <div class="ring-center">⬡</div>
           </div>
-          <div style="font-family:'Cinzel Decorative',serif;font-size:.55rem;color:var(--gold);letter-spacing:.18em">PANNEAU ADMIN</div>
+          <div style="font-family:'Italiana',serif;font-size:.55rem;color:var(--gold);letter-spacing:.18em">PANNEAU ADMIN</div>
         </div>
         <div class="admin-sidebar-user">
           <div id="adm-avatar-sm"
-               style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(139,0,0,.4);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--crimson),var(--blood));font-family:'Cinzel',serif;color:var(--gold);font-size:.85rem">
+               style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(61,43,122,.4);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--crimson),var(--blood));font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:.85rem">
             A
           </div>
           <div>
-            <div style="font-family:'Cinzel',serif;font-size:.78rem;color:var(--text)" id="adm-username">Admin</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.78rem;color:var(--text)" id="adm-username">Admin</div>
             <div style="font-size:.62rem;color:var(--text-muted);letter-spacing:.07em">ADMINISTRATEUR</div>
           </div>
         </div>
@@ -1318,7 +1318,7 @@
 
           <!-- Formulaire création -->
           <div class="glass-card" style="margin-bottom:1.5rem;max-width:560px">
-            <div style="font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:.1em;color:var(--gold);margin-bottom:.85rem">➕ CRÉER UN ACCÈS</div>
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.78rem;letter-spacing:.1em;color:var(--gold);margin-bottom:.85rem">➕ CRÉER UN ACCÈS</div>
             <form onsubmit="creerMembre(event)">
               <div class="grid-2">
                 <div class="form-group">
@@ -1341,7 +1341,7 @@
           </div>
 
           <!-- Séparateur -->
-          <div style="font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:.75rem">Comptes enregistrés</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:.75rem">Comptes enregistrés</div>
           <div id="acces-list"></div>
         </div>
 
@@ -1452,8 +1452,8 @@ document.addEventListener('mousemove', e => {
             ctx.translate(g.x, g.y);
             ctx.rotate(g.rot);
             ctx.globalAlpha = g.a;
-            ctx.fillStyle = (i % 3 === 0) ? '#c9a52a' : '#8b0000';
-            ctx.font = `${g.s}px 'Cinzel', serif`;
+            ctx.fillStyle = (i % 3 === 0) ? '#2ac9bc' : '#3d2b7a';
+            ctx.font = `${g.s}px 'Cormorant Garamond', serif`;
             ctx.fillText(g.g, 0, 0);
             ctx.restore();
         });
@@ -1895,15 +1895,15 @@ function viewIncan(data) {
     document.getElementById('view-incan-title').textContent = data.nom || '—';
 
     const socleHtml = (data.socle || data.descriptionSocle)
-        ? `<div style="margin-top:1rem;padding:.7rem .9rem;background:rgba(201,165,42,.06);border:1px solid rgba(201,165,42,.2);border-radius:8px">
-               <div style="font-size:.7rem;color:var(--gold);letter-spacing:.1em;font-family:'Cinzel',serif;margin-bottom:.35rem">⬡ SOCLE</div>
+        ? `<div style="margin-top:1rem;padding:.7rem .9rem;background:rgba(42,201,188,.06);border:1px solid rgba(42,201,188,.2);border-radius:8px">
+               <div style="font-size:.7rem;color:var(--gold);letter-spacing:.1em;font-family:'Cormorant Garamond',serif;margin-bottom:.35rem">⬡ SOCLE</div>
                ${data.socle ? `<div style="font-weight:600;color:var(--text-light);font-size:.85rem">${data.socle}</div>` : ''}
                ${data.descriptionSocle ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem;line-height:1.6">${data.descriptionSocle}</div>` : ''}
            </div>` : '';
 
     const incantRaw  = data.texteIncantation || data.incantation || '';
     const incantText = incantRaw
-        ? `<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba(0,0,0,.35);border-radius:8px;border:1px solid rgba(255,255,255,.05);font-style:italic;font-size:.82rem;color:rgba(201,165,42,.85);line-height:1.9;white-space:pre-wrap">${incantRaw}</div>` : '';
+        ? `<div style="margin-top:1rem;padding:.8rem 1rem;background:rgba(0,0,0,.35);border-radius:8px;border:1px solid rgba(255,255,255,.05);font-style:italic;font-size:.82rem;color:rgba(42,201,188,.85);line-height:1.9;white-space:pre-wrap">${incantRaw}</div>` : '';
 
     document.getElementById('view-incan-body').innerHTML = `
         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
@@ -1922,8 +1922,8 @@ function viewIncan(data) {
         </div>` : ''}
 
         ${data.objetRequis ? `
-        <div style="margin-bottom:.9rem;padding:.55rem .75rem;background:rgba(139,0,0,.08);border-radius:7px;border:1px solid rgba(139,0,0,.18)">
-            <div style="font-size:.7rem;color:#e06060;letter-spacing:.1em;margin-bottom:.2rem;text-transform:uppercase">Objet requis</div>
+        <div style="margin-bottom:.9rem;padding:.55rem .75rem;background:rgba(61,43,122,.08);border-radius:7px;border:1px solid rgba(61,43,122,.18)">
+            <div style="font-size:.7rem;color:#8f7fd9;letter-spacing:.1em;margin-bottom:.2rem;text-transform:uppercase">Objet requis</div>
             <p style="font-size:.84rem;color:var(--text-light)">${data.objetRequis}</p>
         </div>` : ''}
 
@@ -2095,14 +2095,14 @@ function loadIncanForRap() {
                 ? `<span class="ecole-badge" style="font-size:.6rem;flex-shrink:0">🏛 École</span>`
                 : `<span class="grade-badge ${gradeDef?.css||'grade-incantateur'}" style="font-size:.6rem;flex-shrink:0">${gradeDef?.nom||'Incantateur'}</span>`;
             const ptsHtml = [
-                cout ? `<span style="font-size:.68rem;background:rgba(170,60,255,.13);color:#b060ef;padding:.12rem .4rem;border-radius:4px;border:1px solid rgba(170,60,255,.25)">+${cout} Manip.</span>` : '',
-                pts  ? `<span style="font-size:.68rem;background:rgba(201,165,42,.12);color:var(--gold);padding:.12rem .4rem;border-radius:4px;border:1px solid rgba(201,165,42,.25)">+${pts} Puiss.</span>` : ''
+                cout ? `<span style="font-size:.68rem;background:rgba(255,158,60,.13);color:#efa860;padding:.12rem .4rem;border-radius:4px;border:1px solid rgba(255,158,60,.25)">+${cout} Manip.</span>` : '',
+                pts  ? `<span style="font-size:.68rem;background:rgba(42,201,188,.12);color:var(--gold);padding:.12rem .4rem;border-radius:4px;border:1px solid rgba(42,201,188,.25)">+${pts} Puiss.</span>` : ''
             ].filter(Boolean).join('');
             return `<div class="incan-picker-card" data-id="${d.id}" data-pts="${pts}" data-cout="${cout}" data-socle="${socleEsc}" data-nom="${nomEsc}"
                 onclick="selectRapIncan(this)"
                 style="cursor:pointer;padding:.55rem .75rem;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);transition:border-color .15s,background .15s;user-select:none;display:flex;align-items:center;gap:.6rem">
                 <div style="flex:1;min-width:0">
-                    <div style="font-family:'Cinzel',serif;font-size:.82rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.nom}</div>
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.nom}</div>
                     ${ptsHtml ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.25rem">${ptsHtml}</div>` : ''}
                 </div>
                 ${badge}
@@ -2123,7 +2123,7 @@ function loadIncanForRap() {
             html += toCard(d, false);
         });
         if (ecoleAccessible.length) {
-            html += `<div style="font-size:.65rem;color:var(--g2);text-transform:uppercase;letter-spacing:.06em;margin-top:${html?'.4rem':'0'};padding:.15rem 0 .15rem .1rem;border-bottom:1px solid rgba(204,68,255,.2)">🏛 Incantations d'École</div>`;
+            html += `<div style="font-size:.65rem;color:var(--g2);text-transform:uppercase;letter-spacing:.06em;margin-top:${html?'.4rem':'0'};padding:.15rem 0 .15rem .1rem;border-bottom:1px solid rgba(255,162,68,.2)">🏛 Incantations d'École</div>`;
             ecoleAccessible.forEach(d => { html += toCard(d, true); });
         }
         picker.innerHTML = html || '<p style="color:var(--text-muted);font-size:.8rem">Aucune incantation disponible à votre grade.</p>';
@@ -2145,8 +2145,8 @@ function selectRapIncan(card) {
         c.style.background  = 'rgba(255,255,255,.03)';
         c.style.borderColor = 'rgba(255,255,255,.07)';
     });
-    card.style.background  = 'rgba(201,165,42,.09)';
-    card.style.borderColor = 'rgba(201,165,42,.5)';
+    card.style.background  = 'rgba(42,201,188,.09)';
+    card.style.borderColor = 'rgba(42,201,188,.5)';
 
     const sel = document.getElementById('rap-incan');
     if (sel) sel.value = card.dataset.id;
@@ -2340,7 +2340,7 @@ function loadDashIncantations() {
 
             incanCache.set(d.id, i);
             html += `<div class="glass-card incan-card" style="cursor:pointer" title="Cliquer pour voir les détails" onclick="viewIncanById('${d.id}')">
-                <div style="font-size:1.6rem;text-align:center;color:var(--gold);filter:drop-shadow(0 0 8px rgba(201,165,42,.4))">✦</div>
+                <div style="font-size:1.6rem;text-align:center;color:var(--gold);filter:drop-shadow(0 0 8px rgba(42,201,188,.4))">✦</div>
                 <div class="incan-card-name">${i.nom}</div>
                 <div class="incan-card-meta">
                     <span class="grade-badge ${gradeDef?.css || 'grade-incantateur'}">${gradeDef?.nom || 'Incantateur'}</span>
@@ -2367,7 +2367,7 @@ function loadDashIncantations() {
                 const cout = i.cout || i.pointsManipulation || 0;
                 incanCache.set(d.id, i);
                 html += `<div class="ecole-card incan-card" style="cursor:pointer" onclick="viewIncanById('${d.id}')">
-                    <div style="font-size:1.6rem;text-align:center;color:var(--g2);filter:drop-shadow(0 0 10px rgba(204,68,255,.5))">🏛</div>
+                    <div style="font-size:1.6rem;text-align:center;color:var(--g2);filter:drop-shadow(0 0 10px rgba(255,162,68,.5))">🏛</div>
                     <div class="incan-card-name">${i.nom}</div>
                     <div class="incan-card-meta">
                         <span class="ecole-badge">École Exclusive</span>
@@ -2523,7 +2523,7 @@ function loadDashSavoirs() {
             const gradeDef = GRADES[gradeIdx];
             if (gradeIdx !== lastGradeOrdre) {
                 lastGradeOrdre = gradeIdx;
-                html += `<div style="font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.1em;color:${gradeDef?.couleur || 'var(--gold)'};margin:1rem 0 .5rem;text-transform:uppercase">✦ ${gradeDef?.nom || 'Niveau ' + gradeIdx}</div>`;
+                html += `<div style="font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.1em;color:${gradeDef?.couleur || 'var(--gold)'};margin:1rem 0 .5rem;text-transform:uppercase">✦ ${gradeDef?.nom || 'Niveau ' + gradeIdx}</div>`;
             }
             html += `<div class="glass-card incan-card" style="margin-bottom:.6rem;padding:0;overflow:hidden">
                 ${s.imageB64 ? `<img src="${s.imageB64}" style="width:100%;height:160px;object-fit:cover;display:block">` : ''}
@@ -2879,7 +2879,7 @@ async function loadAdminMembres(filtre = 'tous') {
                 <div class="membre-card-pts" style="gap:.5rem;flex-wrap:wrap">
                     <span class="pts pts-occulte">🔮 ${m.pointsOcculte||0}</span>
                     <span class="pts pts-manip">✦ ${m.pointsManipulation||0}</span>
-                    <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cinzel',serif">⏱ ${lastCo}</span>
+                    <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cormorant Garamond',serif">⏱ ${lastCo}</span>
                 </div>
             </div>
             <div class="membre-card-actions" style="flex-direction:column;gap:.35rem">
@@ -3331,7 +3331,7 @@ async function loadAdminAcces() {
         const codeRow = isAdmin
             ? (m.tempPassword
                 ? `<div style="display:flex;align-items:center;gap:.6rem;margin-top:.55rem;flex-wrap:wrap">
-                    <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cinzel',serif;flex-shrink:0">🔑 Code :</span>
+                    <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cormorant Garamond',serif;flex-shrink:0">🔑 Code :</span>
                     <code onclick="this.style.filter='none';this.nextElementSibling.style.display='none'"
                           style="font-size:.82rem;color:var(--gold);letter-spacing:.1em;cursor:pointer;filter:blur(4px);transition:filter .2s">${m.tempPassword}</code>
                     <span style="font-size:.65rem;color:var(--text-muted)">← cliquer pour voir</span>
@@ -3354,7 +3354,7 @@ async function loadAdminAcces() {
             <div style="width:9px;height:9px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:.55rem"></div>
             <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-                    <span style="font-family:'Cinzel',serif;font-size:.88rem;color:var(--text);font-weight:600">${name}</span>
+                    <span style="font-family:'Cormorant Garamond',serif;font-size:.88rem;color:var(--text);font-weight:600">${name}</span>
                     <span style="font-size:.68rem;color:var(--text-muted)">${m.steamId || ''}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:1rem;margin-top:.2rem;flex-wrap:wrap">
@@ -3412,15 +3412,15 @@ async function loadAdminEcoles() {
 
     list.innerHTML = schoolData.map(({ doc, e, membres, incanSnap }) => {
         const logoHtml = e.logoURL
-            ? `<img src="${e.logoURL}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(204,68,255,.35)">`
-            : `<div style="width:54px;height:54px;border-radius:50%;background:rgba(80,0,120,.4);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;border:2px solid rgba(204,68,255,.2)">🏛</div>`;
+            ? `<img src="${e.logoURL}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,162,68,.35)">`
+            : `<div style="width:54px;height:54px;border-radius:50%;background:rgba(120,60,0,.4);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;border:2px solid rgba(255,162,68,.2)">🏛</div>`;
 
         const membresHtml = membres.length
             ? membres.map(s => {
                 const mb = s.data();
                 const init = ((mb.prenom||'')[0]||(mb.nom||'')[0]||'?').toUpperCase();
                 return `<div style="display:flex;align-items:center;gap:.55rem;padding:.35rem .55rem;background:rgba(255,255,255,.025);border-radius:7px;margin-bottom:.25rem">
-                    <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(100,20,140,.4);font-size:.72rem;color:var(--g2)">
+                    <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(140,80,20,.4);font-size:.72rem;color:var(--g2)">
                         ${mb.photoURL?`<img src="${mb.photoURL}" style="width:100%;height:100%;object-fit:cover">`:init}
                     </div>
                     <div style="flex:1;min-width:0">
@@ -3437,7 +3437,7 @@ async function loadAdminEcoles() {
                 const inc  = id.data();
                 const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
                 const cout = inc.cout || inc.pointsManipulation || 0;
-                return `<div style="display:flex;align-items:center;gap:.55rem;padding:.35rem .55rem;background:rgba(204,68,255,.04);border:1px solid rgba(204,68,255,.12);border-radius:7px;margin-bottom:.25rem">
+                return `<div style="display:flex;align-items:center;gap:.55rem;padding:.35rem .55rem;background:rgba(255,162,68,.04);border:1px solid rgba(255,162,68,.12);border-radius:7px;margin-bottom:.25rem">
                     <span style="color:var(--g2);flex-shrink:0;font-size:.9rem">✦</span>
                     <div style="flex:1;min-width:0">
                         <div style="font-size:.8rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${inc.nom}</div>
@@ -3452,7 +3452,7 @@ async function loadAdminEcoles() {
             <div style="display:flex;align-items:center;gap:.85rem;padding:.9rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)">
                 ${logoHtml}
                 <div style="flex:1;min-width:0">
-                    <div style="font-family:'Cinzel',serif;font-size:.97rem;color:var(--text);font-weight:600">${e.nom}</div>
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:.97rem;color:var(--text);font-weight:600">${e.nom}</div>
                     <div style="font-size:.72rem;color:var(--text-muted);margin:.18rem 0">
                         Fondateur : <strong style="color:var(--gold)">${e.fondateurNom||'?'}</strong>
                         &nbsp;·&nbsp; ${membres.length}/5 membres
@@ -3578,10 +3578,10 @@ async function loadPyramide() {
     const T1_Y = 50, T2_Y = 250, T3_Y = 450, CANVAS_H = 580;
 
     const gradeColor = g => ({
-        "Monarque des Ombres": '#c9930a',
-        "Marchand des Âmes":   '#9b4a9b',
-        "Collecteur d'Ombre":  '#b00000',
-        "Marcheur":            '#5a7090',
+        "Monarque des Ombres": '#0ac9b9',
+        "Marchand des Âmes":   '#9b724a',
+        "Collecteur d'Ombre":  '#ff9d3d',
+        "Marcheur":            '#5a6e90',
         "Incantateur":         '#6a6a7a'
     }[g] || '#6a6a7a');
 
@@ -3603,12 +3603,12 @@ async function loadPyramide() {
 
     // Tier labels
     [
-        { text: 'Monarque des Ombres',                        color: '#c9930a', y: T1_Y - 28 },
-        { text: "Collecteurs d'Ombre & Marchands des Âmes",   color: '#9b4a9b', y: T2_Y - 28 },
-        { text: 'Incantateurs & Marcheurs',                   color: '#5a7090', y: T3_Y - 28 },
+        { text: 'Monarque des Ombres',                        color: '#0ac9b9', y: T1_Y - 28 },
+        { text: "Collecteurs d'Ombre & Marchands des Âmes",   color: '#9b724a', y: T2_Y - 28 },
+        { text: 'Incantateurs & Marcheurs',                   color: '#5a6e90', y: T3_Y - 28 },
     ].forEach(l => {
         const d = document.createElement('div');
-        d.style.cssText = `position:absolute;left:0;right:0;text-align:center;font-family:'Cinzel Decorative',serif;font-size:.58rem;letter-spacing:.15em;color:${l.color};text-transform:uppercase;top:${l.y}px;pointer-events:none;z-index:0`;
+        d.style.cssText = `position:absolute;left:0;right:0;text-align:center;font-family:'Italiana',serif;font-size:.58rem;letter-spacing:.15em;color:${l.color};text-transform:uppercase;top:${l.y}px;pointer-events:none;z-index:0`;
         d.textContent = l.text;
         canvas.appendChild(d);
     });
@@ -3631,7 +3631,7 @@ async function loadPyramide() {
                 el.className = 'pyr-node';
                 el.dataset.id = m.id;
                 el.style.cssText = `position:absolute;left:${xs[i]}px;top:${ty}px;width:${NODE_W}px;height:${NODE_H}px;
-                    background:rgba(6,0,12,.92);border:2px solid ${c}cc;border-radius:10px;
+                    background:rgba(12,6,0,.92);border:2px solid ${c}cc;border-radius:10px;
                     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;padding:0 8px;
                     cursor:grab;user-select:none;box-shadow:0 0 14px ${c}22;z-index:2;`;
                 const gIdx    = GRADES.findIndex(g => g.nom === m.grade);
@@ -3643,7 +3643,7 @@ async function loadPyramide() {
                     : 100;
                 const nextLbl = gNext ? `${gNext.minOcculte - ptsNode} pts → ${gNext.nom}` : '✦ Grade max atteint';
                 el.innerHTML = `
-                    <span style="font-family:'Cinzel',serif;font-size:.85rem;font-weight:700;color:${c};
+                    <span style="font-family:'Cormorant Garamond',serif;font-size:.85rem;font-weight:700;color:${c};
                         white-space:nowrap;max-width:${NODE_W - 16}px;overflow:hidden;text-overflow:ellipsis">${displayName(m)}</span>
                     <span style="font-size:.62rem;color:rgba(255,255,255,.5)">${gradeShort(m.grade)}</span>
                     <span style="font-size:.62rem;color:rgba(255,255,255,.55);font-weight:600">${ptsNode} pts</span>
@@ -3719,17 +3719,17 @@ async function loadPyramide() {
             const cy = (y1 + y2) / 2;
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.setAttribute('d', `M${x1},${y1} C${x1},${cy} ${x2},${cy} ${x2},${y2}`);
-            path.setAttribute('stroke', 'rgba(180,0,0,.55)');
+            path.setAttribute('stroke', 'rgba(79,56,158,.55)');
             path.setAttribute('stroke-width', '2');
             path.setAttribute('fill', 'none');
             // dot at start
             const c1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             c1.setAttribute('cx', x1); c1.setAttribute('cy', y1); c1.setAttribute('r', '3');
-            c1.setAttribute('fill', 'rgba(180,0,0,.6)');
+            c1.setAttribute('fill', 'rgba(79,56,158,.6)');
             // dot at end
             const c2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             c2.setAttribute('cx', x2); c2.setAttribute('cy', y2); c2.setAttribute('r', '3');
-            c2.setAttribute('fill', 'rgba(180,0,0,.6)');
+            c2.setAttribute('fill', 'rgba(79,56,158,.6)');
             svg.appendChild(path);
             svg.appendChild(c1);
             svg.appendChild(c2);
@@ -3999,7 +3999,7 @@ async function loadChannel() {
                 <div class="channel-progress-label">${progressLabel}</div>
             </div>
             ${m.projetOcculte ? `<div class="channel-projet">📜 ${m.projetOcculte}</div>` : ''}
-            ${m.absent ? `<div style="font-size:.65rem;color:var(--text-muted);margin-top:.3rem;font-family:'Cinzel',serif;letter-spacing:.06em">ABSENT</div>` : ''}
+            ${m.absent ? `<div style="font-size:.65rem;color:var(--text-muted);margin-top:.3rem;font-family:'Cormorant Garamond',serif;letter-spacing:.06em">ABSENT</div>` : ''}
         </div>`;
     }).join('');
 }
@@ -4019,7 +4019,7 @@ function loadDashProfil() {
     if (bgEl) {
         bgEl.style.background = m.photoURL
             ? `url('${m.photoURL}') center/cover no-repeat`
-            : `linear-gradient(135deg,${gradeDef.couleur}44,#0a0518)`;
+            : `linear-gradient(135deg,${gradeDef.couleur}44,#180e05)`;
     }
     const avatarEl = document.getElementById('profil-big-avatar');
     if (avatarEl) {
@@ -4144,10 +4144,10 @@ async function loadDashEcole() {
             html += `<div class="ecole-card" style="margin-bottom:1.5rem">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
                     <div style="display:flex;align-items:center;gap:.85rem">
-                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid rgba(204,68,255,.5);box-shadow:0 0 28px rgba(204,68,255,.4)">` : `<div style="width:120px;height:120px;border-radius:50%;background:rgba(80,0,120,.45);display:flex;align-items:center;justify-content:center;font-size:2.8rem;flex-shrink:0;border:3px solid rgba(204,68,255,.3)">🏛</div>`}
+                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid rgba(255,162,68,.5);box-shadow:0 0 28px rgba(255,162,68,.4)">` : `<div style="width:120px;height:120px;border-radius:50%;background:rgba(120,60,0,.45);display:flex;align-items:center;justify-content:center;font-size:2.8rem;flex-shrink:0;border:3px solid rgba(255,162,68,.3)">🏛</div>`}
                         <div>
-                            <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--g2);text-shadow:0 0 12px rgba(204,68,255,.4)">${e.nom}</div>
-                            <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
+                            <div style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--g2);text-shadow:0 0 12px rgba(255,162,68,.4)">${e.nom}</div>
+                            <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cormorant Garamond',serif">École de ${e.fondateurNom}</div>
                             ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
                         </div>
                     </div>
@@ -4161,18 +4161,18 @@ async function loadDashEcole() {
 
                 <div style="display:flex;align-items:center;gap:.5rem;margin:.8rem 0 .5rem">
                     <div style="flex:1;height:1px;background:rgba(255,255,255,.07)"></div>
-                    <span style="font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.14em;color:var(--text-muted);text-transform:uppercase">Membres (${membresValides.length})</span>
+                    <span style="font-family:'Cormorant Garamond',serif;font-size:.62rem;letter-spacing:.14em;color:var(--text-muted);text-transform:uppercase">Membres (${membresValides.length})</span>
                     <div style="flex:1;height:1px;background:rgba(255,255,255,.07)"></div>
                 </div>
                 ${membresValides.length ? membresValides.map(s => {
                     const mb = s.data();
                     const init = ((mb.prenom || '')[0] || (mb.nom || '')[0] || '?').toUpperCase();
                     return `<div style="display:flex;align-items:center;gap:.7rem;padding:.5rem .7rem;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;margin-bottom:.3rem">
-                        <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(204,68,255,.25);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(100,20,140,.5),rgba(60,0,90,.5));font-family:'Cinzel',serif;font-size:.82rem;color:var(--g2)">
+                        <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(255,162,68,.25);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(140,80,20,.5),rgba(90,45,0,.5));font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--g2)">
                             ${mb.photoURL ? `<img src="${mb.photoURL}" style="width:100%;height:100%;object-fit:cover">` : init}
                         </div>
                         <div style="flex:1;min-width:0">
-                            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${displayName(mb)}</div>
+                            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--text)">${displayName(mb)}</div>
                             <div style="font-size:.7rem;color:var(--text-muted)">${mb.grade || ''}</div>
                         </div>
                         <button style="background:none;border:none;font-size:.7rem;color:rgba(255,100,100,.4);cursor:pointer;padding:.2rem .4rem;border-radius:4px;transition:color .2s" onmouseover="this.style.color='rgba(255,100,100,.8)'" onmouseout="this.style.color='rgba(255,100,100,.4)'" onclick="retirerMembreEcole('${eDoc.id}','${s.id}','${(displayName(mb)).replace(/'/g,"\\'")}')">Retirer ✕</button>
@@ -4181,19 +4181,19 @@ async function loadDashEcole() {
 
                 ${incanSnap.docs.length ? `
                 <div style="display:flex;align-items:center;gap:.5rem;margin:.8rem 0 .5rem">
-                    <div style="flex:1;height:1px;background:rgba(204,68,255,.15)"></div>
-                    <span style="font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.14em;color:rgba(204,68,255,.5);text-transform:uppercase">Incantations Exclusives (${incanSnap.docs.length})</span>
-                    <div style="flex:1;height:1px;background:rgba(204,68,255,.15)"></div>
+                    <div style="flex:1;height:1px;background:rgba(255,162,68,.15)"></div>
+                    <span style="font-family:'Cormorant Garamond',serif;font-size:.62rem;letter-spacing:.14em;color:rgba(255,162,68,.5);text-transform:uppercase">Incantations Exclusives (${incanSnap.docs.length})</span>
+                    <div style="flex:1;height:1px;background:rgba(255,162,68,.15)"></div>
                 </div>
                 ${incanSnap.docs.map(id => {
                     const inc = id.data();
                     incanCache.set(id.id, inc);
                     const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
                     const cout = inc.cout || inc.pointsManipulation || 0;
-                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem .6rem;background:rgba(204,68,255,.05);border:1px solid rgba(204,68,255,.15);border-radius:8px;margin-bottom:.35rem;cursor:pointer" onclick="viewIncanById('${id.id}')" title="Voir les détails">
+                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.45rem .6rem;background:rgba(255,162,68,.05);border:1px solid rgba(255,162,68,.15);border-radius:8px;margin-bottom:.35rem;cursor:pointer" onclick="viewIncanById('${id.id}')" title="Voir les détails">
                         <span style="color:var(--g2);font-size:1rem">✦</span>
                         <div style="flex:1;min-width:0">
-                            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${inc.nom}</div>
+                            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--text)">${inc.nom}</div>
                             <div style="font-size:.72rem;color:var(--text-muted)">
                                 ${cout ? `+${cout} Manip.` : ''} ${pts ? `+${pts} Puiss.` : ''}
                             </div>
@@ -4203,8 +4203,8 @@ async function loadDashEcole() {
                     </div>`;
                 }).join('')}` : ''}
                 ${e.savoirUnique ? `
-                <div style="margin-top:.9rem;padding:.75rem 1rem;background:rgba(201,165,42,.06);border:1px solid rgba(201,165,42,.22);border-radius:10px">
-                    <div style="font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:.4rem">✦ Savoir Unique de l'École</div>
+                <div style="margin-top:.9rem;padding:.75rem 1rem;background:rgba(42,201,188,.06);border:1px solid rgba(42,201,188,.22);border-radius:10px">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:.6rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:.4rem">✦ Savoir Unique de l'École</div>
                     <div style="font-size:.82rem;color:var(--text);line-height:1.65;font-style:italic">${e.savoirUnique}</div>
                 </div>` : ''}
             </div>`;
@@ -4223,7 +4223,7 @@ async function loadDashEcole() {
                 emptyEl.style.display = '';
                 emptyEl.innerHTML = `<div class="glass-card" style="text-align:center;padding:1.5rem">
                     <div style="font-size:1.5rem;margin-bottom:.75rem">⚠️</div>
-                    <div style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--text);margin-bottom:.4rem">Votre école a été supprimée</div>
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:.9rem;color:var(--text);margin-bottom:.4rem">Votre école a été supprimée</div>
                     <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem">Vous êtes encore rattaché à une école qui n'existe plus.</p>
                     <button class="btn btn-ghost" onclick="quitterEcoleFantome()">⤴ Quitter l'école</button>
                 </div>`;
@@ -4242,10 +4242,10 @@ async function loadDashEcole() {
             document.getElementById('ecole-membre-card').innerHTML = `
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem">
                     <div style="display:flex;align-items:center;gap:.85rem">
-                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid rgba(204,68,255,.5);box-shadow:0 0 24px rgba(204,68,255,.35)">` : `<div style="width:110px;height:110px;border-radius:50%;background:rgba(80,0,120,.45);display:flex;align-items:center;justify-content:center;font-size:2.5rem;flex-shrink:0;border:3px solid rgba(204,68,255,.3)">🏛</div>`}
+                        ${e.logoURL ? `<img src="${e.logoURL}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid rgba(255,162,68,.5);box-shadow:0 0 24px rgba(255,162,68,.35)">` : `<div style="width:110px;height:110px;border-radius:50%;background:rgba(120,60,0,.45);display:flex;align-items:center;justify-content:center;font-size:2.5rem;flex-shrink:0;border:3px solid rgba(255,162,68,.3)">🏛</div>`}
                         <div>
-                            <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--g2);text-shadow:0 0 14px rgba(204,68,255,.4)">${e.nom}</div>
-                            <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cinzel',serif">École de ${e.fondateurNom}</div>
+                            <div style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--g2);text-shadow:0 0 14px rgba(255,162,68,.4)">${e.nom}</div>
+                            <div style="font-size:.72rem;color:var(--gold);letter-spacing:.08em;margin-top:.25rem;font-family:'Cormorant Garamond',serif">École de ${e.fondateurNom}</div>
                             ${e.description ? `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">${e.description}</p>` : ''}
                         </div>
                     </div>
@@ -4254,40 +4254,40 @@ async function loadDashEcole() {
 
                 <div style="display:flex;align-items:center;gap:.5rem;margin:.8rem 0 .5rem">
                     <div style="flex:1;height:1px;background:rgba(255,255,255,.07)"></div>
-                    <span style="font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.14em;color:var(--text-muted);text-transform:uppercase">Membres (${membNbr})</span>
+                    <span style="font-family:'Cormorant Garamond',serif;font-size:.62rem;letter-spacing:.14em;color:var(--text-muted);text-transform:uppercase">Membres (${membNbr})</span>
                     <div style="flex:1;height:1px;background:rgba(255,255,255,.07)"></div>
                 </div>
                 ${membresValides.map(s => {
                     const mb = s.data();
                     const init = ((mb.prenom||'')[0]||(mb.nom||'')[0]||'?').toUpperCase();
                     const isSelf = s.id === currentMembre.id;
-                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.5rem .7rem;background:${isSelf ? 'rgba(204,68,255,.04)' : 'rgba(255,255,255,.02)'};border:1px solid ${isSelf ? 'rgba(204,68,255,.15)' : 'rgba(255,255,255,.05)'};border-radius:10px;margin-bottom:.3rem">
-                        <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(204,68,255,.25);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(100,20,140,.5),rgba(60,0,90,.5));font-family:'Cinzel',serif;font-size:.82rem;color:var(--g2)">
+                    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.5rem .7rem;background:${isSelf ? 'rgba(255,162,68,.04)' : 'rgba(255,255,255,.02)'};border:1px solid ${isSelf ? 'rgba(255,162,68,.15)' : 'rgba(255,255,255,.05)'};border-radius:10px;margin-bottom:.3rem">
+                        <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(255,162,68,.25);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(140,80,20,.5),rgba(90,45,0,.5));font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--g2)">
                             ${mb.photoURL ? `<img src="${mb.photoURL}" style="width:100%;height:100%;object-fit:cover">` : init}
                         </div>
                         <div style="flex:1;min-width:0">
-                            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${displayName(mb)}${isSelf ? ' <span style="font-size:.6rem;color:rgba(204,68,255,.6)">● vous</span>' : ''}</div>
+                            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--text)">${displayName(mb)}${isSelf ? ' <span style="font-size:.6rem;color:rgba(255,162,68,.6)">● vous</span>' : ''}</div>
                             <div style="font-size:.7rem;color:var(--text-muted)">${mb.grade || ''}</div>
                         </div>
-                        ${isSelf ? `<button style="background:none;border:none;font-size:.7rem;color:rgba(255,180,80,.45);cursor:pointer;padding:.2rem .4rem;border-radius:4px;transition:color .2s" onmouseover="this.style.color='rgba(255,180,80,.9)'" onmouseout="this.style.color='rgba(255,180,80,.45)'" onclick="retirerMembreEcole('${ecoleDoc.id}','${s.id}','${displayName(mb).replace(/'/g,"\\'")}')">⤴ Quitter</button>` : ''}
+                        ${isSelf ? `<button style="background:none;border:none;font-size:.7rem;color:rgba(80,255,240,.45);cursor:pointer;padding:.2rem .4rem;border-radius:4px;transition:color .2s" onmouseover="this.style.color='rgba(80,255,240,.9)'" onmouseout="this.style.color='rgba(80,255,240,.45)'" onclick="retirerMembreEcole('${ecoleDoc.id}','${s.id}','${displayName(mb).replace(/'/g,"\\'")}')">⤴ Quitter</button>` : ''}
                     </div>`;
                 }).join('')}
 
                 ${incanSnap.docs.length ? `
                 <div style="display:flex;align-items:center;gap:.5rem;margin:.8rem 0 .5rem">
-                    <div style="flex:1;height:1px;background:rgba(204,68,255,.15)"></div>
-                    <span style="font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.14em;color:rgba(204,68,255,.5);text-transform:uppercase">Incantations Exclusives (${incanSnap.docs.length})</span>
-                    <div style="flex:1;height:1px;background:rgba(204,68,255,.15)"></div>
+                    <div style="flex:1;height:1px;background:rgba(255,162,68,.15)"></div>
+                    <span style="font-family:'Cormorant Garamond',serif;font-size:.62rem;letter-spacing:.14em;color:rgba(255,162,68,.5);text-transform:uppercase">Incantations Exclusives (${incanSnap.docs.length})</span>
+                    <div style="flex:1;height:1px;background:rgba(255,162,68,.15)"></div>
                 </div>
                 ${incanSnap.docs.map(docSnap => {
                     const inc  = docSnap.data();
                     incanCache.set(docSnap.id, inc);
                     const pts  = inc.ptsOcculte || inc.pointsOcculte || 0;
                     const cout = inc.cout || inc.pointsManipulation || 0;
-                    return `<div style="display:flex;align-items:center;gap:.65rem;padding:.5rem .7rem;background:rgba(204,68,255,.05);border:1px solid rgba(204,68,255,.15);border-radius:8px;margin-bottom:.35rem;cursor:pointer;transition:background .15s" onclick="viewIncanById('${docSnap.id}')" title="Voir les détails">
+                    return `<div style="display:flex;align-items:center;gap:.65rem;padding:.5rem .7rem;background:rgba(255,162,68,.05);border:1px solid rgba(255,162,68,.15);border-radius:8px;margin-bottom:.35rem;cursor:pointer;transition:background .15s" onclick="viewIncanById('${docSnap.id}')" title="Voir les détails">
                         <span style="color:var(--g2);font-size:1.1rem;flex-shrink:0">✦</span>
                         <div style="flex:1;min-width:0">
-                            <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--text)">${inc.nom}</div>
+                            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--text)">${inc.nom}</div>
                             <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.2rem">
                                 ${cout ? `<span class="pts pts-manip" style="font-size:.68rem">+${cout} Manip.</span>` : ''}
                                 ${pts  ? `<span class="pts pts-occulte" style="font-size:.68rem">+${pts} Puiss.</span>` : ''}
@@ -4297,8 +4297,8 @@ async function loadDashEcole() {
                     </div>`;
                 }).join('')}` : `<p style="font-size:.8rem;color:var(--text-muted);margin-top:.75rem">Aucune incantation exclusive pour l'instant.</p>`}
                 ${e.savoirUnique ? `
-                <div style="margin-top:.9rem;padding:.75rem 1rem;background:rgba(201,165,42,.06);border:1px solid rgba(201,165,42,.22);border-radius:10px">
-                    <div style="font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:.4rem">✦ Savoir Unique de l'École</div>
+                <div style="margin-top:.9rem;padding:.75rem 1rem;background:rgba(42,201,188,.06);border:1px solid rgba(42,201,188,.22);border-radius:10px">
+                    <div style="font-family:'Cormorant Garamond',serif;font-size:.6rem;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:.4rem">✦ Savoir Unique de l'École</div>
                     <div style="font-size:.82rem;color:var(--text);line-height:1.65;font-style:italic">${e.savoirUnique}</div>
                 </div>` : ''}`;
             return;
@@ -4432,7 +4432,7 @@ async function rechercherMembreEcole() {
         const hasEcole= m.ecoleId && m.ecoleId !== ecoleId;
         return `<div style="display:flex;align-items:center;gap:.65rem;padding:.5rem .7rem;background:rgba(255,255,255,.025);border-radius:8px;border:1px solid rgba(255,255,255,.06)">
             <div style="flex:1;min-width:0">
-                <div style="font-family:'Cinzel',serif;font-size:.83rem;color:var(--text)">${displayName(m)}</div>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:.83rem;color:var(--text)">${displayName(m)}</div>
                 <div style="font-size:.72rem;color:var(--text-muted)">${m.grade || 'Incantateur'}${hasEcole ? ' · <span style="color:var(--g3)">Déjà dans une école</span>' : ''}</div>
             </div>
             ${inEcole
@@ -4718,9 +4718,9 @@ function openProfilLb(uid) {
     document.documentElement.style.setProperty('--lbp-color', color);
     const banner = document.getElementById('lbp-banner');
     if (isMonarque) {
-        banner.style.background = 'linear-gradient(150deg, #1a0035 0%, #0a000f 60%, rgba(8,8,14,.98) 100%)';
+        banner.style.background = 'linear-gradient(150deg, #351a00 0%, #0f0700 60%, rgba(8,10,14,.98) 100%)';
     } else {
-        banner.style.background = `linear-gradient(150deg, ${color}55 0%, rgba(8,8,14,.95) 80%)`;
+        banner.style.background = `linear-gradient(150deg, ${color}55 0%, rgba(8,10,14,.95) 80%)`;
     }
 
     // Badge de rang
@@ -4728,7 +4728,7 @@ function openProfilLb(uid) {
     if (rank === 1) rankEl.innerHTML = '<span style="font-size:1.5rem">🥇</span>';
     else if (rank === 2) rankEl.innerHTML = '<span style="font-size:1.5rem">🥈</span>';
     else if (rank === 3) rankEl.innerHTML = '<span style="font-size:1.5rem">🥉</span>';
-    else rankEl.innerHTML = `<span style="font-family:'Cinzel',serif;font-size:.78rem;color:rgba(255,255,255,.45)">#${rank}</span>`;
+    else rankEl.innerHTML = `<span style="font-family:'Cormorant Garamond',serif;font-size:.78rem;color:rgba(255,255,255,.45)">#${rank}</span>`;
 
     // Photo
     const photoEl = document.getElementById('lbp-photo');
@@ -4737,7 +4737,7 @@ function openProfilLb(uid) {
         photoEl.innerHTML  = `<img src="${m.photoURL}" style="width:100%;height:100%;object-fit:cover">`;
     } else {
         photoEl.textContent = (m.prenom || m.nom || '?')[0].toUpperCase();
-        photoEl.style.color = isMonarque ? '#cc44ff' : color;
+        photoEl.style.color = isMonarque ? '#4fd6c8' : color;
     }
 
     // Nom avec data-text pour glitch
@@ -4745,8 +4745,8 @@ function openProfilLb(uid) {
     const name   = displayName(m);
     nameEl.textContent        = name;
     nameEl.dataset.text       = name;
-    nameEl.style.color        = isMonarque ? '#e8c0ff' : '#fff';
-    nameEl.style.textShadow   = isMonarque ? '0 0 20px rgba(200,0,255,.7),0 0 60px rgba(150,0,255,.35)' : '';
+    nameEl.style.color        = isMonarque ? '#c9fff5' : '#fff';
+    nameEl.style.textShadow   = isMonarque ? '0 0 20px rgba(79,214,200,.7),0 0 60px rgba(120,240,235,.35)' : '';
 
     document.getElementById('lbp-grade').innerHTML = badgeGrade(m.grade);
 
@@ -4755,23 +4755,23 @@ function openProfilLb(uid) {
     const pts0     = m.pointsOcculte      || 0;
     const manip0   = m.pointsManipulation || 0;
     const titresPts = [
-        { min:1500, label:'Dieu des Ombres',       color:'#ffe066', icon:'👁' },
-        { min: 800, label:'Archonte Maudit',        color:'#e8c0ff', icon:'💀' },
-        { min: 400, label:'Seigneur Occulte',       color:'#cc88ff', icon:'🔮' },
-        { min: 150, label:'Invocateur Confirmé',    color:'#9966cc', icon:'✦'  },
-        { min:  50, label:'Éveillé des Ombres',     color:'#7755aa', icon:'🌑' },
+        { min:1500, label:'Dieu des Ombres',       color:'#66fff2', icon:'👁' },
+        { min: 800, label:'Archonte Maudit',        color:'#ffe0c0', icon:'💀' },
+        { min: 400, label:'Seigneur Occulte',       color:'#ffc388', icon:'🔮' },
+        { min: 150, label:'Invocateur Confirmé',    color:'#cc9966', icon:'✦'  },
+        { min:  50, label:'Éveillé des Ombres',     color:'#aa8055', icon:'🌑' },
     ];
     const titresManip = [
-        { min:300, label:'Démon Incarné',           color:'#ff44aa', icon:'😈' },
-        { min:150, label:'Maître des Fils Noirs',   color:'#cc44ff', icon:'🕸'  },
-        { min: 50, label:'Enchanteur des Esprits',  color:'#9944cc', icon:'🌀' },
-        { min: 20, label:'Faiseur de Doutes',       color:'#7733aa', icon:'🌫'  },
+        { min:300, label:'Démon Incarné',           color:'#ffa244', icon:'😈' },
+        { min:150, label:'Maître des Fils Noirs',   color:'#ffa244', icon:'🕸'  },
+        { min: 50, label:'Enchanteur des Esprits',  color:'#cc8844', icon:'🌀' },
+        { min: 20, label:'Faiseur de Doutes',       color:'#aa6f33', icon:'🌫'  },
     ];
     const tPts   = titresPts.find(t   => pts0   >= t.min);
     const tManip = titresManip.find(t => manip0 >= t.min);
     const titre  = (tManip && (!tPts || tManip.min >= tPts.min)) ? tManip : tPts;
     if (titre) {
-        titreEl.innerHTML = `<span style="font-size:.65rem;letter-spacing:.1em;color:${titre.color};font-family:'Cinzel',serif;opacity:.9">${titre.icon} ${titre.label}</span>`;
+        titreEl.innerHTML = `<span style="font-size:.65rem;letter-spacing:.1em;color:${titre.color};font-family:'Cormorant Garamond',serif;opacity:.9">${titre.icon} ${titre.label}</span>`;
     } else {
         titreEl.innerHTML = '';
     }
@@ -4802,7 +4802,7 @@ function openProfilLb(uid) {
         document.getElementById('lbp-progress-info').textContent  = `${nextGrade.minOcculte - pts} pts restants`;
         const fill = document.getElementById('lbp-progress-fill');
         fill.style.width      = '0%';
-        setTimeout(() => { fill.style.width = pct + '%'; fill.style.background = isMonarque ? 'linear-gradient(90deg,#7700ff,#ff00ff)' : `linear-gradient(90deg,${color},rgba(255,255,255,.35))`; }, 80);
+        setTimeout(() => { fill.style.width = pct + '%'; fill.style.background = isMonarque ? 'linear-gradient(90deg,#155c54,#4fd6c8)' : `linear-gradient(90deg,${color},rgba(255,255,255,.35))`; }, 80);
         progWrap.style.display = '';
     } else {
         progWrap.style.display = 'none';
@@ -5023,7 +5023,7 @@ async function loadAdminReglement() {
             return `<div class="glass-card" style="margin-bottom:.6rem;border-left:3px solid var(--gold)">
                 <div style="display:flex;align-items:flex-start;gap:.75rem">
                     <div style="flex:1;min-width:0">
-                        <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">${r.titre || ''}</div>
+                        <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">${r.titre || ''}</div>
                         <p style="font-size:.82rem;color:var(--text-light);line-height:1.65;white-space:pre-wrap;margin:0">${r.contenu || ''}</p>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
@@ -5091,7 +5091,7 @@ async function loadDashReglement() {
         list.innerHTML = snap.docs.map(d => {
             const r = d.data();
             return `<div class="glass-card" style="margin-bottom:.75rem;border-left:3px solid var(--gold)">
-                <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">${r.titre || ''}</div>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.4rem">${r.titre || ''}</div>
                 <p style="font-size:.84rem;color:var(--text-light);line-height:1.65;white-space:pre-wrap;margin:0">${r.contenu || ''}</p>
             </div>`;
         }).join('');

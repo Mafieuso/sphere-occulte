@@ -621,46 +621,15 @@
       </div>
       <div class="auth-body">
 
-        <!-- Connexion uniquement — l'inscription se fait via l'administrateur -->
-        <form id="form-login" onsubmit="doLogin(event)">
-          <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.1rem;text-align:center;line-height:1.65">
-            L'accès est sur invitation.<br>Connectez-vous avec votre <strong style="color:var(--gold)">Steam ID 64</strong> et le mot de passe fourni par l'administrateur.
-          </p>
-          <div class="form-group">
-            <label class="form-label">Steam ID 64 <span style="color:var(--text-muted);font-size:.72rem">(ou email pour les admins)</span></label>
-            <input class="form-control" type="text" id="login-steam" placeholder="76561198… ou votre@email.com" required autocomplete="username">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Mot de passe</label>
-            <input class="form-control" type="password" id="login-pw" placeholder="••••••••" required autocomplete="current-password">
-          </div>
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.9rem">
-            <input type="checkbox" id="login-remember" style="accent-color:var(--gold);width:14px;height:14px;cursor:pointer">
-            <label for="login-remember" style="font-size:.8rem;color:var(--text-muted);cursor:pointer;user-select:none">Se souvenir de moi</label>
-          </div>
-          <div id="login-alert" class="alert alert-danger" style="display:none"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="login-btn">⬡ Entrer dans l'Ordre</button>
-          <div style="text-align:center;margin-top:.75rem">
-            <button type="button" class="back-link" onclick="toggleForgot()" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--text-muted)">Mot de passe oublié ?</button>
-          </div>
-        </form>
-
-        <!-- Section mot de passe oublié -->
-        <div id="forgot-section" style="display:none;margin-top:.5rem;padding:.9rem;background:rgba(255,255,255,.025);border-radius:10px;border:1px solid rgba(255,255,255,.07)">
-          <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:.75rem;line-height:1.6">
-            Entrez votre <strong style="color:var(--gold)">email</strong> pour recevoir un lien de réinitialisation.<br>
-            <span style="font-size:.72rem">Si vous vous connectez avec un Steam ID, contactez l'administrateur.</span>
-          </p>
-          <div class="form-group" style="margin-bottom:.6rem">
-            <input class="form-control" type="email" id="forgot-email" placeholder="votre@email.com" autocomplete="email">
-          </div>
-          <div id="forgot-alert"   class="alert alert-danger"  style="display:none;margin-bottom:.5rem"></div>
-          <div id="forgot-success" class="alert alert-success" style="display:none;margin-bottom:.5rem"></div>
-          <div style="display:flex;gap:.5rem">
-            <button class="btn btn-primary btn-sm" onclick="envoyerResetPw()" style="flex:1">📧 Envoyer le lien</button>
-            <button class="btn btn-ghost btn-sm" onclick="toggleForgot()">Annuler</button>
-          </div>
-        </div>
+        <!-- Connexion Steam — l'inscription se fait via l'administrateur (accès sur invitation) -->
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem;text-align:center;line-height:1.65">
+          L'accès est sur invitation.<br>Un haut grade doit avoir enregistré votre <strong style="color:var(--gold)">SteamID</strong> avant votre première connexion.
+        </p>
+        <div id="login-alert" class="alert alert-danger" style="display:none"></div>
+        <a href="https://us-central1-sphere-occulte.cloudfunctions.net/steamLogin" class="btn btn-primary btn-full steam-login-btn" style="display:flex;align-items:center;justify-content:center;gap:.6rem">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:22px;height:22px;flex-shrink:0"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0M7.54 18.21l-1.473-.61c.262.539.714.994 1.314 1.246 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.456-.397.957-1.497 1.41-2.454 1.012M17.61 8.91c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015m-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.264 1.014 2.264 2.266 0 1.251-1.015 2.264-2.264 2.264-1.253 0-2.265-1.013-2.265-2.264"/></svg>
+          Se connecter avec Steam
+        </a>
 
         <!-- ── Setup initial (visible seulement si aucun membre) ── -->
         <div id="setup-admin" style="display:none;margin-top:1rem;padding:1rem;background:rgba(42,201,188,.06);border:1px solid rgba(42,201,188,.25);border-radius:12px">
@@ -1507,7 +1476,7 @@ function showView(name) {
     updateNavLinks();
     initTilt();
     if (name === 'home')      loadHome();
-    if (name === 'auth')      { prefillSteam64(); checkSetupAdmin(); }
+    if (name === 'auth')      { checkSetupAdmin(); }
     if (name === 'dashboard') loadDashboard();
     if (name === 'admin')     loadAdminData();
 }
@@ -1566,16 +1535,6 @@ async function creerCompteAdmin(e) {
     }
 }
 
-function prefillSteam64() {
-    const saved = localStorage.getItem('sphere_steam64');
-    const el    = document.getElementById('login-steam');
-    if (saved && el && !el.value) {
-        el.value = saved;
-        const rem = document.getElementById('login-remember');
-        if (rem) rem.checked = true;
-    }
-}
-
 /* ═══════════════════════════════════════════════════════
    3. FIREBASE AUTH STATE
 ═══════════════════════════════════════════════════════ */
@@ -1621,7 +1580,8 @@ auth.onAuthStateChanged(async user => {
     } else {
         currentMembre = null;
         updateNavLinks();
-        showView('home');
+        const hasSteamError = new URLSearchParams(window.location.search).has('erreur');
+        showView(hasSteamError ? 'auth' : 'home');
     }
 });
 
@@ -1790,36 +1750,18 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
 let regPhotoB64  = null;
 let rapScreenB64 = null;
 
-function toggleForgot() {
-    const s = document.getElementById('forgot-section');
-    if (!s) return;
-    const visible = s.style.display !== 'none';
-    s.style.display = visible ? 'none' : '';
-    if (!visible) {
-        hideAlert('forgot-alert');
-        hideAlert('forgot-success');
-        const el = document.getElementById('forgot-email');
-        if (el) { el.value = val('login-steam').includes('@') ? val('login-steam') : ''; el.focus(); }
-    }
-}
-
-async function envoyerResetPw() {
-    hideAlert('forgot-alert');
-    hideAlert('forgot-success');
-    const email = val('forgot-email').trim();
-    if (!email) { showAlert('forgot-alert', 'Entrez votre email.', 'danger'); return; }
-    try {
-        await auth.sendPasswordResetEmail(email);
-        showAlert('forgot-success', '📧 Lien envoyé ! Vérifiez votre boîte mail (et les spams).', 'success');
-    } catch (err) {
-        const msg = err.code === 'auth/user-not-found'
-            ? 'Aucun compte trouvé pour cet email.'
-            : 'Erreur : ' + err.message;
-        showAlert('forgot-alert', msg, 'danger');
-    }
-}
-
 // switchTab supprimé — inscription désactivée, accès sur invitation uniquement
+
+// Message d'erreur renvoyé par le callback Steam (ex: index.html?erreur=refuse)
+(function checkSteamLoginError() {
+    const err = new URLSearchParams(window.location.search).get('erreur');
+    if (!err) return;
+    const map = {
+        refuse: "Accès refusé : votre SteamID n'est enregistré par aucun haut grade. Contactez l'administration pour être invité.",
+        echec:  "La connexion Steam a échoué. Réessayez."
+    };
+    showAlert('login-alert', map[err] || map.echec, 'danger');
+})();
 
 function previewPhoto(e) {
     const f = e.target.files[0];
@@ -1831,32 +1773,6 @@ function previewPhoto(e) {
         img.style.display = 'block';
         document.getElementById('photo-placeholder').style.display = 'none';
     });
-}
-
-async function doLogin(e) {
-    e.preventDefault();
-    const btn = document.getElementById('login-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loader"></span>';
-    hideAlert('login-alert');
-    try {
-        const steam = val('login-steam').trim();
-        if (!steam) throw { code: 'auth/invalid-steam', message: 'Entrez votre Steam ID 64.' };
-        // Compatibilité : si l'entrée contient @, c'est déjà un email (ex: compte admin ancien format)
-        const email = steam.includes('@') ? steam : steam + '@sphere-occulte.rp';
-        await auth.signInWithEmailAndPassword(email, val('login-pw'));
-        // Remember me
-        const remember = document.getElementById('login-remember');
-        if (remember && remember.checked) {
-            localStorage.setItem('sphere_steam64', steam);
-        } else {
-            localStorage.removeItem('sphere_steam64');
-        }
-    } catch (err) {
-        showAlert('login-alert', authErrMsg(err.code), 'danger');
-        btn.disabled = false;
-        btn.textContent = "⬡ Entrer dans l'Ordre";
-    }
 }
 
 // Changement de mot de passe — première connexion
@@ -1950,20 +1866,6 @@ function viewIncan(data) {
 function viewIncanById(id) {
     const data = incanCache.get(id);
     if (data) viewIncan(data);
-}
-
-function authErrMsg(code) {
-    const map = {
-        'auth/invalid-email':        'Steam ID 64 ou mot de passe invalide.',
-        'auth/user-not-found':       'Aucun compte trouvé pour ce Steam ID 64.',
-        'auth/wrong-password':       'Mot de passe incorrect.',
-        'auth/invalid-credential':   'Steam ID 64 ou mot de passe incorrect.',
-        'auth/email-already-in-use': 'Un compte existe déjà pour ce Steam ID.',
-        'auth/weak-password':        'Mot de passe trop faible (min. 6 caractères).',
-        'auth/too-many-requests':    'Trop de tentatives. Réessayez plus tard.',
-        'auth/invalid-steam':        'Entrez votre Steam ID 64.'
-    };
-    return map[code] || 'Erreur de connexion. Vérifiez votre Steam ID 64 et mot de passe.';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3812,7 +3714,6 @@ async function creerMembre(e) {
     hideAlert('creer-alert');
     hideAlert('creer-success');
     try {
-        if (!secondaryAuth) throw new Error('secondaryAuth non disponible');
         const prenom = val('c-prenom').trim();
         const nom    = val('c-nom').trim();
         const steam  = val('c-steam').trim();
@@ -3829,15 +3730,13 @@ async function creerMembre(e) {
             return;
         }
 
-        const tempPw = genTempPw();
-        const email  = steam + '@sphere-occulte.rp';
-
-        const cred = await secondaryAuth.createUserWithEmailAndPassword(email, tempPw);
-        await db.collection('membres').doc(cred.user.uid).set({
-            uid:      cred.user.uid,
+        // Profil pré-enregistré : le membre est automatiquement lié à ce profil
+        // dès sa première connexion via "Se connecter avec Steam".
+        const ref = db.collection('membres').doc();
+        await ref.set({
+            uid:      ref.id,
             prenom,   nom,
             steamId:  steam,
-            email,
             photoURL: '',
             grade:    'Incantateur',
             pointsManipulation: 0,
@@ -3846,25 +3745,16 @@ async function creerMembre(e) {
             projetOcculte:   '',
             nbMembresProjet: 0,
             role:            'membre',
-            firstLogin:      true,
-            tempPassword:    tempPw,
             dateEvolution:   firebase.firestore.Timestamp.now(),
             dateCreation:    firebase.firestore.Timestamp.now()
         });
-        await secondaryAuth.signOut();
         const nomComplet = nom ? prenom + ' ' + nom : prenom;
         await logAction('creation', `Nouveau membre : ${nomComplet}`, 0);
-        showAlert('creer-success', `✅ Compte créé pour ${nomComplet} !`, 'success');
+        showAlert('creer-success', `✅ Profil créé pour ${nomComplet} — il pourra se connecter via Steam.`, 'success');
         e.target.reset();
         loadAdminAcces();
     } catch (err) {
-        const msgMap = {
-            'auth/email-already-in-use': '⚠️ Compte Auth orphelin détecté pour ce Steam ID. Allez dans Firebase Console → Authentication, supprimez l\'entrée "' + (val('c-steam').trim()) + '@sphere-occulte.rp", puis réessayez.',
-            'auth/weak-password':        'Mot de passe trop faible (min. 6 caractères).',
-            'auth/invalid-email':        'Format de Steam ID invalide.'
-        };
-        const msg = msgMap[err.code] || ('Erreur : ' + err.message);
-        showAlert('creer-alert', msg, 'danger');
+        showAlert('creer-alert', 'Erreur : ' + err.message, 'danger');
     }
     btn.disabled = false;
     btn.textContent = 'Créer le compte';

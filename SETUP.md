@@ -63,29 +63,21 @@ const firebaseConfig = {
 
 ---
 
-## Étape 7 — Créer ton compte admin
+## Étape 7 — Créer ton compte admin (premier lancement)
 
-1. Ouvre `login.html` dans un navigateur (ou sur GitHub Pages)
-2. Clique **"Inscription"**
-3. Remplis : ton nom de perso, ton Steam ID, e-mail, mot de passe
-4. Clique **"Créer mon compte"**
+1. Ouvre `index.html` avec `?setup` dans l'URL (ex: `.../index.html?setup`) — ou si aucun membre n'existe encore, le bloc apparaît automatiquement
+2. Remplis : prénom RP, nom RP, ton SteamID 64, mot de passe
+3. Clique **"Créer le compte Monarque"**
 
-**Ensuite**, dans la console Firebase :
-1. Va dans **Firestore** → collection `membres`
-2. Trouve ton document (par ton UID)
-3. Modifie le champ `role` : mets `admin` (au lieu de `membre`)
-4. Sauvegarde
-
-Tu peux maintenant te connecter et accéder au panel admin.
+Ce compte devient automatiquement le premier admin (grade Monarque des Ombres). Tous les comptes suivants (membres ou hauts grades) se connectent uniquement via **Steam** — voir Étape 9bis.
 
 ---
 
 ## Étape 8 — Importer les incantations
 
-1. Connecte-toi sur `admin.html`
-2. Va dans l'onglet **Incantations**
-3. Clique **"⬆ Importer les incantations de base"**
-4. Les 13 incantations sont importées automatiquement
+1. Connecte-toi sur `index.html`, va dans le panel **Admin** → onglet **Incantations**
+2. Clique **"⬆ Importer les incantations de base"**
+3. Les 13 incantations sont importées automatiquement
 
 ---
 
@@ -99,29 +91,47 @@ Tu peux maintenant te connecter et accéder au panel admin.
 
 ---
 
-## Flux d'utilisation normal
+## Étape 9bis — Activer la connexion Steam (Cloud Functions)
 
-```
-Membre          →  Va sur index.html (classement public)
-                →  Clique "Connexion membre"
-                →  Se connecte (email/mdp)
-                →  rapport.html — soumet son rapport
+Depuis la mise à jour "Connexion Steam", **tous les membres se connectent avec leur vrai compte
+Steam** (OpenID officiel — la fenêtre de connexion Steam elle-même), plus de mot de passe à gérer
+au quotidien. Ça demande une pièce en plus du site statique : des **Cloud Functions Firebase**.
 
-Haut Grade      →  Se connecte avec son compte haut_grade/admin
-                →  admin.html — voit les soumissions en attente
-                →  Valide ou refuse avec attribution des points
-                →  Les points et grades se mettent à jour automatiquement
-```
+1. **Passer le projet Firebase en plan Blaze** (pay-as-you-go) :
+   - Console Firebase → ⚙️ **Paramètres du projet** → **Utilisation et facturation** → **Modifier le plan** → **Blaze**
+   - Nécessaire uniquement parce que les Cloud Functions doivent appeler le serveur de Steam pour
+     vérifier la connexion (appel réseau sortant, interdit sur le plan gratuit Spark). Le coût réel
+     est quasi nul à l'échelle d'une communauté RP (quelques connexions/jour).
+2. **Installer les outils Firebase** (une fois, sur ta machine) :
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   ```
+3. **Déployer les fonctions** depuis le dossier `sphere-occulte/` :
+   ```bash
+   firebase deploy --only functions
+   ```
+   Ça publie deux fonctions sur `https://us-central1-sphere-occulte.cloudfunctions.net/` :
+   - `steamLogin` — redirige vers la page de connexion Steam
+   - `steamCallback` — vérifie la réponse de Steam et connecte le membre
+
+Aucune clé Steam Web API n'est nécessaire : la vérification OpenID est publique et ne demande pas
+de compte développeur Steam.
+
+**Accès sur invitation uniquement** : si le SteamID de la personne qui se connecte ne correspond à
+aucun profil dans Firestore (`membres.steamId`), la connexion est refusée. Un haut grade doit
+d'abord enregistrer son profil (voir ci-dessous).
 
 ---
 
 ## Ajouter un nouveau membre (depuis le panel admin)
 
-1. Va dans **admin.html** → onglet **Membres**
-2. Clique **"+ Ajouter un membre"**
-3. Remplis : nom, Steam ID, e-mail, mot de passe initial
-4. Le compte Firebase est créé automatiquement
-5. Partage l'e-mail et le mot de passe au membre via Discord
+1. Sur `index.html`, panel **Admin** → onglet **Accès**
+2. Remplis : prénom RP, nom RP (facultatif), **SteamID 64**
+3. Clique **"➕ Créer l'accès"**
+
+Aucun mot de passe à transmettre : le profil est pré-enregistré, et la personne est automatiquement
+liée à ce profil dès sa première connexion via le bouton **"Se connecter avec Steam"**.
 
 ---
 
@@ -129,14 +139,16 @@ Haut Grade      →  Se connecte avec son compte haut_grade/admin
 
 ```
 sphere-occulte/
-├── index.html          → Classement public (pas de connexion requise)
-├── login.html          → Page de connexion / inscription
-├── rapport.html        → Soumettre un rapport (membres connectés)
-├── admin.html          → Panel hauts grades
+├── index.html          → Site complet (classement public, connexion Steam, dashboard, panel admin)
 ├── firebase-config.js  → ⚠️ À configurer avec vos clés Firebase
 ├── styles.css          → Styles partagés
+├── particles.js         → Décor animé
 ├── firestore.rules     → Règles de sécurité Firestore (à coller dans la console)
-└── storage.rules       → Règles de sécurité Storage (à coller dans la console)
+├── storage.rules       → Règles de sécurité Storage (à coller dans la console)
+├── functions/          → Cloud Functions — connexion Steam (voir Étape 9bis)
+├── firebase.json       → Config Firebase CLI (Firestore + Functions)
+└── login.html, rapport.html, admin.html
+    → Anciennes pages autonomes, non reliées à index.html aujourd'hui (laissées pour référence)
 ```
 
 ---

@@ -38,6 +38,16 @@
     font-family: 'Karla', sans-serif; font-size: .88rem; transition: all .2s;
 }
 .tab-switch button.active { background: var(--bg2); color: var(--text); }
+.steam-btn {
+    display: flex; align-items: center; justify-content: center; gap: .6rem;
+    width: 100%; padding: .8rem 1.2rem; border-radius: 9px;
+    background: #171a21; color: #fff; border: 1px solid rgba(255,255,255,.12);
+    font-family: 'Karla', sans-serif; font-size: .95rem; font-weight: 600;
+    cursor: pointer; transition: all .2s; text-decoration: none;
+}
+.steam-btn:hover { background: #2a3f5f; border-color: rgba(255,255,255,.25); color: #fff; }
+.steam-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+.login-note { font-size: .78rem; color: var(--text-muted); text-align: center; margin-top: 1.1rem; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -49,54 +59,17 @@
         <p>PORTAIL D'ACCÈS</p>
     </div>
     <div class="card login-card">
-        <div class="tab-switch">
-            <button class="active" onclick="switchTab('connexion')">Connexion</button>
-            <button onclick="switchTab('inscription')">Inscription</button>
-        </div>
-
         <div id="alert-box"></div>
 
-        <!-- Connexion -->
-        <form id="form-connexion">
-            <div class="form-group">
-                <label class="form-label">Adresse e-mail</label>
-                <input type="email" id="login-email" class="form-control" placeholder="votre@email.com" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Mot de passe</label>
-                <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" id="btn-login">
-                Se connecter
-            </button>
-        </form>
+        <a href="https://us-central1-sphere-occulte.cloudfunctions.net/steamLogin" class="steam-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0M7.54 18.21l-1.473-.61c.262.539.714.994 1.314 1.246 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.456-.397.957-1.497 1.41-2.454 1.012M17.61 8.91c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015m-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.264 1.014 2.264 2.266 0 1.251-1.015 2.264-2.264 2.264-1.253 0-2.265-1.013-2.265-2.264"/></svg>
+            Se connecter avec Steam
+        </a>
 
-        <!-- Inscription -->
-        <form id="form-inscription" style="display:none">
-            <div class="form-group">
-                <label class="form-label">Nom du personnage (RP)</label>
-                <input type="text" id="reg-nom" class="form-control" placeholder="Ex: Hanma Tenchi" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Steam ID 64</label>
-                <input type="text" id="reg-steamid" class="form-control" placeholder="76561198XXXXXXXXX">
-                <div class="form-hint">Trouvable sur steamid.io — optionnel, peut être complété par un haut grade.</div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Adresse e-mail</label>
-                <input type="email" id="reg-email" class="form-control" placeholder="votre@email.com" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Mot de passe</label>
-                <input type="password" id="reg-password" class="form-control" placeholder="Min. 6 caractères" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" id="btn-register">
-                Créer mon compte
-            </button>
-            <p class="text-dim text-sm mt-2" style="text-align:center">
-                Votre compte sera actif dès validation par un haut grade.
-            </p>
-        </form>
+        <p class="login-note">
+            Votre compte est retrouvé automatiquement via votre SteamID.<br>
+            Première connexion depuis le passage à Steam ? Ça marche aussi — vous retrouverez votre profil existant.
+        </p>
     </div>
     <p style="text-align:center; margin-top:1rem">
         <a href="index.html">← Retour au classement</a>
@@ -109,101 +82,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-function switchTab(tab) {
-    const isConn = tab === 'connexion';
-    document.getElementById('form-connexion').style.display  = isConn ? '' : 'none';
-    document.getElementById('form-inscription').style.display = isConn ? 'none' : '';
-    document.querySelectorAll('.tab-switch button').forEach((b, i) => {
-        b.classList.toggle('active', isConn ? i === 0 : i === 1);
-    });
-    clearAlert();
-}
-
 function showAlert(msg, type = 'danger') {
     document.getElementById('alert-box').innerHTML =
         `<div class="alert alert-${type}">${msg}</div>`;
 }
 function clearAlert() { document.getElementById('alert-box').innerHTML = ''; }
 
-// ── Connexion ──────────────────────────────────────────────────
-document.getElementById('form-connexion').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearAlert();
-    const btn = document.getElementById('btn-login');
-    btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
-    try {
-        const email    = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-        const cred = await auth.signInWithEmailAndPassword(email, password);
-        const membreDoc = await db.collection('membres').doc(cred.user.uid).get();
-        if (!membreDoc.exists) {
-            await auth.signOut();
-            showAlert("Votre profil n'existe pas encore. Contactez un haut grade.");
-            return;
-        }
-        const role = membreDoc.data().role;
-        if (role === 'haut_grade' || role === 'admin') {
-            window.location.href = 'admin.html';
-        } else {
-            window.location.href = 'rapport.html';
-        }
-    } catch (err) {
-        showAlert(traduitErreur(err.code));
-    } finally {
-        btn.disabled = false; btn.innerHTML = 'Se connecter';
-    }
-});
-
-// ── Inscription ────────────────────────────────────────────────
-document.getElementById('form-inscription').addEventListener('submit', async e => {
-    e.preventDefault();
-    clearAlert();
-    const btn = document.getElementById('btn-register');
-    btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
-    try {
-        const nom      = document.getElementById('reg-nom').value.trim();
-        const steamId  = document.getElementById('reg-steamid').value.trim();
-        const email    = document.getElementById('reg-email').value.trim();
-        const password = document.getElementById('reg-password').value;
-
-        if (!nom) { showAlert("Veuillez entrer votre nom de personnage."); return; }
-
-        const cred = await auth.createUserWithEmailAndPassword(email, password);
-        await db.collection('membres').doc(cred.user.uid).set({
-            uid: cred.user.uid,
-            nom,
-            steamId: steamId || '',
-            email,
-            grade: 'Incantateur',
-            pointsManipulation: 0,
-            pointsOcculte: 0,
-            absent: false,
-            projetOcculte: '',
-            nbMembresProjet: 0,
-            dateEvolution: firebase.firestore.Timestamp.now(),
-            role: 'membre',
-            dateCreation: firebase.firestore.Timestamp.now()
-        });
-        showAlert("Compte créé ! Vous pouvez maintenant soumettre vos rapports.", 'success');
-        setTimeout(() => window.location.href = 'rapport.html', 1200);
-    } catch (err) {
-        showAlert(traduitErreur(err.code));
-    } finally {
-        btn.disabled = false; btn.innerHTML = 'Créer mon compte';
-    }
-});
-
-function traduitErreur(code) {
-    const map = {
-        'auth/invalid-email':        "Adresse e-mail invalide.",
-        'auth/user-not-found':       "Aucun compte trouvé avec cet e-mail.",
-        'auth/wrong-password':       "Mot de passe incorrect.",
-        'auth/email-already-in-use': "Cet e-mail est déjà utilisé.",
-        'auth/weak-password':        "Mot de passe trop court (min. 6 caractères).",
-        'auth/invalid-credential':   "E-mail ou mot de passe incorrect.",
-        'auth/too-many-requests':    "Trop de tentatives. Réessayez dans quelques minutes.",
-    };
-    return map[code] || `Erreur : ${code}`;
+// Message d'erreur renvoyé par le callback Steam (ex: login.html?erreur=1)
+if (new URLSearchParams(window.location.search).get('erreur')) {
+    showAlert("La connexion Steam a échoué. Réessayez.");
 }
 
 // Redirige si déjà connecté

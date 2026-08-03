@@ -621,23 +621,14 @@
                     <input type="text" id="m-nom" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Steam ID 64</label>
-                    <input type="text" id="m-steamid" class="form-control">
+                    <label class="form-label">Steam ID 64 *</label>
+                    <input type="text" id="m-steamid" class="form-control" placeholder="76561198XXXXXXXXX">
                 </div>
             </div>
             <div id="m-creation-fields">
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label class="form-label">E-mail *</label>
-                        <input type="email" id="m-email" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Mot de passe initial *</label>
-                        <input type="password" id="m-password" class="form-control" placeholder="Min. 6 caractères">
-                    </div>
-                </div>
                 <div class="alert alert-info" style="margin-bottom:1rem">
-                    Le compte sera créé avec cet e-mail et ce mot de passe. Partagez-les au membre via Discord.
+                    Le profil est pré-enregistré avec ce SteamID. Le membre est automatiquement
+                    connecté à ce profil dès sa première connexion via le bouton "Se connecter avec Steam".
                 </div>
             </div>
             <div class="grid-2">
@@ -782,9 +773,6 @@
 // ════════════════════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════════════════════
-const secondaryApp  = firebase.initializeApp(firebase.app().options, 'secondary');
-const secondaryAuth = secondaryApp.auth();
-
 let currentAdmin        = null;
 let currentAdminMembre  = null;
 let allMembres          = [];
@@ -1102,7 +1090,7 @@ function ouvrirModalMembre(uid) {
     document.getElementById('alert-modal-membre').innerHTML = '';
 
     if (isNew) {
-        ['m-uid','m-nom','m-steamid','m-email','m-password','m-projet'].forEach(id => document.getElementById(id).value = '');
+        ['m-uid','m-nom','m-steamid','m-projet'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('m-manip').value   = 0;
         document.getElementById('m-occulte').value = 0;
         document.getElementById('m-role').value    = 'membre';
@@ -1149,14 +1137,12 @@ document.getElementById('form-membre').addEventListener('submit', async e => {
         const grade   = getGrade(occulte).nom;
 
         if (!uid) {
-            const email    = document.getElementById('m-email').value.trim();
-            const password = document.getElementById('m-password').value;
-            if (!email || !password) { alertBox.innerHTML = '<div class="alert alert-danger">E-mail et mot de passe requis.</div>'; return; }
-            const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
-            const newUid = cred.user.uid;
-            await secondaryAuth.signOut();
-            await db.collection('membres').doc(newUid).set({
-                uid: newUid, nom, steamId, email, grade, role, absent,
+            if (!steamId) { alertBox.innerHTML = '<div class="alert alert-danger">Steam ID 64 requis.</div>'; return; }
+            const doublon = await db.collection('membres').where('steamId', '==', steamId).limit(1).get();
+            if (!doublon.empty) { alertBox.innerHTML = '<div class="alert alert-danger">Ce SteamID est déjà lié à un profil existant.</div>'; return; }
+            const ref = db.collection('membres').doc();
+            await ref.set({
+                uid: ref.id, nom, steamId, grade, role, absent,
                 projetOcculte: projet, nbMembresProjet: 0,
                 pointsManipulation: manip, pointsOcculte: occulte,
                 dateEvolution: firebase.firestore.Timestamp.now(),

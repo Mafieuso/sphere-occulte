@@ -1344,6 +1344,8 @@
             </form>
           </div>
 
+          <div id="glitch-self-test" style="margin-bottom:1.25rem"></div>
+
           <!-- Séparateur -->
           <div style="font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:.75rem">Comptes enregistrés</div>
           <div id="acces-list"></div>
@@ -1869,9 +1871,16 @@ function applyGlitchMode(active) {
         });
     };
 
+    // Une modale ouverte (édition d'un membre, arrêt de la Corruption…) doit
+    // toujours rester utilisable — sinon un admin coincé sur son propre compte
+    // corrompu ne pourrait plus jamais se réparer lui-même.
+    const modalOpen = () => !!document.querySelector('.modal-overlay:not(.hidden)');
+    const isGlitchProtected = el => !!el.closest('.modal-overlay:not(.hidden), [data-glitch-safe]');
+
     // Rend le site à peine utilisable : les clics sont parfois ignorés,
-    // le contenu se floute par à-coups.
+    // le contenu se floute par à-coups. Jamais si une modale est ouverte.
     const impairUsability = () => {
+        if (modalOpen()) return;
         document.body.style.pointerEvents = 'none';
         document.body.style.filter = 'blur(2.5px) contrast(1.3)';
         glitchTimeouts.push(setTimeout(() => {
@@ -1910,7 +1919,7 @@ function applyGlitchMode(active) {
     // Des boutons visibles se mettent à fuir le curseur / téléporter à l'écran
     const runawayButtons = () => {
         const btns = [...document.querySelectorAll('button, .btn, a.back-link')].filter(b => {
-            if (b.dataset.glitchOrigStyle !== undefined) return false;
+            if (b.dataset.glitchOrigStyle !== undefined || isGlitchProtected(b)) return false;
             const r = b.getBoundingClientRect();
             return r.width > 4 && r.height > 4 && r.top < window.innerHeight && r.bottom > 0;
         });
@@ -1943,7 +1952,7 @@ function applyGlitchMode(active) {
     const corruptRealText = () => {
         const els = [...document.querySelectorAll('.dash-nav-item, .sidebar-nav-item, .panel-title, .nl-link, button, .btn')]
             .filter(el => {
-                if (el.dataset.glitchOrigText !== undefined) return false;
+                if (el.dataset.glitchOrigText !== undefined || isGlitchProtected(el)) return false;
                 const r = el.getBoundingClientRect();
                 return r.width > 10 && r.top < window.innerHeight && r.bottom > 0 && el.children.length === 0;
             });
@@ -3705,6 +3714,21 @@ async function loadAdminAcces() {
 
     const isAdmin = currentMembre?.role === 'admin';
 
+    const selfTestEl = document.getElementById('glitch-self-test');
+    if (selfTestEl && isAdmin) {
+        const moi = membres.find(m => m.id === currentMembre.id) || currentMembre;
+        selfTestEl.innerHTML = `
+          <div style="padding:.85rem 1rem;border-radius:14px;border:1px solid rgba(255,162,68,.25);background:rgba(255,162,68,.05)">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--g2);margin-bottom:.5rem">🧪 Tester la Corruption sur mon propre compte</div>
+            <button class="btn btn-sm ${moi.glitchActif ? 'btn-danger' : 'btn-ghost'}" data-glitch-safe="1" onclick="toggleGlitch('${currentMembre.id}',${!!moi.glitchActif})">
+                ${moi.glitchActif ? '👁 Corruption active sur moi — Arrêter' : '👁 Déclencher la Corruption sur moi-même'}
+            </button>
+            <div style="font-size:.68rem;color:var(--text-muted);margin-top:.5rem">Ce bouton, les modales ouvertes et les boutons "Arrêter" restent toujours cliquables, même en pleine Corruption.</div>
+          </div>`;
+    } else if (selfTestEl) {
+        selfTestEl.innerHTML = '';
+    }
+
     list.innerHTML = membres.map(m => {
         const name  = displayName(m) || m.steamId || m.id;
         const hasCo = !!m.lastLogin;
@@ -3748,7 +3772,7 @@ async function loadAdminAcces() {
         const glitchEligible = ['Marchand des Âmes', 'Monarque des Ombres'].includes(m.grade);
         const glitchRow = (isAdmin && glitchEligible)
             ? `<div style="margin-top:.5rem">
-                <button class="btn btn-sm ${m.glitchActif ? 'btn-danger' : 'btn-ghost'}" onclick="toggleGlitch('${m.id}',${!!m.glitchActif})">
+                <button class="btn btn-sm ${m.glitchActif ? 'btn-danger' : 'btn-ghost'}" data-glitch-safe="1" onclick="toggleGlitch('${m.id}',${!!m.glitchActif})">
                     ${m.glitchActif ? '👁 Corruption active — Arrêter' : '👁 Déclencher la Corruption'}
                 </button>
               </div>`

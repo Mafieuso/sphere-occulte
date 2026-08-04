@@ -1125,35 +1125,75 @@ body.music-playing #music-player {
 
 /* ── Corruption "Marchand des Âmes" ─────────────────────────────── */
 body.glitch-mode {
-    animation: glitch-shake 6.5s infinite;
+    animation: glitch-shake 2.4s infinite;
 }
 body.glitch-mode::before {
     content: '';
-    position: fixed; inset: 0; z-index: 99998; pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgba(255,10,60,.035) 0px, transparent 1px, transparent 2px, rgba(0,220,255,.03) 3px);
+    position: fixed; inset: 0; z-index: 99996; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(255,10,60,.06) 0px, transparent 1px, transparent 2px, rgba(0,220,255,.05) 3px);
     mix-blend-mode: screen;
-    animation: glitch-scan 4.2s linear infinite;
+    animation: glitch-scan 2.6s linear infinite;
 }
 body.glitch-mode::after {
     content: '';
-    position: fixed; inset: 0; z-index: 99997; pointer-events: none;
-    box-shadow: inset 0 0 140px rgba(140,0,20,.35);
-    animation: glitch-pulse 5.5s ease-in-out infinite;
+    position: fixed; inset: 0; z-index: 99995; pointer-events: none;
+    box-shadow: inset 0 0 90px rgba(160,0,20,.55), inset 0 0 220px rgba(90,0,10,.4);
+    animation: glitch-pulse 2.1s ease-in-out infinite;
 }
 @keyframes glitch-shake {
-    0%, 93%, 100% { transform: none; filter: none; }
-    93.5% { transform: translate(-4px, 2px) skewX(1.2deg); filter: hue-rotate(25deg) saturate(2.2); }
-    94.5% { transform: translate(4px, -2px) skewX(-1.4deg); filter: invert(.06) hue-rotate(-25deg); }
-    95.3% { transform: translate(-2px, 1px); filter: contrast(1.5) brightness(1.2); }
-    96% { transform: translate(3px, -1px) skewX(.8deg); filter: none; }
-    97.4% { transform: translate(-3px, 0); filter: hue-rotate(-15deg); }
+    0%, 78%, 100% { transform: none; filter: none; }
+    79%   { transform: translate(-6px, 3px) skewX(2deg);   filter: hue-rotate(30deg) saturate(2.4); }
+    80.5% { transform: translate(6px, -3px) skewX(-2.4deg); filter: invert(.1) hue-rotate(-30deg); }
+    82%   { transform: translate(-4px, 2px) scaleX(1.01);  filter: contrast(1.6) brightness(1.3); }
+    83.5% { transform: translate(5px, -2px) skewX(1.4deg); filter: none; }
+    85%   { transform: translate(-3px, 0);                 filter: hue-rotate(-20deg); }
+    88%, 91% { transform: none; filter: none; }
+    92%   { transform: translate(4px, -2px) skewX(-1.6deg); filter: invert(.08) saturate(3); }
+    93.2% { transform: translate(-5px, 2px);               filter: hue-rotate(40deg); }
+    94.5% { transform: none; filter: contrast(1.4); }
 }
-@keyframes glitch-scan { 0% { transform: translateY(0); } 100% { transform: translateY(8px); } }
-@keyframes glitch-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
-#glitch-text-overlay {
-    position: fixed; z-index: 99999; pointer-events: none;
+@keyframes glitch-scan { 0% { transform: translateY(0); } 100% { transform: translateY(10px); } }
+@keyframes glitch-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+/* Bruit statique */
+.glitch-noise {
+    position: fixed; inset: -20px; z-index: 99997; pointer-events: none;
+    opacity: .05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: glitch-noise-shift .3s steps(2) infinite;
+}
+@keyframes glitch-noise-shift { 0% { transform: translate(0,0); } 50% { transform: translate(-2%,1%); } 100% { transform: translate(1%,-2%); } }
+
+/* Barres de déchirement d'écran (screen-tear) */
+.glitch-tear {
+    position: fixed; left: 0; right: 0; height: 3px; z-index: 99999; pointer-events: none;
+    background: rgba(255,255,255,.55); mix-blend-mode: difference;
+    box-shadow: 0 0 12px rgba(255,0,60,.8);
+}
+
+/* Flash plein écran (jump-scare) */
+.glitch-flash {
+    position: fixed; inset: 0; z-index: 100000; pointer-events: none;
+    opacity: 0; transition: opacity .06s linear;
+}
+.glitch-flash.on { opacity: 1; }
+
+#glitch-text-overlay, .glitch-text-extra {
+    position: fixed; z-index: 100001; pointer-events: none;
     font-family: 'Cinzel Decorative', serif; font-weight: 700;
-    color: rgba(255,30,30,.88); letter-spacing: .08em; text-transform: uppercase;
-    text-shadow: 2px 0 rgba(0,220,255,.65), -2px 0 rgba(255,0,80,.65), 0 0 24px rgba(255,0,0,.55);
-    white-space: nowrap; opacity: 0; transition: opacity .12s ease-out;
+    color: rgba(255,30,30,.92); letter-spacing: .08em; text-transform: uppercase;
+    text-shadow: 3px 0 rgba(0,220,255,.75), -3px 0 rgba(255,0,80,.75), 0 0 30px rgba(255,0,0,.65);
+    white-space: nowrap; opacity: 0; transition: opacity .08s ease-out;
+}
+
+/* Distorsion des cartes / conteneurs pendant la corruption */
+body.glitch-mode .card, body.glitch-mode .glass-card, body.glitch-mode .panel,
+body.glitch-mode .hero-stat, body.glitch-mode .lb-row {
+    animation: glitch-card-jitter 3.3s infinite;
+}
+@keyframes glitch-card-jitter {
+    0%, 90%, 100% { transform: none; border-color: inherit; }
+    91% { transform: translateX(-2px); filter: hue-rotate(15deg); }
+    92% { transform: translateX(2px); filter: none; }
+    93% { transform: translateX(-1px) scaleY(1.01); }
 }

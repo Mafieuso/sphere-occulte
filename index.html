@@ -1640,11 +1640,14 @@ auth.onAuthStateChanged(async user => {
 });
 
 // ── Corruption "Marchand des Âmes" — effet glitch contrôlé par l'admin ──
-let glitchInterval = null;
+let glitchIntervals = [];
 const GLITCH_PHRASES = [
     'JE DOIS AVOIR LA PUISSANCE', 'ENCORE... ENCORE...', "LA FAIM NE S'ARRÊTE JAMAIS",
     'ILS NE SONT RIEN', 'DONNEZ-MOI PLUS', 'LE VIDE M\'APPELLE', 'JE VOIS À TRAVERS TOI',
-    'PLUS... TOUJOURS PLUS...', 'LA SPHÈRE M\'A CHOISI', 'RIEN NE ME SUFFIT'
+    'PLUS... TOUJOURS PLUS...', 'LA SPHÈRE M\'A CHOISI', 'RIEN NE ME SUFFIT',
+    'REGARDE DERRIÈRE TOI', 'ELLE TE REGARDE', 'NE FERME PAS LES YEUX',
+    'ON T\'ENTEND RESPIRER', 'BIENTÔT TU SERAS MOI', 'LIBÈRE-MOI', 'ILS SAVENT',
+    'TU NE PEUX PAS PARTIR', 'LA PUISSANCE A UN PRIX', 'JE SUIS DÉJÀ LÀ'
 ];
 
 // Déclenche automatiquement la Corruption la première fois qu'un membre atteint
@@ -1659,28 +1662,71 @@ function glitchTriggerPayload(oldGrade, newGrade, currentGlitchActif) {
 
 function applyGlitchMode(active) {
     document.body.classList.toggle('glitch-mode', active);
-    if (glitchInterval) { clearInterval(glitchInterval); glitchInterval = null; }
-    let overlay = document.getElementById('glitch-text-overlay');
-    if (!active) {
-        if (overlay) overlay.remove();
-        return;
-    }
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'glitch-text-overlay';
-        document.body.appendChild(overlay);
-    }
-    const flash = () => {
-        overlay.textContent = GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
-        overlay.style.left  = (Math.random() * 60 + 10) + '%';
-        overlay.style.top   = (Math.random() * 70 + 10) + '%';
-        overlay.style.fontSize = (Math.random() * 1.4 + 1) + 'rem';
-        overlay.style.transform = `translate(-50%,-50%) skewX(${Math.round(Math.random() * 10 - 5)}deg)`;
-        overlay.style.opacity = '1';
-        setTimeout(() => { overlay.style.opacity = '0'; }, 350 + Math.random() * 300);
+    glitchIntervals.forEach(clearInterval);
+    glitchIntervals = [];
+    ['glitch-noise', 'glitch-flash', 'glitch-text-overlay']
+        .concat([0,1,2].map(i => 'glitch-text-extra-' + i))
+        .forEach(id => document.getElementById(id)?.remove());
+    document.querySelectorAll('.glitch-tear').forEach(el => el.remove());
+    if (!active) return;
+
+    const noise = document.createElement('div');
+    noise.id = 'glitch-noise'; noise.className = 'glitch-noise';
+    document.body.appendChild(noise);
+
+    const flashEl = document.createElement('div');
+    flashEl.id = 'glitch-flash'; flashEl.className = 'glitch-flash';
+    document.body.appendChild(flashEl);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'glitch-text-overlay';
+    document.body.appendChild(overlay);
+    const extras = [0, 1, 2].map(i => {
+        const el = document.createElement('div');
+        el.id = 'glitch-text-extra-' + i;
+        el.className = 'glitch-text-extra';
+        document.body.appendChild(el);
+        return el;
+    });
+
+    const flashText = el => {
+        el.textContent = GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
+        el.style.left  = (Math.random() * 65 + 5) + '%';
+        el.style.top   = (Math.random() * 75 + 8) + '%';
+        el.style.fontSize = (Math.random() * 1.8 + 1) + 'rem';
+        el.style.transform = `translate(-50%,-50%) skewX(${Math.round(Math.random() * 16 - 8)}deg)`;
+        el.style.opacity = '1';
+        setTimeout(() => { el.style.opacity = '0'; }, 260 + Math.random() * 320);
     };
-    flash();
-    glitchInterval = setInterval(flash, 2600 + Math.random() * 2600);
+
+    const tear = () => {
+        const bar = document.createElement('div');
+        bar.className = 'glitch-tear';
+        bar.style.top = (Math.random() * 100) + '%';
+        document.body.appendChild(bar);
+        setTimeout(() => bar.remove(), 120 + Math.random() * 180);
+    };
+
+    const bigFlash = () => {
+        flashEl.style.background = Math.random() < .5 ? 'rgba(180,0,10,.8)' : 'rgba(0,0,0,.88)';
+        flashEl.classList.add('on');
+        setTimeout(() => flashEl.classList.remove('on'), 55 + Math.random() * 70);
+    };
+
+    // Texte principal, très fréquent
+    flashText(overlay);
+    glitchIntervals.push(setInterval(() => flashText(overlay), 700 + Math.random() * 900));
+    // Textes secondaires, décalés, pour donner l'impression que ça vient de partout
+    extras.forEach((el, i) => {
+        setTimeout(() => {
+            flashText(el);
+            glitchIntervals.push(setInterval(() => flashText(el), 1400 + Math.random() * 1600));
+        }, i * 400);
+    });
+    // Déchirures d'écran fréquentes
+    glitchIntervals.push(setInterval(tear, 500 + Math.random() * 700));
+    // Flash plein écran occasionnel (jump-scare)
+    glitchIntervals.push(setInterval(bigFlash, 4000 + Math.random() * 5000));
 }
 
 /* ═══════════════════════════════════════════════════════

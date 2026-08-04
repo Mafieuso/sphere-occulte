@@ -1768,6 +1768,20 @@ function applyGlitchMode(active) {
     document.querySelectorAll('img.glitch-img-corrupt').forEach(el => el.classList.remove('glitch-img-corrupt'));
     document.querySelectorAll('img[style*="visibility: hidden"]').forEach(el => el.style.visibility = '');
     document.body.style.pointerEvents = '';
+    document.body.style.filter = '';
+    document.body.classList.remove('glitch-chaos');
+    document.documentElement.classList.remove('glitch-spin');
+    // Restaure les boutons qui étaient en train de fuir le curseur
+    document.querySelectorAll('[data-glitch-orig-style]').forEach(el => {
+        el.setAttribute('style', el.dataset.glitchOrigStyle);
+        el.classList.remove('glitch-runaway');
+        delete el.dataset.glitchOrigStyle;
+    });
+    // Restaure le texte corrompu
+    document.querySelectorAll('[data-glitch-orig-text]').forEach(el => {
+        el.textContent = el.dataset.glitchOrigText;
+        delete el.dataset.glitchOrigText;
+    });
     setBgMusicDistorted(active); // on désactive aussi si active === false
     if (!active) return;
 
@@ -1885,6 +1899,81 @@ function applyGlitchMode(active) {
     document.addEventListener('click', unlockAudio, { once: true });
     document.addEventListener('keydown', unlockAudio, { once: true });
 
+    // L'écran entier tourne brièvement
+    const screenSpin = () => {
+        document.documentElement.classList.remove('glitch-spin');
+        void document.documentElement.offsetWidth; // force le redémarrage de l'animation
+        document.documentElement.classList.add('glitch-spin');
+        glitchTimeouts.push(setTimeout(() => document.documentElement.classList.remove('glitch-spin'), 2500));
+    };
+
+    // Des boutons visibles se mettent à fuir le curseur / téléporter à l'écran
+    const runawayButtons = () => {
+        const btns = [...document.querySelectorAll('button, .btn, a.back-link')].filter(b => {
+            if (b.dataset.glitchOrigStyle !== undefined) return false;
+            const r = b.getBoundingClientRect();
+            return r.width > 4 && r.height > 4 && r.top < window.innerHeight && r.bottom > 0;
+        });
+        if (!btns.length) return;
+        btns.sort(() => Math.random() - .5).slice(0, Math.min(5, btns.length)).forEach(btn => {
+            btn.dataset.glitchOrigStyle = btn.getAttribute('style') || '';
+            const r = btn.getBoundingClientRect();
+            btn.classList.add('glitch-runaway');
+            btn.style.left = r.left + 'px';
+            btn.style.top  = r.top + 'px';
+            let moves = 0;
+            const mover = setInterval(() => {
+                moves++;
+                btn.style.left = (Math.random() * Math.max(0, window.innerWidth  - r.width))  + 'px';
+                btn.style.top  = (Math.random() * Math.max(0, window.innerHeight - r.height)) + 'px';
+                if (moves >= 6) {
+                    clearInterval(mover);
+                    if (btn.dataset.glitchOrigStyle !== undefined) {
+                        btn.setAttribute('style', btn.dataset.glitchOrigStyle);
+                        btn.classList.remove('glitch-runaway');
+                        delete btn.dataset.glitchOrigStyle;
+                    }
+                }
+            }, 240);
+            glitchIntervals.push(mover);
+        });
+    };
+
+    // Le texte réel de l'interface (nav, boutons, titres) se corrompt un instant
+    const corruptRealText = () => {
+        const els = [...document.querySelectorAll('.dash-nav-item, .sidebar-nav-item, .panel-title, .nl-link, button, .btn')]
+            .filter(el => {
+                if (el.dataset.glitchOrigText !== undefined) return false;
+                const r = el.getBoundingClientRect();
+                return r.width > 10 && r.top < window.innerHeight && r.bottom > 0 && el.children.length === 0;
+            });
+        if (!els.length) return;
+        els.sort(() => Math.random() - .5).slice(0, Math.min(4, els.length)).forEach(el => {
+            el.dataset.glitchOrigText = el.textContent;
+            el.textContent = GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
+            glitchTimeouts.push(setTimeout(() => {
+                if (el.dataset.glitchOrigText !== undefined) {
+                    el.textContent = el.dataset.glitchOrigText;
+                    delete el.dataset.glitchOrigText;
+                }
+            }, 500 + Math.random() * 500));
+        });
+    };
+
+    // "Le site part en couille" — tout se déclenche en même temps pendant
+    // quelques secondes : rotation, boutons fuyants, texte corrompu, filtres
+    // qui saturent l'écran.
+    const totalChaos = () => {
+        document.body.classList.add('glitch-chaos');
+        screenSpin();
+        runawayButtons();
+        corruptRealText();
+        glitchNoiseBurst();
+        glitchTimeouts.push(setTimeout(runawayButtons, 900));
+        glitchTimeouts.push(setTimeout(corruptRealText, 1200));
+        glitchTimeouts.push(setTimeout(() => document.body.classList.remove('glitch-chaos'), 2800));
+    };
+
     // Texte principal, très fréquent
     flashText(overlay);
     glitchIntervals.push(setInterval(() => flashText(overlay), 380 + Math.random() * 500));
@@ -1903,9 +1992,16 @@ function applyGlitchMode(active) {
     glitchIntervals.push(setInterval(corruptImages, 1500 + Math.random() * 1800));
     // Le site devient à peine utilisable par intermittence
     glitchIntervals.push(setInterval(impairUsability, 2500 + Math.random() * 3000));
+    // Texte réel de l'interface qui se corrompt
+    glitchIntervals.push(setInterval(corruptRealText, 2000 + Math.random() * 2200));
+    // Boutons qui fuient le clic
+    glitchIntervals.push(setInterval(runawayButtons, 3500 + Math.random() * 3000));
     // Cri plein écran + son + rafale de déchirures — le vrai jump-scare
     glitchTimeouts.push(setTimeout(scream, 1500));
     glitchIntervals.push(setInterval(scream, 5000 + Math.random() * 5000));
+    // "Part en couille absolue" — événement rare mais total
+    glitchTimeouts.push(setTimeout(totalChaos, 4000));
+    glitchIntervals.push(setInterval(totalChaos, 12000 + Math.random() * 8000));
 }
 
 /* ═══════════════════════════════════════════════════════

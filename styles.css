@@ -1122,3 +1122,38 @@ body.music-playing #music-player {
 .profil-save-btn { width:100%; padding:.85rem; font-size:.9rem; letter-spacing:.12em; }
 
 @media (max-width:480px) { .profil-fields-row { grid-template-columns:1fr; } .profil-id-card { height:150px; } .profil-big-avatar { width:82px; height:82px; } .profil-id-name { font-size:.92rem; } }
+
+/* ── Corruption "Marchand des Âmes" ─────────────────────────────── */
+body.glitch-mode {
+    animation: glitch-shake 6.5s infinite;
+}
+body.glitch-mode::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 99998; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(255,10,60,.035) 0px, transparent 1px, transparent 2px, rgba(0,220,255,.03) 3px);
+    mix-blend-mode: screen;
+    animation: glitch-scan 4.2s linear infinite;
+}
+body.glitch-mode::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 99997; pointer-events: none;
+    box-shadow: inset 0 0 140px rgba(140,0,20,.35);
+    animation: glitch-pulse 5.5s ease-in-out infinite;
+}
+@keyframes glitch-shake {
+    0%, 93%, 100% { transform: none; filter: none; }
+    93.5% { transform: translate(-4px, 2px) skewX(1.2deg); filter: hue-rotate(25deg) saturate(2.2); }
+    94.5% { transform: translate(4px, -2px) skewX(-1.4deg); filter: invert(.06) hue-rotate(-25deg); }
+    95.3% { transform: translate(-2px, 1px); filter: contrast(1.5) brightness(1.2); }
+    96% { transform: translate(3px, -1px) skewX(.8deg); filter: none; }
+    97.4% { transform: translate(-3px, 0); filter: hue-rotate(-15deg); }
+}
+@keyframes glitch-scan { 0% { transform: translateY(0); } 100% { transform: translateY(8px); } }
+@keyframes glitch-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+#glitch-text-overlay {
+    position: fixed; z-index: 99999; pointer-events: none;
+    font-family: 'Cinzel Decorative', serif; font-weight: 700;
+    color: rgba(255,30,30,.88); letter-spacing: .08em; text-transform: uppercase;
+    text-shadow: 2px 0 rgba(0,220,255,.65), -2px 0 rgba(255,0,80,.65), 0 0 24px rgba(255,0,0,.55);
+    white-space: nowrap; opacity: 0; transition: opacity .12s ease-out;
+}

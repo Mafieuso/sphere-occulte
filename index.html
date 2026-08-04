@@ -1612,6 +1612,7 @@ auth.onAuthStateChanged(async user => {
                 }).catch(() => {});
                 listenNotifications();
                 updateNavLinks();
+                applyGlitchMode(!!currentMembre.glitchActif);
                 if (currentMembre.firstLogin) {
                     showView('home');
                     openModal('modal-change-pw');
@@ -1621,19 +1622,66 @@ auth.onAuthStateChanged(async user => {
             } else {
                 currentMembre = null;
                 updateNavLinks();
+                applyGlitchMode(false);
                 showView('home');
             }
         } catch (e) {
             currentMembre = null;
             updateNavLinks();
+            applyGlitchMode(false);
             showView('home');
         }
     } else {
         currentMembre = null;
         updateNavLinks();
+        applyGlitchMode(false);
         showView('home');
     }
 });
+
+// ── Corruption "Marchand des Âmes" — effet glitch contrôlé par l'admin ──
+let glitchInterval = null;
+const GLITCH_PHRASES = [
+    'JE DOIS AVOIR LA PUISSANCE', 'ENCORE... ENCORE...', "LA FAIM NE S'ARRÊTE JAMAIS",
+    'ILS NE SONT RIEN', 'DONNEZ-MOI PLUS', 'LE VIDE M\'APPELLE', 'JE VOIS À TRAVERS TOI',
+    'PLUS... TOUJOURS PLUS...', 'LA SPHÈRE M\'A CHOISI', 'RIEN NE ME SUFFIT'
+];
+
+// Déclenche automatiquement la Corruption la première fois qu'un membre atteint
+// Marchand des Âmes. N'agit qu'une seule fois : une fois arrêtée par l'admin
+// (glitchActif passe à false explicitement), elle ne se redéclenche plus toute seule.
+function glitchTriggerPayload(oldGrade, newGrade, currentGlitchActif) {
+    if (newGrade === 'Marchand des Âmes' && oldGrade !== 'Marchand des Âmes' && currentGlitchActif === undefined) {
+        return { glitchActif: true };
+    }
+    return {};
+}
+
+function applyGlitchMode(active) {
+    document.body.classList.toggle('glitch-mode', active);
+    if (glitchInterval) { clearInterval(glitchInterval); glitchInterval = null; }
+    let overlay = document.getElementById('glitch-text-overlay');
+    if (!active) {
+        if (overlay) overlay.remove();
+        return;
+    }
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'glitch-text-overlay';
+        document.body.appendChild(overlay);
+    }
+    const flash = () => {
+        overlay.textContent = GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
+        overlay.style.left  = (Math.random() * 60 + 10) + '%';
+        overlay.style.top   = (Math.random() * 70 + 10) + '%';
+        overlay.style.fontSize = (Math.random() * 1.4 + 1) + 'rem';
+        overlay.style.transform = `translate(-50%,-50%) skewX(${Math.round(Math.random() * 10 - 5)}deg)`;
+        overlay.style.opacity = '1';
+        setTimeout(() => { overlay.style.opacity = '0'; }, 350 + Math.random() * 300);
+    };
+    flash();
+    glitchInterval = setInterval(flash, 2600 + Math.random() * 2600);
+}
 
 /* ═══════════════════════════════════════════════════════
    4. HOME VIEW
@@ -2786,15 +2834,17 @@ async function validerSoum(soumId, membreId, pts, manip = 0) {
     batch.update(memRef, {
         pointsOcculte: newOcculte, grade: newGrade,
         ...(manip > 0 ? { pointsManipulation: firebase.firestore.FieldValue.increment(manip) } : {}),
-        ...(newGrade !== m.grade ? { dateEvolution: firebase.firestore.Timestamp.now() } : {})
+        ...(newGrade !== m.grade ? { dateEvolution: firebase.firestore.Timestamp.now() } : {}),
+        ...glitchTriggerPayload(m.grade, newGrade, m.glitchActif)
     });
 
     // Monarque(s) — même montant que l'incantateur
     monarqueSnap.docs.forEach(mDoc => {
         if (mDoc.id === membreId || mDoc.id === fondateurId) return;
         const md = mDoc.data();
-        const newMO = (md.pointsOcculte || 0) + pts;
-        batch.update(mDoc.ref, { pointsOcculte: newMO, grade: getGrade(newMO) });
+        const newMO      = (md.pointsOcculte || 0) + pts;
+        const newMOGrade = getGrade(newMO);
+        batch.update(mDoc.ref, { pointsOcculte: newMO, grade: newMOGrade, ...glitchTriggerPayload(md.grade, newMOGrade, md.glitchActif) });
     });
 
     // Gérant (fondateur) de l'école — même montant que l'incantateur
@@ -2803,8 +2853,9 @@ async function validerSoum(soumId, membreId, pts, manip = 0) {
         const fondDoc = await fondRef.get();
         if (fondDoc.exists) {
             const fd = fondDoc.data();
-            const newFO = (fd.pointsOcculte || 0) + pts;
-            batch.update(fondRef, { pointsOcculte: newFO, grade: getGrade(newFO) });
+            const newFO      = (fd.pointsOcculte || 0) + pts;
+            const newFOGrade = getGrade(newFO);
+            batch.update(fondRef, { pointsOcculte: newFO, grade: newFOGrade, ...glitchTriggerPayload(fd.grade, newFOGrade, fd.glitchActif) });
         }
     }
 
@@ -2975,17 +3026,18 @@ async function sauvegarderMembre() {
         return;
     }
 
+    const newGrade = getGrade(newOcculte);
     const data = {
         prenom:  val('edit-prenom').trim(),
         nom:     val('edit-nom').trim(),
         steamId: val('edit-steam').trim(),
         pointsManipulation: newManip,
         pointsOcculte:      newOcculte,
-        grade:   getGrade(newOcculte),
+        grade:   newGrade,
         role:    newRole,
-        absent:  document.getElementById('edit-absent').checked
+        absent:  document.getElementById('edit-absent').checked,
+        ...glitchTriggerPayload(m?.grade, newGrade, m?.glitchActif)
     };
-    const newGrade = getGrade(newOcculte);
     const gradeChanged = m && newGrade !== m.grade;
     if (gradeChanged) data.dateEvolution = firebase.firestore.Timestamp.now();
     await db.collection('membres').doc(id).update(data);
@@ -3372,6 +3424,15 @@ async function loadAdminAcces() {
                     title="Révoquer l'accès">✕</button>`
             : '';
 
+        const glitchEligible = ['Marchand des Âmes', 'Monarque des Ombres'].includes(m.grade);
+        const glitchRow = (isAdmin && glitchEligible)
+            ? `<div style="margin-top:.5rem">
+                <button class="btn btn-sm ${m.glitchActif ? 'btn-danger' : 'btn-ghost'}" onclick="toggleGlitch('${m.id}',${!!m.glitchActif})">
+                    ${m.glitchActif ? '👁 Corruption active — Arrêter' : '👁 Déclencher la Corruption'}
+                </button>
+              </div>`
+            : '';
+
         return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);margin-bottom:.55rem">
             <div style="width:9px;height:9px;border-radius:50%;background:${dot};flex-shrink:0;margin-top:.55rem"></div>
             <div style="flex:1;min-width:0">
@@ -3384,10 +3445,21 @@ async function loadAdminAcces() {
                     <span style="font-size:.68rem;color:var(--text-muted)">⏱ ${lastCo}</span>
                 </div>
                 ${codeRow}
+                ${glitchRow}
             </div>
             ${revokeBtn}
         </div>`;
     }).join('');
+}
+
+async function toggleGlitch(membreId, currentlyActif) {
+    const next = !currentlyActif;
+    if (!confirm(next
+        ? 'Déclencher la Corruption sur ce membre ? Son interface deviendra glitchée et instable jusqu\'à ce que vous l\'arrêtiez.'
+        : 'Arrêter la Corruption sur ce membre ?')) return;
+    await db.collection('membres').doc(membreId).update({ glitchActif: next });
+    if (currentMembre?.id === membreId) { currentMembre.glitchActif = next; applyGlitchMode(next); }
+    loadAdminAcces();
 }
 
 async function regenererCode(membreId, steamId, ancienCode) {

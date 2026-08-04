@@ -375,11 +375,12 @@
 <div class="modal-overlay hidden" id="modal-incan-ecole">
   <div class="modal-box" style="max-width:520px">
     <div class="modal-head">
-      <span class="modal-head-title">✦ Incantation d'École</span>
+      <span class="modal-head-title" id="ie-modal-title">✦ Incantation d'École</span>
       <button class="modal-close-btn" onclick="closeModal('modal-incan-ecole')">✕</button>
     </div>
     <div class="modal-body" style="max-height:80vh;overflow-y:auto;padding-right:.5rem">
       <input type="hidden" id="ie-ecole-id">
+      <input type="hidden" id="ie-edit-id">
       <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1.1rem">Cette incantation sera <strong style="color:var(--g2)">exclusive</strong> aux membres de votre école.</p>
 
       <!-- Identité -->
@@ -459,7 +460,7 @@
       <div id="ie-success" class="alert alert-success" style="display:none;margin-bottom:.75rem"></div>
       <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem">
         <button class="btn btn-ghost" onclick="closeModal('modal-incan-ecole')">Annuler</button>
-        <button class="btn btn-violet" onclick="confirmerCreerIncanEcole()">✦ Créer</button>
+        <button class="btn btn-violet" id="ie-submit-btn" onclick="confirmerCreerIncanEcole()">✦ Créer</button>
       </div>
     </div>
   </div>
@@ -2056,18 +2057,25 @@ function loadIncanForRap() {
     if (rapDateEl && !rapDateEl.value) rapDateEl.value = new Date().toISOString().split('T')[0];
 
     const memEcoleId = currentMembre.ecoleId || null;
-    const queries    = [db.collection('incantations').orderBy('nom').get()];
+    // Pas de tri composite côté Firestore (éviterait de dépendre d'un index composite) —
+    // on trie côté client par grade puis par nom.
+    const queries    = [db.collection('incantations').get()];
     if (memEcoleId) queries.push(db.collection('incantations').where('ecoleId', '==', memEcoleId).get());
 
     Promise.all(queries).then(([pubSnap, ecoleSnap]) => {
         const sel = document.getElementById('rap-incan');
         if (!sel) return;
 
-        // Incantations publiques accessibles au grade
-        const pubAccessible = pubSnap.docs.filter(d => {
-            const i = d.data();
-            return !i.ecoleId && (i.gradeOrdre !== undefined ? i.gradeOrdre : 0) <= memberGradeIdx;
-        });
+        // Incantations publiques accessibles au grade, triées Incantateur → grades supérieurs
+        const pubAccessible = pubSnap.docs
+            .filter(d => {
+                const i = d.data();
+                return !i.ecoleId && (i.gradeOrdre !== undefined ? i.gradeOrdre : 0) <= memberGradeIdx;
+            })
+            .sort((a, b) => {
+                const go = (a.data().gradeOrdre || 0) - (b.data().gradeOrdre || 0);
+                return go !== 0 ? go : (a.data().nom || '').localeCompare(b.data().nom || '');
+            });
 
         const ecoleAccessible = ecoleSnap ? ecoleSnap.docs : [];
 
@@ -2740,22 +2748,13 @@ async function validerSoum(soumId, membreId, pts, manip = 0) {
     const soumRef = db.collection('soumissions').doc(soumId);
     const memRef  = db.collection('membres').doc(membreId);
 
-    const drainMonarque  = pts > 0 ? Math.max(1, Math.floor(pts * 0.2)) : 0;
-    const drainFondateur = pts > 0 ? Math.max(1, Math.floor(pts * 0.1)) : 0;
+    // Chaîne Incantateur → Gérant École → Monarque : incantation d'école uniquement,
+    // les trois reçoivent exactement les mêmes points.
+    const [memDoc, soumDoc] = await Promise.all([memRef.get(), soumRef.get()]);
 
-    // Lecture parallèle : membre + Monarques + soumission
-    const [memDoc, monarqueSnap, soumDoc] = await Promise.all([
-        memRef.get(),
-        drainMonarque > 0
-            ? db.collection('membres').where('grade', '==', 'Monarque des Ombres').get()
-            : Promise.resolve({ docs: [] }),
-        soumRef.get()
-    ]);
-
-    // Chercher le fondateur si incantation d'école
     let fondateurId = null;
     const incanId = soumDoc.data()?.incanId;
-    if (incanId && drainFondateur > 0) {
+    if (incanId && pts > 0) {
         try {
             const incanDoc = await db.collection('incantations').doc(incanId).get();
             if (incanDoc.exists && incanDoc.data().ecoleId) {
@@ -2764,6 +2763,10 @@ async function validerSoum(soumId, membreId, pts, manip = 0) {
             }
         } catch(e) {}
     }
+
+    const monarqueSnap = (fondateurId && pts > 0)
+        ? await db.collection('membres').where('grade', '==', 'Monarque des Ombres').get()
+        : { docs: [] };
 
     const m          = memDoc.data();
     const newOcculte = (m.pointsOcculte || 0) + pts;
@@ -2776,23 +2779,21 @@ async function validerSoum(soumId, membreId, pts, manip = 0) {
         ...(newGrade !== m.grade ? { dateEvolution: firebase.firestore.Timestamp.now() } : {})
     });
 
-    // Monarque +20% (sur chaque Monarque existant)
+    // Monarque(s) — même montant que l'incantateur
     monarqueSnap.docs.forEach(mDoc => {
         if (mDoc.id === membreId || mDoc.id === fondateurId) return;
         const md = mDoc.data();
-        const newMO = (md.pointsOcculte || 0) + drainMonarque;
+        const newMO = (md.pointsOcculte || 0) + pts;
         batch.update(mDoc.ref, { pointsOcculte: newMO, grade: getGrade(newMO) });
     });
 
-    // Fondateur école +10% si incantation d'école utilisée
+    // Gérant (fondateur) de l'école — même montant que l'incantateur
     if (fondateurId && fondateurId !== membreId) {
         const fondRef = db.collection('membres').doc(fondateurId);
         const fondDoc = await fondRef.get();
         if (fondDoc.exists) {
             const fd = fondDoc.data();
-            // Le monarque prend toujours, même si c'est aussi le fondateur
-            const monarquePart = monarqueSnap.docs.some(d => d.id === fondateurId) ? drainMonarque : 0;
-            const newFO = (fd.pointsOcculte || 0) + drainFondateur + monarquePart;
+            const newFO = (fd.pointsOcculte || 0) + pts;
             batch.update(fondRef, { pointsOcculte: newFO, grade: getGrade(newFO) });
         }
     }
@@ -2800,8 +2801,8 @@ async function validerSoum(soumId, membreId, pts, manip = 0) {
     await batch.commit();
     await logAction('validation',
         `+${pts}pts → ${displayName(m)} (${newGrade})` +
-        (fondateurId ? ` | Fondateur +${drainFondateur}` : '') +
-        (monarqueSnap.docs.length ? ` | Monarque +${drainMonarque}` : ''), pts);
+        (fondateurId ? ` | Gérant école +${pts}` : '') +
+        (monarqueSnap.docs.length ? ` | Monarque +${pts}` : ''), pts);
 }
 
 async function supprimerSoum(soumId) {
@@ -4220,6 +4221,7 @@ async function loadDashEcole() {
                             </div>
                         </div>
                         <span style="font-size:.65rem;color:var(--text-muted);flex-shrink:0">▼ Détails</span>
+                        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();ouvrirIncanEcole('${eDoc.id}','${id.id}')">✏ Modifier</button>
                         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();supprimerIncanEcole('${id.id}','${eDoc.id}')">✕</button>
                     </div>`;
                 }).join('')}` : ''}
@@ -4557,23 +4559,35 @@ function pentagChanged(el) {
     }
 }
 
-function ouvrirIncanEcole(ecoleId) {
+function ouvrirIncanEcole(ecoleId, incanId) {
     document.getElementById('ie-ecole-id').value = ecoleId;
-    ['ie-nom','ie-desc','ie-cat','ie-objet','ie-explication',
-     'ie-socle','ie-socle-desc','ie-incantation'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    document.getElementById('ie-manip').value = '0';
-    document.getElementById('ie-pts').value   = '0';
-    document.querySelectorAll('#ie-pentagrames input[type="checkbox"]').forEach(cb => cb.checked = false);
+    document.getElementById('ie-edit-id').value   = incanId || '';
+    document.getElementById('ie-modal-title').textContent = incanId ? '✏ Modifier l\'Incantation' : '✦ Incantation d\'École';
+    document.getElementById('ie-submit-btn').textContent  = incanId ? '✏ Enregistrer' : '✦ Créer';
     document.getElementById('ie-alert').style.display   = 'none';
     document.getElementById('ie-success').style.display = 'none';
+
+    const inc = incanId ? incanCache.get(incanId) : null;
+    document.getElementById('ie-nom').value           = inc?.nom             || '';
+    document.getElementById('ie-desc').value           = inc?.utilisation     || '';
+    document.getElementById('ie-cat').value            = inc?.categorie       || '';
+    document.getElementById('ie-objet').value          = inc?.objetRequis     || '';
+    document.getElementById('ie-explication').value    = inc?.explication     || '';
+    document.getElementById('ie-socle').value          = inc?.socle           || '';
+    document.getElementById('ie-socle-desc').value     = inc?.descriptionSocle|| '';
+    document.getElementById('ie-incantation').value    = inc?.texteIncantation|| '';
+    document.getElementById('ie-manip').value = inc?.cout       || '0';
+    document.getElementById('ie-pts').value   = inc?.ptsOcculte || '0';
+    const pentaSet = new Set(inc?.pentagrames || []);
+    document.querySelectorAll('#ie-pentagrames input[type="checkbox"]').forEach(cb => {
+        cb.checked = inc ? (cb.value === 'aucun' ? pentaSet.size === 0 : pentaSet.has(cb.value)) : false;
+    });
     openModal('modal-incan-ecole');
 }
 
 async function confirmerCreerIncanEcole() {
     const ecoleId = document.getElementById('ie-ecole-id').value;
+    const editId  = document.getElementById('ie-edit-id').value;
     const nom     = document.getElementById('ie-nom').value.trim();
     const desc    = document.getElementById('ie-desc').value.trim();
     const manip   = parseInt(document.getElementById('ie-manip').value) || 0;
@@ -4595,6 +4609,22 @@ async function confirmerCreerIncanEcole() {
     const descriptionSocle = (document.getElementById('ie-socle-desc')?.value  || '').trim();
     const checkedPenta     = [...document.querySelectorAll('#ie-pentagrames input[type="checkbox"]:checked')].map(cb => cb.value);
     const pentagrames      = checkedPenta.includes('aucun') ? [] : checkedPenta;
+
+    if (editId) {
+        const updateData = {
+            nom, utilisation: desc,
+            texteIncantation, categorie,
+            objetRequis, explication,
+            socle, descriptionSocle,
+            pentagrames,
+            cout: manip, ptsOcculte: pts
+        };
+        await db.collection('incantations').doc(editId).update(updateData);
+        document.getElementById('ie-success').textContent = '✏ Incantation modifiée !';
+        document.getElementById('ie-success').style.display = '';
+        setTimeout(() => { closeModal('modal-incan-ecole'); loadDashEcole(); }, 1200);
+        return;
+    }
 
     const docData = {
         nom, utilisation: desc,

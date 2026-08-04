@@ -1641,14 +1641,18 @@ auth.onAuthStateChanged(async user => {
 
 // ── Corruption "Marchand des Âmes" — effet glitch contrôlé par l'admin ──
 let glitchIntervals = [];
+let glitchTimeouts  = [];
 const GLITCH_PHRASES = [
     'JE DOIS AVOIR LA PUISSANCE', 'ENCORE... ENCORE...', "LA FAIM NE S'ARRÊTE JAMAIS",
     'ILS NE SONT RIEN', 'DONNEZ-MOI PLUS', 'LE VIDE M\'APPELLE', 'JE VOIS À TRAVERS TOI',
     'PLUS... TOUJOURS PLUS...', 'LA SPHÈRE M\'A CHOISI', 'RIEN NE ME SUFFIT',
     'REGARDE DERRIÈRE TOI', 'ELLE TE REGARDE', 'NE FERME PAS LES YEUX',
     'ON T\'ENTEND RESPIRER', 'BIENTÔT TU SERAS MOI', 'LIBÈRE-MOI', 'ILS SAVENT',
-    'TU NE PEUX PAS PARTIR', 'LA PUISSANCE A UN PRIX', 'JE SUIS DÉJÀ LÀ'
+    'TU NE PEUX PAS PARTIR', 'LA PUISSANCE A UN PRIX', 'JE SUIS DÉJÀ LÀ',
+    'ARRÊTE DE RÉSISTER', 'NE TE RETOURNE PAS', 'C\'EST TROP TARD',
+    'ELLE EST DERRIÈRE L\'ÉCRAN', 'SORS', 'TU N\'ES PAS SEUL ICI'
 ];
+const GLITCH_FACES = ['👁️', '👁️‍🗨️', '💀', '🫥', '😐', '◉_◉', '҉'];
 
 // Déclenche automatiquement la Corruption la première fois qu'un membre atteint
 // Marchand des Âmes. N'agit qu'une seule fois : une fois arrêtée par l'admin
@@ -1660,11 +1664,70 @@ function glitchTriggerPayload(oldGrade, newGrade, currentGlitchActif) {
     return {};
 }
 
-let glitchAudioCtx = null;
+// AudioContext persistant — jamais fermé une fois créé, car l'audio d'ambiance
+// (bg-audio) est routé dedans en permanence après la première Corruption ;
+// fermer le contexte couperait le son de la musique pour de bon.
+let glitchAudioCtx    = null;
+let glitchAudioSource = null;
+let glitchDistortNodes = null;
+
+function getGlitchAudioCtx() {
+    if (!glitchAudioCtx) glitchAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return glitchAudioCtx;
+}
+
+function makeDistortionCurve(amount) {
+    const k = amount || 60, n = 44100, curve = new Float32Array(n), deg = Math.PI / 180;
+    for (let i = 0; i < n; i++) {
+        const x = (i * 2) / n - 1;
+        curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+}
+
+// Route la musique d'ambiance à travers une chaîne de distortion — seulement
+// pour ce membre, seulement pendant la Corruption. En dehors, elle joue
+// normalement (reconnectée directement à la sortie).
+function setBgMusicDistorted(on) {
+    const audioEl = document.getElementById('bg-audio');
+    if (!audioEl) return;
+    const ctx = getGlitchAudioCtx();
+    try {
+        if (!glitchAudioSource) glitchAudioSource = ctx.createMediaElementSource(audioEl);
+        glitchAudioSource.disconnect();
+    } catch (e) { /* déjà connecté ailleurs — on continue quand même */ }
+
+    if (!on) {
+        audioEl.playbackRate = 1;
+        try { glitchAudioSource.connect(ctx.destination); } catch (e) {}
+        return;
+    }
+
+    const distortion = ctx.createWaveShaper();
+    distortion.curve = makeDistortionCurve(90);
+    distortion.oversample = '4x';
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 900;
+    filter.Q.value = 1.4;
+    const gain = ctx.createGain();
+    gain.gain.value = 1.15;
+    try {
+        glitchAudioSource.connect(distortion).connect(filter).connect(gain).connect(ctx.destination);
+    } catch (e) {}
+    glitchDistortNodes = { filter, gain };
+
+    // Modulation lente du filtre + wobble de pitch — musique qui "tourne mal"
+    glitchIntervals.push(setInterval(() => {
+        if (!glitchDistortNodes) return;
+        glitchDistortNodes.filter.frequency.value = 300 + Math.random() * 2200;
+        audioEl.playbackRate = Math.max(.4, Math.min(1.7, .65 + Math.random() * .9));
+    }, 500 + Math.random() * 700));
+}
+
 function glitchNoiseBurst() {
     try {
-        if (!glitchAudioCtx) glitchAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const ctx = glitchAudioCtx;
+        const ctx = getGlitchAudioCtx();
         const dur = .35 + Math.random() * .3;
         const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -1696,11 +1759,16 @@ function applyGlitchMode(active) {
     document.body.classList.toggle('glitch-mode', active);
     glitchIntervals.forEach(clearInterval);
     glitchIntervals = [];
+    glitchTimeouts.forEach(clearTimeout);
+    glitchTimeouts = [];
     ['glitch-noise', 'glitch-flash', 'glitch-text-overlay', 'glitch-scream']
         .concat([0,1,2,3,4,5].map(i => 'glitch-text-extra-' + i))
         .forEach(id => document.getElementById(id)?.remove());
-    document.querySelectorAll('.glitch-tear').forEach(el => el.remove());
-    if (glitchAudioCtx) { glitchAudioCtx.close().catch(() => {}); glitchAudioCtx = null; }
+    document.querySelectorAll('.glitch-tear, .glitch-face-overlay').forEach(el => el.remove());
+    document.querySelectorAll('img.glitch-img-corrupt').forEach(el => el.classList.remove('glitch-img-corrupt'));
+    document.querySelectorAll('img[style*="visibility: hidden"]').forEach(el => el.style.visibility = '');
+    document.body.style.pointerEvents = '';
+    setBgMusicDistorted(active); // on désactive aussi si active === false
     if (!active) return;
 
     const noise = document.createElement('div');
@@ -1726,14 +1794,15 @@ function applyGlitchMode(active) {
         return el;
     });
 
-    const flashText = el => {
-        el.textContent = GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
+    const flashText = (el, pool) => {
+        const list = pool || GLITCH_PHRASES;
+        el.textContent = list[Math.floor(Math.random() * list.length)];
         el.style.left  = (Math.random() * 65 + 5) + '%';
         el.style.top   = (Math.random() * 75 + 8) + '%';
         el.style.fontSize = (Math.random() * 2.2 + 1) + 'rem';
         el.style.transform = `translate(-50%,-50%) skewX(${Math.round(Math.random() * 20 - 10)}deg)`;
         el.style.opacity = '1';
-        setTimeout(() => { el.style.opacity = '0'; }, 180 + Math.random() * 260);
+        glitchTimeouts.push(setTimeout(() => { el.style.opacity = '0'; }, 180 + Math.random() * 260));
     };
 
     const tear = () => {
@@ -1742,22 +1811,73 @@ function applyGlitchMode(active) {
         bar.style.top    = (Math.random() * 100) + '%';
         bar.style.height = (2 + Math.random() * 10) + 'px';
         document.body.appendChild(bar);
-        setTimeout(() => bar.remove(), 90 + Math.random() * 160);
+        glitchTimeouts.push(setTimeout(() => bar.remove(), 90 + Math.random() * 160));
     };
 
     const bigFlash = () => {
         flashEl.style.background = ['rgba(180,0,10,.85)', 'rgba(0,0,0,.92)', 'rgba(255,255,255,.85)'][Math.floor(Math.random() * 3)];
         flashEl.classList.add('on');
-        setTimeout(() => flashEl.classList.remove('on'), 45 + Math.random() * 70);
+        glitchTimeouts.push(setTimeout(() => flashEl.classList.remove('on'), 45 + Math.random() * 70));
+    };
+
+    // Une image visible à l'écran disparaît, remplacée un instant par un visage,
+    // ou se corrompt façon pixels/glitch.
+    const corruptImages = () => {
+        const imgs = [...document.querySelectorAll('img')].filter(img => {
+            const r = img.getBoundingClientRect();
+            return r.width > 24 && r.height > 24 && r.bottom > 0 && r.top < window.innerHeight;
+        });
+        if (!imgs.length) return;
+        const picked = imgs.sort(() => Math.random() - .5).slice(0, 1 + Math.floor(Math.random() * 2));
+        picked.forEach(img => {
+            if (Math.random() < .5) {
+                // Disparition + visage à la place
+                const r = img.getBoundingClientRect();
+                const face = document.createElement('div');
+                face.className = 'glitch-face-overlay';
+                face.textContent = GLITCH_FACES[Math.floor(Math.random() * GLITCH_FACES.length)];
+                face.style.left   = r.left + 'px';
+                face.style.top    = r.top + 'px';
+                face.style.width  = r.width + 'px';
+                face.style.height = r.height + 'px';
+                face.style.fontSize = Math.min(r.width, r.height) * .72 + 'px';
+                document.body.appendChild(face);
+                img.style.visibility = 'hidden';
+                glitchTimeouts.push(setTimeout(() => {
+                    face.remove();
+                    img.style.visibility = '';
+                }, 200 + Math.random() * 300));
+            } else {
+                // Pixellisation / corruption
+                img.classList.add('glitch-img-corrupt');
+                glitchTimeouts.push(setTimeout(() => img.classList.remove('glitch-img-corrupt'), 350));
+            }
+        });
+    };
+
+    // Rend le site à peine utilisable : les clics sont parfois ignorés,
+    // le contenu se floute par à-coups.
+    const impairUsability = () => {
+        document.body.style.pointerEvents = 'none';
+        document.body.style.filter = 'blur(2.5px) contrast(1.3)';
+        glitchTimeouts.push(setTimeout(() => {
+            document.body.style.pointerEvents = '';
+            document.body.style.filter = '';
+        }, 160 + Math.random() * 340));
     };
 
     const scream = () => {
-        screamEl.textContent = GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
+        const useFace = Math.random() < .4;
+        screamEl.textContent = useFace
+            ? GLITCH_FACES[Math.floor(Math.random() * GLITCH_FACES.length)]
+            : GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
+        screamEl.classList.toggle('glitch-scream-face', useFace);
         bigFlash();
         glitchNoiseBurst();
         screamEl.classList.add('on');
-        for (let k = 0; k < 3; k++) setTimeout(tear, k * 40);
-        setTimeout(() => screamEl.classList.remove('on'), 260 + Math.random() * 180);
+        for (let k = 0; k < 4; k++) glitchTimeouts.push(setTimeout(tear, k * 35));
+        corruptImages();
+        glitchTimeouts.push(setTimeout(() => screamEl.classList.remove('on'), 260 + Math.random() * 220));
     };
 
     // Débloque l'audio dès la première interaction (politique autoplay des navigateurs)
@@ -1770,18 +1890,22 @@ function applyGlitchMode(active) {
     glitchIntervals.push(setInterval(() => flashText(overlay), 380 + Math.random() * 500));
     // Textes secondaires décalés, pour donner l'impression que ça vient de partout
     extras.forEach((el, i) => {
-        setTimeout(() => {
+        glitchTimeouts.push(setTimeout(() => {
             flashText(el);
             glitchIntervals.push(setInterval(() => flashText(el), 700 + Math.random() * 900));
-        }, i * 180);
+        }, i * 180));
     });
-    // Déchirures d'écran très fréquentes
+    // Déchirures d'écran quasi continues
     glitchIntervals.push(setInterval(tear, 220 + Math.random() * 350));
     // Flash plein écran fréquent
     glitchIntervals.push(setInterval(bigFlash, 1800 + Math.random() * 2200));
+    // Images qui disparaissent / se corrompent
+    glitchIntervals.push(setInterval(corruptImages, 1500 + Math.random() * 1800));
+    // Le site devient à peine utilisable par intermittence
+    glitchIntervals.push(setInterval(impairUsability, 2500 + Math.random() * 3000));
     // Cri plein écran + son + rafale de déchirures — le vrai jump-scare
-    setTimeout(scream, 1500);
-    glitchIntervals.push(setInterval(scream, 6000 + Math.random() * 6000));
+    glitchTimeouts.push(setTimeout(scream, 1500));
+    glitchIntervals.push(setInterval(scream, 5000 + Math.random() * 5000));
 }
 
 /* ═══════════════════════════════════════════════════════

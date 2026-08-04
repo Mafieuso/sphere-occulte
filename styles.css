@@ -1203,6 +1203,31 @@ body.glitch-mode::after {
     opacity: 0; transition: opacity .04s linear;
 }
 #glitch-scream.on { opacity: 1; }
+#glitch-scream.glitch-scream-face { font-size: clamp(4rem, 22vw, 14rem); filter: drop-shadow(0 0 30px rgba(255,0,0,.8)); }
+
+/* Un visage apparaît à la place d'une image qui vient de disparaître */
+.glitch-face-overlay {
+    position: fixed; z-index: 100001; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.75); color: rgba(255,20,20,.95);
+    filter: drop-shadow(0 0 14px rgba(255,0,0,.8));
+    animation: glitch-face-flicker .18s steps(2) infinite;
+}
+@keyframes glitch-face-flicker { 0% { opacity: 1; } 50% { opacity: .55; } 100% { opacity: 1; } }
+
+/* Image qui se pixellise / se corrompt brièvement */
+img.glitch-img-corrupt {
+    filter: contrast(2.6) saturate(.15) brightness(1.5) blur(.5px) hue-rotate(30deg) !important;
+    image-rendering: pixelated;
+    animation: glitch-img-blocks .35s steps(4) 1;
+}
+@keyframes glitch-img-blocks {
+    0%   { clip-path: inset(0 0 62% 0); transform: scale(1.03); }
+    25%  { clip-path: inset(42% 0 18% 0); transform: scale(.97); }
+    50%  { clip-path: inset(8% 0 72% 0); transform: scale(1.02); }
+    75%  { clip-path: inset(58% 0 4% 0); transform: scale(.98); }
+    100% { clip-path: inset(0 0 0 0); transform: none; }
+}
 
 /* Distorsion des cartes / conteneurs pendant la corruption */
 body.glitch-mode .card, body.glitch-mode .glass-card, body.glitch-mode .panel,

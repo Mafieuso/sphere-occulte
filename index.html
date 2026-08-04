@@ -3308,10 +3308,6 @@ async function toggleSuspendMembre(id, nom, estSuspendu, grade='') {
 function openMembreEdit(membreId) {
     const m = allMembres.find(x => x.id === membreId);
     if (!m) return;
-    if (GRADES_PROTEGES.includes(m.grade)) {
-        alert(`⛔ Impossible — les membres de grade "${m.grade}" sont protégés contre les actions administratives.`);
-        return;
-    }
     // Haut Gradé : ne peut modifier que les membres sous Collecteur d'Ombre, pas lui-même
     if (currentMembre.role === 'haut_grade') {
         if (membreId === currentMembre.id) {

@@ -1660,14 +1660,47 @@ function glitchTriggerPayload(oldGrade, newGrade, currentGlitchActif) {
     return {};
 }
 
+let glitchAudioCtx = null;
+function glitchNoiseBurst() {
+    try {
+        if (!glitchAudioCtx) glitchAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = glitchAudioCtx;
+        const dur = .35 + Math.random() * .3;
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 200 + Math.random() * 700;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(.45, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + dur);
+        noise.connect(filter).connect(gain).connect(ctx.destination);
+        noise.start();
+
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(70 + Math.random() * 50, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(28, ctx.currentTime + dur);
+        const oscGain = ctx.createGain();
+        oscGain.gain.setValueAtTime(.22, ctx.currentTime);
+        oscGain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + dur);
+        osc.connect(oscGain).connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + dur);
+    } catch (e) {}
+}
+
 function applyGlitchMode(active) {
     document.body.classList.toggle('glitch-mode', active);
     glitchIntervals.forEach(clearInterval);
     glitchIntervals = [];
-    ['glitch-noise', 'glitch-flash', 'glitch-text-overlay']
-        .concat([0,1,2].map(i => 'glitch-text-extra-' + i))
+    ['glitch-noise', 'glitch-flash', 'glitch-text-overlay', 'glitch-scream']
+        .concat([0,1,2,3,4,5].map(i => 'glitch-text-extra-' + i))
         .forEach(id => document.getElementById(id)?.remove());
     document.querySelectorAll('.glitch-tear').forEach(el => el.remove());
+    if (glitchAudioCtx) { glitchAudioCtx.close().catch(() => {}); glitchAudioCtx = null; }
     if (!active) return;
 
     const noise = document.createElement('div');
@@ -1678,10 +1711,14 @@ function applyGlitchMode(active) {
     flashEl.id = 'glitch-flash'; flashEl.className = 'glitch-flash';
     document.body.appendChild(flashEl);
 
+    const screamEl = document.createElement('div');
+    screamEl.id = 'glitch-scream';
+    document.body.appendChild(screamEl);
+
     const overlay = document.createElement('div');
     overlay.id = 'glitch-text-overlay';
     document.body.appendChild(overlay);
-    const extras = [0, 1, 2].map(i => {
+    const extras = [0, 1, 2, 3, 4, 5].map(i => {
         const el = document.createElement('div');
         el.id = 'glitch-text-extra-' + i;
         el.className = 'glitch-text-extra';
@@ -1693,40 +1730,58 @@ function applyGlitchMode(active) {
         el.textContent = GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
         el.style.left  = (Math.random() * 65 + 5) + '%';
         el.style.top   = (Math.random() * 75 + 8) + '%';
-        el.style.fontSize = (Math.random() * 1.8 + 1) + 'rem';
-        el.style.transform = `translate(-50%,-50%) skewX(${Math.round(Math.random() * 16 - 8)}deg)`;
+        el.style.fontSize = (Math.random() * 2.2 + 1) + 'rem';
+        el.style.transform = `translate(-50%,-50%) skewX(${Math.round(Math.random() * 20 - 10)}deg)`;
         el.style.opacity = '1';
-        setTimeout(() => { el.style.opacity = '0'; }, 260 + Math.random() * 320);
+        setTimeout(() => { el.style.opacity = '0'; }, 180 + Math.random() * 260);
     };
 
     const tear = () => {
         const bar = document.createElement('div');
         bar.className = 'glitch-tear';
-        bar.style.top = (Math.random() * 100) + '%';
+        bar.style.top    = (Math.random() * 100) + '%';
+        bar.style.height = (2 + Math.random() * 10) + 'px';
         document.body.appendChild(bar);
-        setTimeout(() => bar.remove(), 120 + Math.random() * 180);
+        setTimeout(() => bar.remove(), 90 + Math.random() * 160);
     };
 
     const bigFlash = () => {
-        flashEl.style.background = Math.random() < .5 ? 'rgba(180,0,10,.8)' : 'rgba(0,0,0,.88)';
+        flashEl.style.background = ['rgba(180,0,10,.85)', 'rgba(0,0,0,.92)', 'rgba(255,255,255,.85)'][Math.floor(Math.random() * 3)];
         flashEl.classList.add('on');
-        setTimeout(() => flashEl.classList.remove('on'), 55 + Math.random() * 70);
+        setTimeout(() => flashEl.classList.remove('on'), 45 + Math.random() * 70);
     };
+
+    const scream = () => {
+        screamEl.textContent = GLITCH_PHRASES[Math.floor(Math.random() * GLITCH_PHRASES.length)];
+        bigFlash();
+        glitchNoiseBurst();
+        screamEl.classList.add('on');
+        for (let k = 0; k < 3; k++) setTimeout(tear, k * 40);
+        setTimeout(() => screamEl.classList.remove('on'), 260 + Math.random() * 180);
+    };
+
+    // Débloque l'audio dès la première interaction (politique autoplay des navigateurs)
+    const unlockAudio = () => { glitchAudioCtx?.resume().catch(() => {}); };
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('keydown', unlockAudio, { once: true });
 
     // Texte principal, très fréquent
     flashText(overlay);
-    glitchIntervals.push(setInterval(() => flashText(overlay), 700 + Math.random() * 900));
-    // Textes secondaires, décalés, pour donner l'impression que ça vient de partout
+    glitchIntervals.push(setInterval(() => flashText(overlay), 380 + Math.random() * 500));
+    // Textes secondaires décalés, pour donner l'impression que ça vient de partout
     extras.forEach((el, i) => {
         setTimeout(() => {
             flashText(el);
-            glitchIntervals.push(setInterval(() => flashText(el), 1400 + Math.random() * 1600));
-        }, i * 400);
+            glitchIntervals.push(setInterval(() => flashText(el), 700 + Math.random() * 900));
+        }, i * 180);
     });
-    // Déchirures d'écran fréquentes
-    glitchIntervals.push(setInterval(tear, 500 + Math.random() * 700));
-    // Flash plein écran occasionnel (jump-scare)
-    glitchIntervals.push(setInterval(bigFlash, 4000 + Math.random() * 5000));
+    // Déchirures d'écran très fréquentes
+    glitchIntervals.push(setInterval(tear, 220 + Math.random() * 350));
+    // Flash plein écran fréquent
+    glitchIntervals.push(setInterval(bigFlash, 1800 + Math.random() * 2200));
+    // Cri plein écran + son + rafale de déchirures — le vrai jump-scare
+    setTimeout(scream, 1500);
+    glitchIntervals.push(setInterval(scream, 6000 + Math.random() * 6000));
 }
 
 /* ═══════════════════════════════════════════════════════

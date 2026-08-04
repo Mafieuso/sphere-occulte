@@ -1199,6 +1199,9 @@
           <div class="sidebar-nav-item admin-only" onclick="adminPanel('pyramide')" data-panel="pyramide" style="cursor:pointer">
             <span class="nav-icon">△</span> Pyramide
           </div>
+          <div class="sidebar-nav-item admin-only" onclick="adminPanel('flux')" data-panel="flux" style="cursor:pointer">
+            <span class="nav-icon">🔗</span> Flux de Puissance
+          </div>
           <div class="sidebar-nav-item admin-only" onclick="adminPanel('reglement')" data-panel="reglement" style="cursor:pointer">
             <span class="nav-icon">⚖</span> Règlement
           </div>
@@ -1358,6 +1361,12 @@
         <div class="panel" id="ap-pyramide">
           <div class="panel-hdr"><div class="panel-title">△ La Pyramide des Ombres</div></div>
           <div id="pyramide-wrap" style="margin:0 auto"></div>
+        </div>
+
+        <!-- Panel : Flux de Puissance -->
+        <div class="panel" id="ap-flux">
+          <div class="panel-hdr"><div class="panel-title">🔗 Flux de Puissance</div></div>
+          <div id="flux-wrap" style="max-width:720px;margin:0 auto"></div>
         </div>
 
         <!-- Panel : Règlement -->
@@ -2625,6 +2634,7 @@ function adminPanel(name) {
     if (name === 'annonces')     loadAdminAnnonces();
     if (name === 'logs')         loadLogs();
     if (name === 'pyramide')     loadPyramide();
+    if (name === 'flux')         loadFluxPuissance();
     if (name === 'reglement')    loadAdminReglement();
 }
 
@@ -3801,6 +3811,90 @@ async function loadPyrDetail(membreId, membreNom) {
             </div>`).join('')}`;
     } catch(err) {
         body.innerHTML = `<p style="color:var(--danger);font-size:.82rem">Erreur : ${err.message}</p>`;
+    }
+}
+
+// Qui génère de la puissance pour moi, et via quelle école — reflète la chaîne
+// Incantateur → Gérant École → Monarque appliquée dans validerSoum().
+async function loadFluxPuissance() {
+    const wrap = document.getElementById('flux-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
+
+    try {
+        const [soumSnap, incanSnap, ecoSnap] = await Promise.all([
+            db.collection('soumissions').where('statut', '==', 'valide').get(),
+            db.collection('incantations').get(),
+            db.collection('ecoles').get()
+        ]);
+
+        const incanMap = {};
+        incanSnap.docs.forEach(d => { incanMap[d.id] = d.data(); });
+        const ecoleMap = {};
+        ecoSnap.docs.forEach(d => { ecoleMap[d.id] = { id: d.id, ...d.data() }; });
+
+        const viewerIsMonarque = currentMembre.grade === 'Monarque des Ombres';
+        const viewerEcoleIds = new Set(
+            ecoSnap.docs.filter(d => d.data().fondateurId === currentMembre.id).map(d => d.id)
+        );
+
+        const contrib = {}; // membreId → { nom, total, count, ecoles: Map<ecoleNom,{count,pts}> }
+        soumSnap.docs.forEach(d => {
+            const s = d.data();
+            if (!s.incanId || s.membreId === currentMembre.id) return;
+            const incan = incanMap[s.incanId];
+            if (!incan || !incan.ecoleId) return; // le cascade ne s'applique qu'aux incantations d'école
+            const ecole = ecoleMap[incan.ecoleId];
+            if (!ecole) return;
+            const relevant = viewerIsMonarque || viewerEcoleIds.has(incan.ecoleId);
+            if (!relevant) return;
+
+            const pts = s.ptsGagnes || 0;
+            if (!contrib[s.membreId]) {
+                contrib[s.membreId] = { nom: s.membreNom || '?', total: 0, ecoles: {} };
+            }
+            const c = contrib[s.membreId];
+            c.total += pts;
+            if (!c.ecoles[ecole.nom]) c.ecoles[ecole.nom] = { count: 0, pts: 0, gerant: ecole.fondateurNom };
+            c.ecoles[ecole.nom].count += 1;
+            c.ecoles[ecole.nom].pts   += pts;
+        });
+
+        const rows = Object.values(contrib).sort((a, b) => b.total - a.total);
+
+        if (!rows.length) {
+            wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-text">Aucun flux de puissance enregistré pour l\'instant.</div></div>';
+            return;
+        }
+
+        const totalPts = rows.reduce((s, r) => s + r.total, 0);
+
+        wrap.innerHTML = `
+          <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.1rem">
+            ${viewerIsMonarque
+                ? `Puissance reçue en tant que Monarque via toutes les incantations d'école validées.`
+                : `Puissance reçue en tant que gérant de votre/vos école(s).`}
+            <strong class="pts-occulte">${totalPts} pts</strong> au total, générés par ${rows.length} démon(s).
+          </p>
+          ${rows.map((r, i) => `
+            <div style="padding:.7rem 1rem;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:.5rem">
+                <div style="display:flex;align-items:center;gap:.8rem">
+                    <span style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--text-muted);width:22px;text-align:center;flex-shrink:0">${i + 1}</span>
+                    <div style="flex:1;min-width:0;font-family:'Cormorant Garamond',serif;font-size:.9rem;color:var(--text)">${r.nom}</div>
+                    <span class="pts pts-occulte" style="font-size:.9rem;flex-shrink:0">+${r.total} pts</span>
+                </div>
+                <div style="margin-left:2.4rem;margin-top:.3rem">
+                    ${Object.entries(r.ecoles).map(([nomEcole, e]) => `
+                        <div style="font-size:.7rem;color:var(--text-muted)">
+                            🏛 ${nomEcole} (gérant : ${e.gerant || '?'}) — ${e.count} incantation${e.count > 1 ? 's' : ''}, +${e.pts} pts
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+          `).join('')}
+        `;
+    } catch (err) {
+        wrap.innerHTML = `<p style="color:var(--danger);font-size:.82rem">Erreur : ${err.message}</p>`;
     }
 }
 

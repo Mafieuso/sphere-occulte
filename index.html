@@ -3765,8 +3765,7 @@ async function loadAdminAcces() {
                     title="Révoquer l'accès">✕</button>`
             : '';
 
-        const glitchEligible = ['Marchand des Âmes', 'Monarque des Ombres'].includes(m.grade);
-        const glitchRow = (isAdmin && glitchEligible)
+        const glitchRow = isAdmin
             ? `<div style="margin-top:.5rem">
                 <button class="btn btn-sm ${m.glitchActif ? 'btn-danger' : 'btn-ghost'}" data-glitch-safe="1" onclick="toggleGlitch('${m.id}',${!!m.glitchActif})">
                     ${m.glitchActif ? '👁 Corruption active — Arrêter' : '👁 Déclencher la Corruption'}

@@ -1396,6 +1396,61 @@
 'use strict';
 
 /* ═══════════════════════════════════════════════════════
+   0. INTÉGRATIONS EXTERNES (Discord + Google Sheets)
+   ⚠️ À configurer : voir SETUP.md — sans ça, ces deux fonctions ne
+   font rien (silencieusement, aucune erreur pour les utilisateurs).
+═══════════════════════════════════════════════════════ */
+const DISCORD_WEBHOOK_RAPPORTS = 'COLLER_ICI_URL_WEBHOOK_DISCORD';
+const SHEETS_WEBAPP_URL        = 'COLLER_ICI_URL_APPS_SCRIPT';
+
+// Poste le rapport complet (avec capture) dans le salon Discord dédié,
+// au moment de la soumission — jamais bloquant pour l'utilisateur.
+async function postRapportToDiscord(data) {
+    if (!DISCORD_WEBHOOK_RAPPORTS || DISCORD_WEBHOOK_RAPPORTS.includes('COLLER_ICI')) return;
+    try {
+        const embed = {
+            title: `📜 Nouveau Rapport — ${data.membreNom}`,
+            color: 0x2ac9bc,
+            fields: [
+                { name: 'Incantation',   value: data.incanNom || '—', inline: true },
+                { name: 'Date RP',       value: data.dateRap  || '—', inline: true },
+                { name: 'Points',        value: `+${data.ptsGagnes || 0} Occulte / +${data.manipGagnes || 0} Manip.`, inline: true },
+                { name: 'Accès Salle',   value: data.accesSalle   || '—', inline: false },
+                { name: 'Cible',         value: data.cible        || '—', inline: true },
+                { name: 'Socle utilisé', value: data.socleUtilise || '—', inline: true },
+                { name: 'Usage',         value: data.usage        || '—', inline: false }
+            ],
+            timestamp: new Date().toISOString()
+        };
+
+        const formData = new FormData();
+        if (data.screenshot) {
+            const blob = await (await fetch(data.screenshot)).blob();
+            formData.append('files[0]', blob, 'preuve.png');
+            embed.image = { url: 'attachment://preuve.png' };
+        }
+        formData.append('payload_json', JSON.stringify({ embeds: [embed] }));
+
+        await fetch(DISCORD_WEBHOOK_RAPPORTS, { method: 'POST', body: formData });
+    } catch (e) { console.error('Discord webhook (rapport) :', e); }
+}
+
+// Met à jour l'onglet "Totaux" (un par membre) et ajoute une ligne à
+// l'onglet "Historique" du Google Sheets — au moment de la validation,
+// jamais bloquant.
+async function syncPointsToSheets(payload) {
+    if (!SHEETS_WEBAPP_URL || SHEETS_WEBAPP_URL.includes('COLLER_ICI')) return;
+    try {
+        await fetch(SHEETS_WEBAPP_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) { console.error('Sync Google Sheets :', e); }
+}
+
+/* ═══════════════════════════════════════════════════════
    1. EFFETS WOW
 ═══════════════════════════════════════════════════════ */
 
@@ -2602,7 +2657,7 @@ async function soumettreRapport(e) {
         const ptsGagnes  = parseInt(opt.dataset.pts)  || 0;
         const manipGagnes = parseInt(opt.dataset.cout) || 0;
 
-        await db.collection('soumissions').add({
+        const rapportData = {
             membreId:     currentMembre.id,
             membreNom:    displayName(currentMembre),
             incanId,      incanNom,
@@ -2615,7 +2670,9 @@ async function soumettreRapport(e) {
             ptsGagnes,    manipGagnes,
             statut:       'attente',
             dateCreation: firebase.firestore.Timestamp.now()
-        });
+        };
+        await db.collection('soumissions').add(rapportData);
+        postRapportToDiscord(rapportData); // non-bloquant
 
         showAlert('rap-success', 'Rapport soumis avec succès ! En attente de validation.', 'success');
         ['rap-acces','rap-cible','rap-usage','rap-socle','rap-pts','rap-cout'].forEach(id => {
@@ -3118,7 +3175,7 @@ function renderSoumissions() {
                     <span class="pts pts-occulte">+${s.ptsGagnes || 0} Puiss. Occ.</span>
                     ${s.manipGagnes ? `<span class="pts pts-manip">+${s.manipGagnes} Manip. Occ.</span>` : ''}
                     ${s.statut === 'attente' ? `
-                    <button class="btn btn-success btn-sm" onclick="validerSoum('${s.id}','${s.membreId}',${s.ptsGagnes || 0},${s.manipGagnes || 0})">✓ Valider</button>
+                    <button class="btn btn-success btn-sm" onclick="validerSoum('${s.id}','${s.membreId}',${s.ptsGagnes || 0},${s.manipGagnes || 0},'${(s.incanNom || '').replace(/'/g,"\\'")}')">✓ Valider</button>
                     <button class="btn btn-danger btn-sm"  onclick="ouvrirRefus('${s.id}','${s.membreId}',${s.ptsGagnes || 0})">✗ Refuser</button>` : ''}
                     ${currentMembre?.role === 'admin' ? `<button class="btn btn-danger btn-sm" style="font-size:.72rem;padding:.22rem .55rem" onclick="supprimerSoum('${s.id}')" title="Supprimer ce rapport">🗑 Suppr.</button>` : ''}
                     <span class="soum-chev">▼</span>
@@ -3160,7 +3217,7 @@ async function notifierMonteeGrade(membreId, oldGrade, newGrade) {
     });
 }
 
-async function validerSoum(soumId, membreId, pts, manip = 0) {
+async function validerSoum(soumId, membreId, pts, manip = 0, incanNom = '') {
     const confirmMsg = `Valider et attribuer ${pts} Puissance Occulte${manip ? ` + ${manip} Manipulation` : ''} ?`;
     if (!confirm(confirmMsg)) return;
     const batch   = db.batch();
@@ -3229,6 +3286,37 @@ async function validerSoum(soumId, membreId, pts, manip = 0) {
         `+${pts}pts → ${displayName(m)} (${newGrade})` +
         (fondateurId ? ` | Gérant école +${pts}` : '') +
         (monarqueSnap.docs.length ? ` | Monarque +${pts}` : ''), pts);
+
+    // Sync Google Sheets (totaux + historique) — non-bloquant
+    let ecoleNomSync = null, gerantNomSync = null;
+    if (fondateurId) {
+        try {
+            const eDoc = await db.collection('ecoles').doc(m.ecoleId).get();
+            if (eDoc.exists) { ecoleNomSync = eDoc.data().nom; gerantNomSync = eDoc.data().fondateurNom; }
+        } catch (e) {}
+    }
+    const totauxSync = [{ id: membreId, nom: displayName(m), pointsOcculte: newOcculte, pointsManipulation: (m.pointsManipulation || 0) + manip }];
+    monarqueSnap.docs.forEach(mDoc => {
+        if (mDoc.id === membreId || mDoc.id === fondateurId) return;
+        const md = mDoc.data();
+        totauxSync.push({ id: mDoc.id, nom: displayName(md), pointsOcculte: (md.pointsOcculte || 0) + pts, pointsManipulation: md.pointsManipulation || 0 });
+    });
+    if (fondateurId && fondateurId !== membreId) {
+        const fDoc = await db.collection('membres').doc(fondateurId).get();
+        if (fDoc.exists) {
+            const fd = fDoc.data();
+            totauxSync.push({ id: fondateurId, nom: displayName(fd), pointsOcculte: (fd.pointsOcculte || 0) + pts, pointsManipulation: fd.pointsManipulation || 0 });
+        }
+    }
+    syncPointsToSheets({
+        totaux: totauxSync,
+        historique: {
+            date: new Date().toISOString(),
+            membre: displayName(m), incantation: incanNom,
+            ptsOcculte: pts, ptsManip: manip,
+            ecole: ecoleNomSync || '', gerant: gerantNomSync || ''
+        }
+    });
 }
 
 async function supprimerSoum(soumId) {

@@ -125,6 +125,83 @@ Haut Grade      →  Se connecte avec son compte haut_grade/admin
 
 ---
 
+## Étape 10 — Trace écrite sur Discord + Google Sheets (optionnel)
+
+Le site peut poster automatiquement chaque rapport soumis dans un salon Discord,
+et tenir à jour un Google Sheets (totaux + historique) — sans aucune saisie
+manuelle. Les deux sont gratuits, aucune carte bancaire.
+
+### 10a. Webhook Discord
+
+1. Sur Discord, va dans le salon **Rapports** → ⚙️ **Modifier le salon** → **Intégrations** → **Webhooks** → **Nouveau webhook**
+2. Donne-lui un nom (ex: `Sphère Occulte`), choisis le salon → **Copier l'URL du webhook**
+3. Ouvre `index.html`, cherche `DISCORD_WEBHOOK_RAPPORTS` (tout en haut du `<script>`) et colle l'URL à la place de `'COLLER_ICI_URL_WEBHOOK_DISCORD'`
+
+Dès qu'un membre soumet un rapport, le rapport complet (incantation, date RP,
+accès salle, cible, socle, usage, points, capture d'écran) est posté automatiquement.
+
+### 10b. Google Sheets
+
+1. Crée un nouveau Google Sheets (ou réutilise l'ancien)
+2. Menu **Extensions** → **Apps Script**
+3. Efface le contenu par défaut et colle ce code :
+
+```javascript
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Onglet "Totaux" — un rôle par membre, mis à jour à chaque validation
+  let totaux = ss.getSheetByName('Totaux');
+  if (!totaux) {
+    totaux = ss.insertSheet('Totaux');
+    totaux.appendRow(['ID', 'Nom', 'Puissance Occulte', 'Manipulation Occulte', 'Dernière MAJ']);
+  }
+  (data.totaux || []).forEach(t => {
+    const values = totaux.getDataRange().getValues();
+    let rowIndex = -1;
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === t.id) { rowIndex = i + 1; break; }
+    }
+    const now = new Date();
+    if (rowIndex > 0) {
+      totaux.getRange(rowIndex, 1, 1, 5).setValues([[t.id, t.nom, t.pointsOcculte, t.pointsManipulation, now]]);
+    } else {
+      totaux.appendRow([t.id, t.nom, t.pointsOcculte, t.pointsManipulation, now]);
+    }
+  });
+
+  // Onglet "Historique" — une ligne par rapport validé
+  let hist = ss.getSheetByName('Historique');
+  if (!hist) {
+    hist = ss.insertSheet('Historique');
+    hist.appendRow(['Date', 'Membre', 'Incantation', 'Points Occulte', 'Points Manip.', 'École', 'Gérant']);
+  }
+  if (data.historique) {
+    const h = data.historique;
+    hist.appendRow([new Date(h.date), h.membre, h.incantation, h.ptsOcculte, h.ptsManip, h.ecole || '', h.gerant || '']);
+  }
+
+  return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
+}
+```
+
+4. **Déployer** → **Nouveau déploiement** → type **Application Web**
+   - Exécuter en tant que : **Moi**
+   - Qui a accès : **Tout le monde**
+5. **Déployer** → autorise l'accès (compte Google) → copie l'**URL de l'application Web**
+6. Ouvre `index.html`, cherche `SHEETS_WEBAPP_URL` et colle l'URL à la place de `'COLLER_ICI_URL_APPS_SCRIPT'`
+
+À chaque validation d'un rapport, les totaux (Puissance Occulte / Manipulation)
+de l'incantateur, du gérant d'école (si applicable) et du/des Monarque(s) sont
+mis à jour dans l'onglet **Totaux**, et une ligne est ajoutée à **Historique**.
+
+> Si tu republies le Apps Script plus tard (nouvelle version du code), il faut
+> refaire **Déployer → Gérer les déploiements → ✏️ → Nouvelle version** pour
+> que les changements prennent effet — l'URL, elle, ne change pas.
+
+---
+
 ## Structure des fichiers
 
 ```

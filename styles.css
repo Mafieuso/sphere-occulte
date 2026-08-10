@@ -1276,3 +1276,68 @@ body.glitch-chaos {
     60% { filter: hue-rotate(220deg) saturate(4); }
     80% { filter: invert(.5) blur(1.5px); }
 }
+
+/* ── Célébration — montée en grade / rituel caché ──────────────── */
+.celebration-overlay {
+    position: fixed; inset: 0; z-index: 100005;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(10,6,2,.78) 0%, rgba(4,2,0,.94) 75%);
+    opacity: 0; pointer-events: none;
+    transition: opacity .5s ease;
+}
+.celebration-overlay.on { opacity: 1; pointer-events: auto; cursor: pointer; }
+.celebration-card {
+    text-align: center; padding: 2.5rem 3rem;
+    transform: scale(.85) translateY(14px);
+    transition: transform .55s cubic-bezier(.2,1.4,.4,1), opacity .5s ease;
+    opacity: 0;
+}
+.celebration-overlay.on .celebration-card { transform: scale(1) translateY(0); opacity: 1; }
+.celebration-icon {
+    font-size: 4.2rem; line-height: 1; margin-bottom: 1rem;
+    filter: drop-shadow(0 0 30px var(--cel-color, var(--gold)));
+    animation: celebration-icon-float 2.6s ease-in-out infinite;
+}
+@keyframes celebration-icon-float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.06); }
+}
+.celebration-title {
+    font-family: 'Cinzel Decorative', serif; font-weight: 700;
+    font-size: clamp(1.3rem, 4vw, 2.1rem); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--cel-color, var(--gold));
+    text-shadow: 0 0 24px var(--cel-color, var(--gold));
+    margin-bottom: .6rem;
+}
+.celebration-sub {
+    font-family: 'Cormorant Garamond', serif; font-size: .95rem;
+    color: var(--text-muted); letter-spacing: .04em; max-width: 420px; margin: 0 auto;
+}
+.celebration-hint {
+    margin-top: 1.5rem; font-size: .68rem; color: var(--text-muted);
+    letter-spacing: .12em; text-transform: uppercase; opacity: .6;
+}
+
+/* Braises montantes pendant la célébration */
+.celebration-ember {
+    position: fixed; z-index: 100004; pointer-events: none;
+    border-radius: 50%; background: var(--cel-color, var(--gold));
+    box-shadow: 0 0 10px 2px var(--cel-color, var(--gold));
+    opacity: 0;
+    animation: celebration-ember-rise linear forwards;
+}
+@keyframes celebration-ember-rise {
+    0%   { opacity: 0; transform: translateY(0) scale(.4); }
+    10%  { opacity: 1; }
+    90%  { opacity: .7; }
+    100% { opacity: 0; transform: translateY(-90vh) translateX(var(--ember-drift, 0px)) scale(1); }
+}
+
+/* Sigil du header — petit encouragement au clic répété */
+.spa-nav-brand.sigil-charged {
+    animation: sigil-charge-pulse .5s ease;
+}
+@keyframes sigil-charge-pulse {
+    0%, 100% { text-shadow: none; }
+    50% { text-shadow: 0 0 16px var(--gold-bright); }
+}

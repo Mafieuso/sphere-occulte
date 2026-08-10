@@ -516,7 +516,7 @@
 
 <!-- Navigation fixe -->
 <nav class="spa-nav">
-  <div class="spa-nav-brand" style="cursor:pointer" onclick="goTo('home')">⬡ Sphère Occulte</div>
+  <div class="spa-nav-brand" style="cursor:pointer" onclick="brandClick(this)">⬡ Sphère Occulte</div>
   <div class="spa-nav-links">
     <a class="btn btn-ghost btn-sm" id="nl-home" onclick="goTo('home')" style="cursor:pointer">Classement</a>
     <a class="btn btn-ghost btn-sm" id="nl-auth" onclick="goTo('auth')" style="cursor:pointer">Connexion</a>
@@ -2062,13 +2062,30 @@ function loadHome() {
     });
 }
 
+function animateCount(id, target) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const start = parseInt(el.dataset.val || '0') || 0;
+    if (start === target) return;
+    el.dataset.val = target;
+    const dur = 700, t0 = performance.now();
+    const step = now => {
+        const p = Math.min(1, (now - t0) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(start + (target - start) * eased);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+    };
+    requestAnimationFrame(step);
+}
+
 function updateHomeStats() {
     const total    = homeMembers.length;
     const presents = homeMembers.filter(m => !m.absent).length;
     const maxO     = total ? Math.max(...homeMembers.map(m => m.pointsOcculte || 0)) : 0;
-    setText('hs-total', total);
-    setText('hs-presents', presents);
-    setText('hs-maxpts', maxO);
+    animateCount('hs-total', total);
+    animateCount('hs-presents', presents);
+    animateCount('hs-maxpts', maxO);
 }
 
 function filtrerGrade(g) {
@@ -3129,6 +3146,20 @@ function renderSoumissions() {
     });
 }
 
+async function notifierMonteeGrade(membreId, oldGrade, newGrade) {
+    if (getGradeIndex(newGrade) <= getGradeIndex(oldGrade)) return;
+    const gradesScene = ["Collecteur d'Ombre", "Marchand des Âmes", "Monarque des Ombres"];
+    const adminNom = displayName(currentMembre);
+    const msg = gradesScene.includes(newGrade)
+        ? `Félicitations ! Vous accédez au grade <strong>${newGrade}</strong>.\n\nUne <strong>scène de montée en rang</strong> est requise avant de porter officiellement ce grade. Attendez la convocation officielle.\n\nIncantateur : <strong>${adminNom}</strong>`
+        : `Félicitations ! Vous accédez au grade <strong>${newGrade}</strong>.`;
+    await db.collection('notifications').add({
+        to: membreId, type: 'gradeup', grade: newGrade, message: msg,
+        fromNom: adminNom, lu: false,
+        date: firebase.firestore.Timestamp.now()
+    });
+}
+
 async function validerSoum(soumId, membreId, pts, manip = 0) {
     const confirmMsg = `Valider et attribuer ${pts} Puissance Occulte${manip ? ` + ${manip} Manipulation` : ''} ?`;
     if (!confirm(confirmMsg)) return;
@@ -3193,6 +3224,7 @@ async function validerSoum(soumId, membreId, pts, manip = 0) {
     }
 
     await batch.commit();
+    await notifierMonteeGrade(membreId, m.grade, newGrade);
     await logAction('validation',
         `+${pts}pts → ${displayName(m)} (${newGrade})` +
         (fondateurId ? ` | Gérant école +${pts}` : '') +
@@ -3372,22 +3404,7 @@ async function sauvegarderMembre() {
     await db.collection('membres').doc(id).update(data);
     await logAction('modif', `Modification de ${data.prenom} ${data.nom}`, 0);
 
-    // Notification de montée en grade
-    if (gradeChanged && getGradeIndex(newGrade) > getGradeIndex(m.grade)) {
-        const gradesScene = ["Collecteur d'Ombre", "Marchand des Âmes", "Monarque des Ombres"];
-        const adminNom = displayName(currentMembre);
-        let msg;
-        if (gradesScene.includes(newGrade)) {
-            msg = `Félicitations ! Vous accédez au grade <strong>${newGrade}</strong>.\n\nUne <strong>scène de montée en rang</strong> est requise avant de porter officiellement ce grade. Attendez la convocation officielle.\n\nIncantateur : <strong>${adminNom}</strong>`;
-        } else {
-            msg = `Félicitations ! Vous accédez au grade <strong>${newGrade}</strong>.`;
-        }
-        await db.collection('notifications').add({
-            to: id, type: 'annonce', message: msg,
-            fromNom: adminNom, lu: false,
-            date: firebase.firestore.Timestamp.now()
-        });
-    }
+    if (gradeChanged) await notifierMonteeGrade(id, m.grade, newGrade);
     closeModal('modal-membre');
 }
 
@@ -5223,12 +5240,108 @@ function listenNotifications() {
     } catch(e) {}
 }
 
+// ── Célébrations (montée en grade, rituel caché) ─────────────────
+let celebAudioCtx = null;
+function celebrationChime() {
+    try {
+        if (!celebAudioCtx) celebAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = celebAudioCtx;
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.type = 'sine'; osc.frequency.value = freq;
+            const t0 = ctx.currentTime + i * .09;
+            gain.gain.setValueAtTime(0, t0);
+            gain.gain.linearRampToValueAtTime(.11, t0 + .04);
+            gain.gain.exponentialRampToValueAtTime(.001, t0 + 1.1);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(t0); osc.stop(t0 + 1.2);
+        });
+    } catch (e) {}
+}
+
+function spawnEmbers(color, count) {
+    for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+            const e = document.createElement('div');
+            e.className = 'celebration-ember';
+            const size = 3 + Math.random() * 5;
+            e.style.width = size + 'px';
+            e.style.height = size + 'px';
+            e.style.left = (Math.random() * 100) + 'vw';
+            e.style.bottom = '-10px';
+            e.style.setProperty('--cel-color', color);
+            e.style.setProperty('--ember-drift', (Math.random() * 120 - 60) + 'px');
+            e.style.animationDuration = (2.2 + Math.random() * 1.6) + 's';
+            document.body.appendChild(e);
+            setTimeout(() => e.remove(), 4000);
+        }, i * 90);
+    }
+}
+
+function showCelebration({ icon, title, sub, hint, color }) {
+    document.getElementById('celebration-overlay')?.remove();
+    const el = document.createElement('div');
+    el.id = 'celebration-overlay';
+    el.className = 'celebration-overlay';
+    el.style.setProperty('--cel-color', color || 'var(--gold)');
+    el.innerHTML = `
+        <div class="celebration-card">
+            <div class="celebration-icon">${icon}</div>
+            <div class="celebration-title">${title}</div>
+            ${sub ? `<div class="celebration-sub">${sub}</div>` : ''}
+            <div class="celebration-hint">${hint || 'Cliquez pour continuer'}</div>
+        </div>`;
+    document.body.appendChild(el);
+    const dismiss = () => { el.classList.remove('on'); setTimeout(() => el.remove(), 550); };
+    el.addEventListener('click', dismiss);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
+    celebrationChime();
+    spawnEmbers(color || '#4fd6c8', 22);
+    setTimeout(dismiss, 5000);
+}
+
+function triggerRankUpCelebration(gradeName) {
+    const g = GRADES.find(x => x.nom === gradeName);
+    showCelebration({
+        icon: g?.icon || '✦',
+        title: 'Montée en Grade',
+        sub: `Vous accédez désormais au rang de <strong style="color:${g?.couleur || 'var(--gold)'}">${gradeName}</strong>.`,
+        hint: 'L\'Ordre prend note de votre ascension',
+        color: g?.couleur || 'var(--gold)'
+    });
+}
+
+// ── Rituel caché — 7 clics rapides sur le sigil de l'en-tête ─────
+let sigilClicks = 0, sigilClickTimer = null;
+function brandClick(el) {
+    goTo('home');
+    sigilClicks++;
+    el?.classList.remove('sigil-charged');
+    void el?.offsetWidth;
+    el?.classList.add('sigil-charged');
+    clearTimeout(sigilClickTimer);
+    sigilClickTimer = setTimeout(() => { sigilClicks = 0; }, 1400);
+    if (sigilClicks >= 7) {
+        sigilClicks = 0;
+        showCelebration({
+            icon: '⬡',
+            title: 'L\'Ordre Vous a Vu',
+            sub: 'Un rituel silencieux s\'est achevé. Personne ne saura ce que vous venez de faire.',
+            hint: 'Retournez à l\'ombre',
+            color: '#3d2b7a'
+        });
+    }
+}
+
 function showNotifToast(id, n) {
     const container = document.getElementById('notif-toasts');
     if (!container) return;
 
+    if (n.type === 'gradeup') triggerRankUpCelebration(n.grade);
+
     const isInvit = n.type === 'invitation';
-    const label   = isInvit ? '⚔ Invitation d\'École ⚔' : '◈  Annonce  ◈';
+    const isGradeup = n.type === 'gradeup';
+    const label   = isInvit ? '⚔ Invitation d\'École ⚔' : (isGradeup ? '⬡ Montée en Grade ⬡' : '◈  Annonce  ◈');
     const msg     = isInvit
         ? `<strong>${n.fromNom || '?'}</strong> vous invite à rejoindre l'école <strong>${n.ecoleNom || '?'}</strong>`
         : (n.message || '');

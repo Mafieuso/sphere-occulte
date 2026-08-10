@@ -1257,6 +1257,7 @@
           <div class="panel-hdr">
             <div class="panel-title">👥 Membres de l'Ordre</div>
             <button class="btn btn-ghost btn-sm" onclick="adminReparerEcoles()" title="Répare les membres dont le champ école ne correspond plus à leur école réelle">🔧 Réparer écoles</button>
+            <button class="btn btn-ghost btn-sm" onclick="adminRecalculerGerants()" title="Rattrape les points que les gérants d'école auraient dû recevoir avant la correction du cascade">🔧 Recalculer les gérants</button>
           </div>
           <div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">
             <button class="btn btn-sm btn-violet" id="btn-filtre-actifs"  onclick="loadAdminMembres('actifs')">✅ Actifs (connectés + profil)</button>
@@ -3697,6 +3698,77 @@ async function adminReparerEcoles() {
     } catch(err) { alert('Erreur : ' + err.message); }
 }
 
+// Avant la correction du cascade, un gérant d'école ne recevait des points
+// que si l'INCANTATION utilisée était elle-même taguée "d'école" — un membre
+// d'école qui lançait une incantation publique ne faisait rien remonter à son
+// gérant. Cet outil recalcule, pour chaque ancienne soumission, si elle avait
+// réellement été créditée sous l'ancienne logique, et rattrape la différence.
+async function adminRecalculerGerants() {
+    if (!confirm('Recalculer et rattraper les points que les gérants d\'école auraient dû recevoir avant la correction du cascade ?\n\nCette action ajoute les points manqués aux gérants concernés, une seule fois.')) return;
+    try {
+        const [ecoSnap, memSnap, soumSnap, incanSnap] = await Promise.all([
+            db.collection('ecoles').get(),
+            db.collection('membres').get(),
+            db.collection('soumissions').where('statut', '==', 'valide').get(),
+            db.collection('incantations').get()
+        ]);
+
+        const ecoleMap = {};
+        ecoSnap.docs.forEach(d => { ecoleMap[d.id] = { id: d.id, ...d.data() }; });
+        const membreEcoleMap = {};
+        memSnap.docs.forEach(d => { membreEcoleMap[d.id] = d.data().ecoleId || null; });
+        const incanEcoleMap = {};
+        incanSnap.docs.forEach(d => { incanEcoleMap[d.id] = d.data().ecoleId || null; });
+
+        const manque = {}; // fondateurId → pts manqués
+
+        soumSnap.docs.forEach(d => {
+            const s = d.data();
+            if (!s.incanId) return;
+            const pts = s.ptsGagnes || 0;
+            if (!pts) return;
+            if (s.ecoleId !== undefined) return; // déjà passée par la nouvelle logique, déjà créditée
+
+            const memEcoleId = membreEcoleMap[s.membreId];
+            if (!memEcoleId) return; // le membre n'est dans aucune école actuellement
+            const ecole = ecoleMap[memEcoleId];
+            if (!ecole || !ecole.fondateurId || ecole.fondateurId === s.membreId) return;
+
+            // Sous l'ancienne logique, une soumission n'était créditée au gérant
+            // que si l'incantation utilisée était taguée de CETTE école.
+            const incanEcoleId = incanEcoleMap[s.incanId];
+            const dejaCreditee = incanEcoleId && incanEcoleId === memEcoleId;
+            if (dejaCreditee) return;
+
+            manque[ecole.fondateurId] = (manque[ecole.fondateurId] || 0) + pts;
+        });
+
+        const fondateurIds = Object.keys(manque);
+        if (!fondateurIds.length) { alert('Aucun point manqué détecté — tout est déjà à jour.'); return; }
+
+        const batch = db.batch();
+        const recap = [];
+        for (const fid of fondateurIds) {
+            const fDoc = memSnap.docs.find(d => d.id === fid);
+            if (!fDoc) continue;
+            const fd = fDoc.data();
+            const addPts = manque[fid];
+            const newOcculte = (fd.pointsOcculte || 0) + addPts;
+            const newGrade = getGrade(newOcculte);
+            batch.update(db.collection('membres').doc(fid), {
+                pointsOcculte: newOcculte, grade: newGrade,
+                ...(newGrade !== fd.grade ? { dateEvolution: firebase.firestore.Timestamp.now() } : {}),
+                ...glitchTriggerPayload(fd.grade, newGrade, fd.glitchActif)
+            });
+            recap.push(`${displayName(fd)} : +${addPts} pts`);
+        }
+        await batch.commit();
+        await logAction('CORRECTION CASCADE', recap.join(' | '), 0);
+        alert(`Correction appliquée :\n\n${recap.join('\n')}`);
+        loadAdminMembres();
+    } catch (err) { alert('Erreur : ' + err.message); }
+}
+
 // Admin — accès membres (statut connexion + mot de passe)
 async function loadAdminAcces() {
     const list = document.getElementById('acces-list');
@@ -3892,7 +3964,7 @@ async function loadAdminEcoles() {
                     <div style="font-family:'Cormorant Garamond',serif;font-size:.97rem;color:var(--text);font-weight:600">${e.nom}</div>
                     <div style="font-size:.72rem;color:var(--text-muted);margin:.18rem 0">
                         Fondateur : <strong style="color:var(--gold)">${e.fondateurNom||'?'}</strong>
-                        &nbsp;·&nbsp; ${membres.length}/5 membres
+                        &nbsp;·&nbsp; ${membres.length}/8 membres
                         &nbsp;·&nbsp; ${incanSnap.docs.length} incantation(s)
                     </div>
                     ${e.description?`<div style="font-size:.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px">${e.description}</div>`:''}

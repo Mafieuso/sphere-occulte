@@ -3493,6 +3493,7 @@ async function sauvegarderMembre() {
     await logAction('modif', `Modification de ${data.prenom} ${data.nom}`, 0);
 
     if (gradeChanged) await notifierMonteeGrade(id, m.grade, newGrade);
+    syncPointsToSheets({ totaux: [{ id, nom: displayName(data), pointsOcculte: newOcculte, pointsManipulation: newManip }] });
     closeModal('modal-membre');
 }
 
@@ -4500,6 +4501,7 @@ async function creerMembre(e) {
         await secondaryAuth.signOut();
         const nomComplet = nom ? prenom + ' ' + nom : prenom;
         await logAction('creation', `Nouveau membre : ${nomComplet}`, 0);
+        syncPointsToSheets({ totaux: [{ id: cred.user.uid, nom: nomComplet, pointsOcculte: 0, pointsManipulation: 0 }] });
         showAlert('creer-success', `✅ Compte créé pour ${nomComplet} !`, 'success');
         e.target.reset();
         loadAdminAcces();

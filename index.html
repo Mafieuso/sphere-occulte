@@ -1457,7 +1457,7 @@ async function renderRapportImage(data) {
     const accent   = gradeDef.couleur;
 
     const W = Math.round(f(1300));
-    const CARD_H = Math.round(f(620));
+    const CARD_H = Math.round(f(680));
 
     let img = null, iw = 0, ih = 0, shotH = 0;
     const SHOT_LABEL_H = f(46);
@@ -1495,56 +1495,56 @@ async function renderRapportImage(data) {
     ctx.restore();
 
     ctx.textAlign = 'center';
-    ctx.font = `600 ${f(15)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
+    ctx.font = `600 ${f(16)}px Karla, sans-serif`; ctx.fillStyle = '#8a97b0';
     ctx.fillText('S P H È R E   O C C U L T E', W / 2, f(55));
 
-    ctx.font = `${f(20)}px sans-serif`; ctx.fillStyle = accent;
-    ctx.fillText(`${gradeDef.icon}  ${data.grade || gradeDef.nom}`, W / 2, f(85));
+    ctx.font = `600 ${f(24)}px sans-serif`; ctx.fillStyle = accent;
+    ctx.fillText(`${gradeDef.icon}  ${data.grade || gradeDef.nom}`, W / 2, f(87));
 
-    ctx.font = `700 ${f(46)}px "Cinzel Decorative", serif`; ctx.fillStyle = '#e6ecf0';
+    ctx.font = `700 ${f(48)}px "Cinzel Decorative", serif`; ctx.fillStyle = '#e6ecf0';
     ctx.shadowColor = accent; ctx.shadowBlur = f(24);
     ctx.fillText(data.incanNom || 'Incantation', W / 2, f(150));
     ctx.shadowBlur = 0;
 
-    ctx.font = `${f(24)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#a8f5ec';
-    ctx.fillText(`Rapport de ${data.membreNom}`, W / 2, f(185));
+    ctx.font = `${f(28)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#a8f5ec';
+    ctx.fillText(`Rapport de ${data.membreNom}`, W / 2, f(188));
 
     ctx.strokeStyle = accent; ctx.globalAlpha = .5;
-    ctx.beginPath(); ctx.moveTo(f(80), f(212)); ctx.lineTo(W / 2 - f(20), f(212)); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(W / 2 + f(20), f(212)); ctx.lineTo(W - f(80), f(212)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(f(80), f(215)); ctx.lineTo(W / 2 - f(20), f(215)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W / 2 + f(20), f(215)); ctx.lineTo(W - f(80), f(215)); ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.font = `${f(16)}px serif`; ctx.fillStyle = accent;
-    ctx.fillText('◆', W / 2, f(217));
+    ctx.font = `${f(18)}px serif`; ctx.fillStyle = accent;
+    ctx.fillText('◆', W / 2, f(221));
 
-    ctx.font = `700 ${f(52)}px "Italiana", serif`; ctx.fillStyle = '#a8f5ec';
+    ctx.font = `700 ${f(56)}px "Italiana", serif`; ctx.fillStyle = '#a8f5ec';
     ctx.shadowColor = accent; ctx.shadowBlur = f(18);
-    ctx.fillText(`+${data.ptsGagnes || 0}`, W * 0.32, f(300));
-    ctx.fillText(`+${data.manipGagnes || 0}`, W * 0.68, f(300));
+    ctx.fillText(`+${data.ptsGagnes || 0}`, W * 0.32, f(308));
+    ctx.fillText(`+${data.manipGagnes || 0}`, W * 0.68, f(308));
     ctx.shadowBlur = 0;
-    ctx.font = `${f(13)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
-    ctx.fillText('PUISSANCE OCCULTE', W * 0.32, f(324));
-    ctx.fillText('MANIPULATION OCCULTE', W * 0.68, f(324));
+    ctx.font = `600 ${f(17)}px Karla, sans-serif`; ctx.fillStyle = '#9aa6bd';
+    ctx.fillText('PUISSANCE OCCULTE', W * 0.32, f(336));
+    ctx.fillText('MANIPULATION OCCULTE', W * 0.68, f(336));
 
     const rows = [
         ['📅 DATE RP', data.dateRap || '—', '🚪 ACCÈS SALLE', data.accesSalle || '—'],
         ['🎯 CIBLE', data.cible || '—', '⚗️ SOCLE UTILISÉ', data.socleUtilise || '—']
     ];
     ctx.textAlign = 'left';
-    let y = f(380);
+    let y = f(400);
     rows.forEach(([l1, v1, l2, v2]) => {
-        ctx.font = `${f(13)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
+        ctx.font = `600 ${f(17)}px Karla, sans-serif`; ctx.fillStyle = '#9aa6bd';
         ctx.fillText(l1, f(80), y); ctx.fillText(l2, W / 2 + f(20), y);
-        ctx.font = `${f(20)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#e6ecf0';
-        ctx.fillText(wrapCanvasText(ctx, v1, W / 2 - f(120))[0] || v1, f(80), y + f(26));
-        ctx.fillText(wrapCanvasText(ctx, v2, W / 2 - f(120))[0] || v2, W / 2 + f(20), y + f(26));
-        y += f(70);
+        ctx.font = `${f(26)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#f0f4f7';
+        ctx.fillText(wrapCanvasText(ctx, v1, W / 2 - f(120))[0] || v1, f(80), y + f(32));
+        ctx.fillText(wrapCanvasText(ctx, v2, W / 2 - f(120))[0] || v2, W / 2 + f(20), y + f(32));
+        y += f(84);
     });
 
     if (data.usage) {
-        ctx.font = `${f(13)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
+        ctx.font = `600 ${f(17)}px Karla, sans-serif`; ctx.fillStyle = '#9aa6bd';
         ctx.fillText('📝 USAGE', f(80), y);
-        ctx.font = `${f(16)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#c7d0dc';
-        wrapCanvasText(ctx, data.usage, W - f(160)).slice(0, 2).forEach((l, i) => ctx.fillText(l, f(80), y + f(24) + i * f(22)));
+        ctx.font = `${f(21)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#d7dee6';
+        wrapCanvasText(ctx, data.usage, W - f(160)).slice(0, 2).forEach((l, i) => ctx.fillText(l, f(80), y + f(30) + i * f(28)));
     }
 
     if (data.screenshot) {
@@ -1555,8 +1555,8 @@ async function renderRapportImage(data) {
 
         const shotY = CARD_H + GAP;
         ctx.textAlign = 'center';
-        ctx.font = `600 ${f(15)}px Karla, sans-serif`; ctx.fillStyle = accent;
-        ctx.fillText('📸  PREUVE — CAPTURE D\'ÉCRAN', W / 2, shotY + f(24));
+        ctx.font = `600 ${f(18)}px Karla, sans-serif`; ctx.fillStyle = accent;
+        ctx.fillText('📸  PREUVE — CAPTURE D\'ÉCRAN', W / 2, shotY + f(26));
 
         const imgX = Math.round((W - iw) / 2);
         const imgY = Math.round(shotY + SHOT_LABEL_H);
@@ -1565,7 +1565,7 @@ async function renderRapportImage(data) {
         ctx.strokeRect(imgX, imgY, iw, ih);
     } else {
         ctx.textAlign = 'center';
-        ctx.font = `${f(12)}px Karla, sans-serif`; ctx.fillStyle = '#33405a';
+        ctx.font = `${f(14)}px Karla, sans-serif`; ctx.fillStyle = '#3d4c6b';
         ctx.fillText('Sphère Occulte — Système de Rapports', W / 2, H - f(30));
     }
 

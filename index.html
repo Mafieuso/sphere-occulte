@@ -1463,9 +1463,12 @@ async function renderRapportImage(data) {
     const SHOT_LABEL_H = f(46);
     if (data.screenshot) {
         img = await loadImageEl(data.screenshot);
-        const maxW = W - f(80);
-        iw = img.naturalWidth || img.width; ih = img.naturalHeight || img.height;
-        if (iw > maxW) { ih = Math.round(ih * (maxW / iw)); iw = Math.round(maxW); }
+        // Mise à l'échelle systématique (pas seulement en réduction) pour que
+        // la preuve remplisse toujours toute la largeur de la carte.
+        const targetW = W - f(80);
+        const srcW = img.naturalWidth || img.width, srcH = img.naturalHeight || img.height;
+        iw = Math.round(targetW);
+        ih = Math.round(srcH * (targetW / srcW));
         shotH = SHOT_LABEL_H + ih + f(30);
     }
     const GAP = data.screenshot ? f(30) : 0;

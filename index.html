@@ -1520,15 +1520,6 @@ async function postRapportToDiscord(data) {
             title: `📜 Nouveau Rapport — ${data.membreNom}`,
             description: 'Un rapport d\'incantation vient d\'être soumis et attend validation.',
             color: parseInt(gradeDef.couleur.replace('#', ''), 16),
-            fields: [
-                { name: '🔮 Incantation',   value: data.incanNom     || '—', inline: true },
-                { name: '📅 Date RP',       value: data.dateRap      || '—', inline: true },
-                { name: '✨ Points',        value: `+${data.ptsGagnes || 0} Occulte / +${data.manipGagnes || 0} Manip.`, inline: true },
-                { name: '🚪 Accès Salle',   value: data.accesSalle   || '—', inline: false },
-                { name: '🎯 Cible',         value: data.cible        || '—', inline: true },
-                { name: '⚗️ Socle utilisé', value: data.socleUtilise || '—', inline: true },
-                { name: '📝 Usage',         value: (data.usage || '—').slice(0, 1024) }
-            ],
             footer: { text: 'Sphère Occulte — En attente de validation' },
             timestamp: new Date().toISOString()
         };
@@ -1545,7 +1536,6 @@ async function postRapportToDiscord(data) {
                 const preuve = await (await fetch(data.screenshot)).blob();
                 formData.append('files[1]', preuve, 'preuve.png');
                 embeds.push({
-                    title: '📸 Preuve (capture d\'écran)',
                     color: parseInt(gradeDef.couleur.replace('#', ''), 16),
                     image: { url: 'attachment://preuve.png' }
                 });

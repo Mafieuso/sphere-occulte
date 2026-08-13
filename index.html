@@ -1445,19 +1445,35 @@ function loadImageEl(src) {
     });
 }
 
-// Carte visuelle du rapport — dimensions/typo mises à l'échelle via S pour
-// pouvoir l'agrandir facilement sans tout recalculer à la main.
-async function renderRapportCard(data) {
+// Image unique du rapport : la "carte" (infos) et le screenshot de preuve,
+// empilés l'un au-dessus de l'autre dans un seul PNG — ainsi Discord
+// l'affiche comme une pièce jointe unique en taille native (pas de galerie
+// côte-à-côte, pas de plafond de taille d'image d'embed ~400px).
+async function renderRapportImage(data) {
     if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
     const S = 1.65;
     const f = n => n * S;
-    const W = Math.round(f(1000)), H = Math.round(f(620));
+    const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
+    const accent   = gradeDef.couleur;
+
+    const W = Math.round(f(1000));
+    const CARD_H = Math.round(f(620));
+
+    let img = null, iw = 0, ih = 0, shotH = 0;
+    const SHOT_LABEL_H = f(46);
+    if (data.screenshot) {
+        img = await loadImageEl(data.screenshot);
+        const maxW = W - f(80);
+        iw = img.naturalWidth || img.width; ih = img.naturalHeight || img.height;
+        if (iw > maxW) { ih = Math.round(ih * (maxW / iw)); iw = Math.round(maxW); }
+        shotH = SHOT_LABEL_H + ih + f(30);
+    }
+    const GAP = data.screenshot ? f(30) : 0;
+    const H = CARD_H + (data.screenshot ? GAP + shotH : 0);
+
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
-
-    const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
-    const accent   = gradeDef.couleur;
 
     const bg = ctx.createLinearGradient(0, 0, W, H);
     bg.addColorStop(0, '#05070f'); bg.addColorStop(1, '#0c1020');
@@ -1465,21 +1481,15 @@ async function renderRapportCard(data) {
 
     const glow = ctx.createRadialGradient(W / 2, f(110), f(10), W / 2, f(110), f(500));
     glow.addColorStop(0, accent + '38'); glow.addColorStop(1, 'transparent');
-    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, CARD_H);
 
-    // Sceau en filigrane, très discret, derrière le contenu
+    // Sceau en filigrane, très discret, derrière le contenu de la carte
     ctx.save();
     ctx.globalAlpha = .05;
     ctx.textAlign = 'center';
     ctx.font = `${f(480)}px serif`; ctx.fillStyle = accent;
-    ctx.fillText('⬡', W / 2, H / 2 + f(70));
+    ctx.fillText('⬡', W / 2, CARD_H / 2 + f(70));
     ctx.restore();
-
-    ctx.strokeStyle = accent; ctx.lineWidth = f(3.4);
-    roundRectPath(ctx, f(12), f(12), W - f(24), H - f(24), f(18)); ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1;
-    roundRectPath(ctx, f(20), f(20), W - f(40), H - f(40), f(14)); ctx.stroke();
-    drawCornerOrnaments(ctx, f(20), f(20), W - f(40), H - f(40), accent, f(24));
 
     ctx.textAlign = 'center';
     ctx.font = `600 ${f(15)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
@@ -1534,44 +1544,34 @@ async function renderRapportCard(data) {
         wrapCanvasText(ctx, data.usage, W - f(160)).slice(0, 2).forEach((l, i) => ctx.fillText(l, f(80), y + f(24) + i * f(22)));
     }
 
-    ctx.textAlign = 'center';
-    ctx.font = `${f(12)}px Karla, sans-serif`; ctx.fillStyle = '#33405a';
-    ctx.fillText('Sphère Occulte — Système de Rapports', W / 2, H - f(30));
+    if (data.screenshot) {
+        const sepY = CARD_H + GAP / 2;
+        ctx.strokeStyle = accent; ctx.globalAlpha = .4;
+        ctx.beginPath(); ctx.moveTo(f(40), sepY); ctx.lineTo(W - f(40), sepY); ctx.stroke();
+        ctx.globalAlpha = 1;
 
-    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-}
+        const shotY = CARD_H + GAP;
+        ctx.textAlign = 'center';
+        ctx.font = `600 ${f(15)}px Karla, sans-serif`; ctx.fillStyle = accent;
+        ctx.fillText('📸  PREUVE — CAPTURE D\'ÉCRAN', W / 2, shotY + f(24));
 
-// Encadre la capture d'écran de preuve dans un cadre assorti au style de
-// la carte (bordure couleur du grade, ornements, petite étiquette).
-async function renderDecoratedScreenshot(src, gradeDef) {
-    const img = await loadImageEl(src);
-    const accent = gradeDef.couleur;
-    const PAD = 30, LABEL_H = 56, MAX_W = 1100;
-    let iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-    if (iw > MAX_W) { ih = Math.round(ih * (MAX_W / iw)); iw = MAX_W; }
-    const W = iw + PAD * 2, H = ih + PAD * 2 + LABEL_H;
+        const imgX = Math.round((W - iw) / 2);
+        const imgY = Math.round(shotY + SHOT_LABEL_H);
+        ctx.drawImage(img, imgX, imgY, iw, ih);
+        ctx.strokeStyle = accent; ctx.lineWidth = 2;
+        ctx.strokeRect(imgX, imgY, iw, ih);
+    } else {
+        ctx.textAlign = 'center';
+        ctx.font = `${f(12)}px Karla, sans-serif`; ctx.fillStyle = '#33405a';
+        ctx.fillText('Sphère Occulte — Système de Rapports', W / 2, H - f(30));
+    }
 
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-
-    const bg = ctx.createLinearGradient(0, 0, W, H);
-    bg.addColorStop(0, '#05070f'); bg.addColorStop(1, '#0c1020');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-
-    ctx.strokeStyle = accent; ctx.lineWidth = 3.4;
-    roundRectPath(ctx, 10, 10, W - 20, H - 20, 16); ctx.stroke();
+    // Bordure + ornements englobant toute l'image (carte + screenshot)
+    ctx.strokeStyle = accent; ctx.lineWidth = f(3.4);
+    roundRectPath(ctx, f(12), f(12), W - f(24), H - f(24), f(18)); ctx.stroke();
     ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1;
-    roundRectPath(ctx, 17, 17, W - 34, H - 34, 12); ctx.stroke();
-    drawCornerOrnaments(ctx, 17, 17, W - 34, H - 34, accent, 20);
-
-    ctx.textAlign = 'center';
-    ctx.font = '600 19px Karla, sans-serif'; ctx.fillStyle = accent;
-    ctx.fillText('📸  PREUVE — CAPTURE D\'ÉCRAN', W / 2, 40);
-
-    ctx.drawImage(img, PAD, LABEL_H, iw, ih);
-    ctx.strokeStyle = accent; ctx.lineWidth = 2;
-    ctx.strokeRect(PAD, LABEL_H, iw, ih);
+    roundRectPath(ctx, f(20), f(20), W - f(40), H - f(40), f(14)); ctx.stroke();
+    drawCornerOrnaments(ctx, f(20), f(20), W - f(40), H - f(40), accent, f(24));
 
     return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 }
@@ -1591,22 +1591,15 @@ async function postRapportToDiscord(data) {
             timestamp: new Date().toISOString()
         };
 
-        // Les images sont attachées au message SANS être référencées dans un
-        // embed ("attachment://...") : Discord les affiche alors en pièces
-        // jointes pleine taille, bien plus grandes qu'une image d'embed
-        // (limitée à ~400px de large quel que soit la résolution source).
+        // Une seule image (carte + screenshot empilés), attachée SANS être
+        // référencée dans un embed ("attachment://...") : Discord l'affiche
+        // alors en pièce jointe pleine taille, bien plus grande qu'une image
+        // d'embed (limitée à ~400px de large quelle que soit sa résolution).
         const formData = new FormData();
         try {
-            const carte = await renderRapportCard(data);
-            if (carte) formData.append('files[0]', carte, 'carte.png');
-        } catch (e) { console.error('Carte rapport :', e); }
-
-        if (data.screenshot) {
-            try {
-                const preuve = await renderDecoratedScreenshot(data.screenshot, gradeDef);
-                if (preuve) formData.append('files[1]', preuve, 'preuve.png');
-            } catch (e) { console.error('Preuve rapport :', e); }
-        }
+            const image = await renderRapportImage(data);
+            if (image) formData.append('files[0]', image, 'rapport.png');
+        } catch (e) { console.error('Image rapport :', e); }
 
         formData.append('payload_json', JSON.stringify({
             username: 'Prophète Occulte',

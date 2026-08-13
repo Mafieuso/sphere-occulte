@@ -1426,9 +1426,32 @@ function roundRectPath(ctx, x, y, w, h, r) {
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
 }
+function drawCornerOrnaments(ctx, x, y, w, h, color, size) {
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]].forEach(([cx, cy, dx, dy]) => {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + dy * size); ctx.lineTo(cx, cy); ctx.lineTo(cx + dx * size, cy);
+        ctx.stroke();
+    });
+    ctx.restore();
+}
+function loadImageEl(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload  = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+// Carte visuelle du rapport — dimensions/typo mises à l'échelle via S pour
+// pouvoir l'agrandir facilement sans tout recalculer à la main.
 async function renderRapportCard(data) {
     if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
-    const W = 1200, H = 744;
+    const S = 1.65;
+    const f = n => n * S;
+    const W = Math.round(f(1000)), H = Math.round(f(620));
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
@@ -1440,71 +1463,115 @@ async function renderRapportCard(data) {
     bg.addColorStop(0, '#05070f'); bg.addColorStop(1, '#0c1020');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-    const glow = ctx.createRadialGradient(W / 2, 120, 12, W / 2, 120, 550);
-    glow.addColorStop(0, accent + '30'); glow.addColorStop(1, 'transparent');
+    const glow = ctx.createRadialGradient(W / 2, f(110), f(10), W / 2, f(110), f(500));
+    glow.addColorStop(0, accent + '38'); glow.addColorStop(1, 'transparent');
     ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = accent; ctx.lineWidth = 4;
-    roundRectPath(ctx, 14, 14, W - 28, H - 28, 22); ctx.stroke();
+    // Sceau en filigrane, très discret, derrière le contenu
+    ctx.save();
+    ctx.globalAlpha = .05;
+    ctx.textAlign = 'center';
+    ctx.font = `${f(480)}px serif`; ctx.fillStyle = accent;
+    ctx.fillText('⬡', W / 2, H / 2 + f(70));
+    ctx.restore();
+
+    ctx.strokeStyle = accent; ctx.lineWidth = f(3.4);
+    roundRectPath(ctx, f(12), f(12), W - f(24), H - f(24), f(18)); ctx.stroke();
     ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1;
-    roundRectPath(ctx, 24, 24, W - 48, H - 48, 17); ctx.stroke();
+    roundRectPath(ctx, f(20), f(20), W - f(40), H - f(40), f(14)); ctx.stroke();
+    drawCornerOrnaments(ctx, f(20), f(20), W - f(40), H - f(40), accent, f(24));
 
     ctx.textAlign = 'center';
-    ctx.font = '600 18px Karla, sans-serif'; ctx.fillStyle = '#7f8ba3';
-    ctx.fillText('S P H È R E   O C C U L T E', W / 2, 66);
+    ctx.font = `600 ${f(15)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
+    ctx.fillText('S P H È R E   O C C U L T E', W / 2, f(55));
 
-    ctx.font = '24px sans-serif'; ctx.fillStyle = accent;
-    ctx.fillText(`${gradeDef.icon}  ${data.grade || gradeDef.nom}`, W / 2, 102);
+    ctx.font = `${f(20)}px sans-serif`; ctx.fillStyle = accent;
+    ctx.fillText(`${gradeDef.icon}  ${data.grade || gradeDef.nom}`, W / 2, f(85));
 
-    ctx.font = '700 55px "Cinzel Decorative", serif'; ctx.fillStyle = '#e6ecf0';
-    ctx.shadowColor = accent; ctx.shadowBlur = 24;
-    ctx.fillText(data.incanNom || 'Incantation', W / 2, 180);
+    ctx.font = `700 ${f(46)}px "Cinzel Decorative", serif`; ctx.fillStyle = '#e6ecf0';
+    ctx.shadowColor = accent; ctx.shadowBlur = f(24);
+    ctx.fillText(data.incanNom || 'Incantation', W / 2, f(150));
     ctx.shadowBlur = 0;
 
-    ctx.font = '29px "Cormorant Garamond", serif'; ctx.fillStyle = '#a8f5ec';
-    ctx.fillText(`Rapport de ${data.membreNom}`, W / 2, 222);
+    ctx.font = `${f(24)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#a8f5ec';
+    ctx.fillText(`Rapport de ${data.membreNom}`, W / 2, f(185));
 
     ctx.strokeStyle = accent; ctx.globalAlpha = .5;
-    ctx.beginPath(); ctx.moveTo(96, 254); ctx.lineTo(W / 2 - 24, 254); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(W / 2 + 24, 254); ctx.lineTo(W - 96, 254); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(f(80), f(212)); ctx.lineTo(W / 2 - f(20), f(212)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W / 2 + f(20), f(212)); ctx.lineTo(W - f(80), f(212)); ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.font = '19px serif'; ctx.fillStyle = accent;
-    ctx.fillText('◆', W / 2, 260);
+    ctx.font = `${f(16)}px serif`; ctx.fillStyle = accent;
+    ctx.fillText('◆', W / 2, f(217));
 
-    ctx.font = '700 62px "Italiana", serif'; ctx.fillStyle = '#a8f5ec';
-    ctx.shadowColor = accent; ctx.shadowBlur = 19;
-    ctx.fillText(`+${data.ptsGagnes || 0}`, W * 0.32, 360);
-    ctx.fillText(`+${data.manipGagnes || 0}`, W * 0.68, 360);
+    ctx.font = `700 ${f(52)}px "Italiana", serif`; ctx.fillStyle = '#a8f5ec';
+    ctx.shadowColor = accent; ctx.shadowBlur = f(18);
+    ctx.fillText(`+${data.ptsGagnes || 0}`, W * 0.32, f(300));
+    ctx.fillText(`+${data.manipGagnes || 0}`, W * 0.68, f(300));
     ctx.shadowBlur = 0;
-    ctx.font = '16px Karla, sans-serif'; ctx.fillStyle = '#7f8ba3';
-    ctx.fillText('PUISSANCE OCCULTE', W * 0.32, 389);
-    ctx.fillText('MANIPULATION OCCULTE', W * 0.68, 389);
+    ctx.font = `${f(13)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
+    ctx.fillText('PUISSANCE OCCULTE', W * 0.32, f(324));
+    ctx.fillText('MANIPULATION OCCULTE', W * 0.68, f(324));
 
     const rows = [
         ['📅 DATE RP', data.dateRap || '—', '🚪 ACCÈS SALLE', data.accesSalle || '—'],
         ['🎯 CIBLE', data.cible || '—', '⚗️ SOCLE UTILISÉ', data.socleUtilise || '—']
     ];
     ctx.textAlign = 'left';
-    let y = 456;
+    let y = f(380);
     rows.forEach(([l1, v1, l2, v2]) => {
-        ctx.font = '16px Karla, sans-serif'; ctx.fillStyle = '#7f8ba3';
-        ctx.fillText(l1, 96, y); ctx.fillText(l2, W / 2 + 24, y);
-        ctx.font = '24px "Cormorant Garamond", serif'; ctx.fillStyle = '#e6ecf0';
-        ctx.fillText(wrapCanvasText(ctx, v1, W / 2 - 144)[0] || v1, 96, y + 31);
-        ctx.fillText(wrapCanvasText(ctx, v2, W / 2 - 144)[0] || v2, W / 2 + 24, y + 31);
-        y += 84;
+        ctx.font = `${f(13)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
+        ctx.fillText(l1, f(80), y); ctx.fillText(l2, W / 2 + f(20), y);
+        ctx.font = `${f(20)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#e6ecf0';
+        ctx.fillText(wrapCanvasText(ctx, v1, W / 2 - f(120))[0] || v1, f(80), y + f(26));
+        ctx.fillText(wrapCanvasText(ctx, v2, W / 2 - f(120))[0] || v2, W / 2 + f(20), y + f(26));
+        y += f(70);
     });
 
     if (data.usage) {
-        ctx.font = '16px Karla, sans-serif'; ctx.fillStyle = '#7f8ba3';
-        ctx.fillText('📝 USAGE', 96, y);
-        ctx.font = '19px "Cormorant Garamond", serif'; ctx.fillStyle = '#c7d0dc';
-        wrapCanvasText(ctx, data.usage, W - 192).slice(0, 2).forEach((l, i) => ctx.fillText(l, 96, y + 29 + i * 26));
+        ctx.font = `${f(13)}px Karla, sans-serif`; ctx.fillStyle = '#7f8ba3';
+        ctx.fillText('📝 USAGE', f(80), y);
+        ctx.font = `${f(16)}px "Cormorant Garamond", serif`; ctx.fillStyle = '#c7d0dc';
+        wrapCanvasText(ctx, data.usage, W - f(160)).slice(0, 2).forEach((l, i) => ctx.fillText(l, f(80), y + f(24) + i * f(22)));
     }
 
     ctx.textAlign = 'center';
-    ctx.font = '14px Karla, sans-serif'; ctx.fillStyle = '#33405a';
-    ctx.fillText('Sphère Occulte — Système de Rapports', W / 2, H - 36);
+    ctx.font = `${f(12)}px Karla, sans-serif`; ctx.fillStyle = '#33405a';
+    ctx.fillText('Sphère Occulte — Système de Rapports', W / 2, H - f(30));
+
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+
+// Encadre la capture d'écran de preuve dans un cadre assorti au style de
+// la carte (bordure couleur du grade, ornements, petite étiquette).
+async function renderDecoratedScreenshot(src, gradeDef) {
+    const img = await loadImageEl(src);
+    const accent = gradeDef.couleur;
+    const PAD = 30, LABEL_H = 56, MAX_W = 1100;
+    let iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (iw > MAX_W) { ih = Math.round(ih * (MAX_W / iw)); iw = MAX_W; }
+    const W = iw + PAD * 2, H = ih + PAD * 2 + LABEL_H;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#05070f'); bg.addColorStop(1, '#0c1020');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = accent; ctx.lineWidth = 3.4;
+    roundRectPath(ctx, 10, 10, W - 20, H - 20, 16); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1;
+    roundRectPath(ctx, 17, 17, W - 34, H - 34, 12); ctx.stroke();
+    drawCornerOrnaments(ctx, 17, 17, W - 34, H - 34, accent, 20);
+
+    ctx.textAlign = 'center';
+    ctx.font = '600 19px Karla, sans-serif'; ctx.fillStyle = accent;
+    ctx.fillText('📸  PREUVE — CAPTURE D\'ÉCRAN', W / 2, 40);
+
+    ctx.drawImage(img, PAD, LABEL_H, iw, ih);
+    ctx.strokeStyle = accent; ctx.lineWidth = 2;
+    ctx.strokeRect(PAD, LABEL_H, iw, ih);
 
     return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 }
@@ -1533,12 +1600,14 @@ async function postRapportToDiscord(data) {
 
         if (data.screenshot) {
             try {
-                const preuve = await (await fetch(data.screenshot)).blob();
-                formData.append('files[1]', preuve, 'preuve.png');
-                embeds.push({
-                    color: parseInt(gradeDef.couleur.replace('#', ''), 16),
-                    image: { url: 'attachment://preuve.png' }
-                });
+                const preuve = await renderDecoratedScreenshot(data.screenshot, gradeDef);
+                if (preuve) {
+                    formData.append('files[1]', preuve, 'preuve.png');
+                    embeds.push({
+                        color: parseInt(gradeDef.couleur.replace('#', ''), 16),
+                        image: { url: 'attachment://preuve.png' }
+                    });
+                }
             } catch (e) { console.error('Preuve rapport :', e); }
         }
 

@@ -1403,8 +1403,114 @@
 const DISCORD_WEBHOOK_RAPPORTS = 'https://discord.com/api/webhooks/1537443246337302581/m8Bjzpushvo9maISjrtW4pBMZTpasN90DQmczj0jCoCRJOYwavbVgTKPqsD4LkKd8YuX';
 const SHEETS_WEBAPP_URL        = 'https://script.google.com/macros/s/AKfycbxjh0KSCwxSUPG1Plsc5vmpSKmbBOiIlqsrkwmaf54mdImCatwX1FirFRbLOHbb6sw__g/exec';
 
-// Poste le rapport complet (avec capture) dans le salon Discord dédié,
-// au moment de la soumission — jamais bloquant pour l'utilisateur.
+// Dessine une "carte" visuelle du rapport (Canvas → PNG), aux couleurs du
+// grade de l'incantateur, pour l'image mise en avant sur Discord.
+function wrapCanvasText(ctx, text, maxWidth) {
+    const words = String(text || '').split(' ');
+    const lines = [];
+    let line = '';
+    for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
+        else line = test;
+    }
+    if (line) lines.push(line);
+    return lines;
+}
+function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+async function renderRapportCard(data) {
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+    const W = 1000, H = 620;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
+    const accent   = gradeDef.couleur;
+
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#05070f'); bg.addColorStop(1, '#0c1020');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    const glow = ctx.createRadialGradient(W / 2, 100, 10, W / 2, 100, 460);
+    glow.addColorStop(0, accent + '30'); glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = accent; ctx.lineWidth = 3;
+    roundRectPath(ctx, 12, 12, W - 24, H - 24, 18); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1;
+    roundRectPath(ctx, 20, 20, W - 40, H - 40, 14); ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.font = '600 15px Karla, sans-serif'; ctx.fillStyle = '#7f8ba3';
+    ctx.fillText('S P H È R E   O C C U L T E', W / 2, 55);
+
+    ctx.font = '20px sans-serif'; ctx.fillStyle = accent;
+    ctx.fillText(`${gradeDef.icon}  ${data.grade || gradeDef.nom}`, W / 2, 85);
+
+    ctx.font = '700 46px "Cinzel Decorative", serif'; ctx.fillStyle = '#e6ecf0';
+    ctx.shadowColor = accent; ctx.shadowBlur = 20;
+    ctx.fillText(data.incanNom || 'Incantation', W / 2, 150);
+    ctx.shadowBlur = 0;
+
+    ctx.font = '24px "Cormorant Garamond", serif'; ctx.fillStyle = '#a8f5ec';
+    ctx.fillText(`Rapport de ${data.membreNom}`, W / 2, 185);
+
+    ctx.strokeStyle = accent; ctx.globalAlpha = .5;
+    ctx.beginPath(); ctx.moveTo(80, 212); ctx.lineTo(W / 2 - 20, 212); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W / 2 + 20, 212); ctx.lineTo(W - 80, 212); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.font = '16px serif'; ctx.fillStyle = accent;
+    ctx.fillText('◆', W / 2, 217);
+
+    ctx.font = '700 52px "Italiana", serif'; ctx.fillStyle = '#a8f5ec';
+    ctx.shadowColor = accent; ctx.shadowBlur = 16;
+    ctx.fillText(`+${data.ptsGagnes || 0}`, W * 0.32, 300);
+    ctx.fillText(`+${data.manipGagnes || 0}`, W * 0.68, 300);
+    ctx.shadowBlur = 0;
+    ctx.font = '13px Karla, sans-serif'; ctx.fillStyle = '#7f8ba3';
+    ctx.fillText('PUISSANCE OCCULTE', W * 0.32, 324);
+    ctx.fillText('MANIPULATION OCCULTE', W * 0.68, 324);
+
+    const rows = [
+        ['📅 DATE RP', data.dateRap || '—', '🚪 ACCÈS SALLE', data.accesSalle || '—'],
+        ['🎯 CIBLE', data.cible || '—', '⚗️ SOCLE UTILISÉ', data.socleUtilise || '—']
+    ];
+    ctx.textAlign = 'left';
+    let y = 380;
+    rows.forEach(([l1, v1, l2, v2]) => {
+        ctx.font = '13px Karla, sans-serif'; ctx.fillStyle = '#7f8ba3';
+        ctx.fillText(l1, 80, y); ctx.fillText(l2, W / 2 + 20, y);
+        ctx.font = '20px "Cormorant Garamond", serif'; ctx.fillStyle = '#e6ecf0';
+        ctx.fillText(wrapCanvasText(ctx, v1, W / 2 - 120)[0] || v1, 80, y + 26);
+        ctx.fillText(wrapCanvasText(ctx, v2, W / 2 - 120)[0] || v2, W / 2 + 20, y + 26);
+        y += 70;
+    });
+
+    if (data.usage) {
+        ctx.font = '13px Karla, sans-serif'; ctx.fillStyle = '#7f8ba3';
+        ctx.fillText('📝 USAGE', 80, y);
+        ctx.font = '16px "Cormorant Garamond", serif'; ctx.fillStyle = '#c7d0dc';
+        wrapCanvasText(ctx, data.usage, W - 160).slice(0, 2).forEach((l, i) => ctx.fillText(l, 80, y + 24 + i * 22));
+    }
+
+    ctx.textAlign = 'center';
+    ctx.font = '12px Karla, sans-serif'; ctx.fillStyle = '#33405a';
+    ctx.fillText('Sphère Occulte — Système de Rapports', W / 2, H - 30);
+
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+
+// Poste le rapport complet (avec carte visuelle générée) dans le salon
+// Discord dédié, au moment de la soumission — jamais bloquant pour l'utilisateur.
 async function postRapportToDiscord(data) {
     if (!DISCORD_WEBHOOK_RAPPORTS || DISCORD_WEBHOOK_RAPPORTS.includes('COLLER_ICI')) return;
     try {
@@ -1428,11 +1534,11 @@ async function postRapportToDiscord(data) {
         };
 
         const formData = new FormData();
-        if (data.screenshot) {
-            const blob = await (await fetch(data.screenshot)).blob();
-            formData.append('files[0]', blob, 'preuve.png');
-            embed.image = { url: 'attachment://preuve.png' };
-        }
+        try {
+            const carte = await renderRapportCard(data);
+            if (carte) { formData.append('files[0]', carte, 'carte.png'); embed.image = { url: 'attachment://carte.png' }; }
+        } catch (e) { console.error('Carte rapport :', e); }
+
         formData.append('payload_json', JSON.stringify({
             username: 'Prophète Occulte',
             avatar_url: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/1f52e.png',

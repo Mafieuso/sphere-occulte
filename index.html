@@ -1591,23 +1591,20 @@ async function postRapportToDiscord(data) {
             timestamp: new Date().toISOString()
         };
 
-        const embeds = [embed];
+        // Les images sont attachées au message SANS être référencées dans un
+        // embed ("attachment://...") : Discord les affiche alors en pièces
+        // jointes pleine taille, bien plus grandes qu'une image d'embed
+        // (limitée à ~400px de large quel que soit la résolution source).
         const formData = new FormData();
         try {
             const carte = await renderRapportCard(data);
-            if (carte) { formData.append('files[0]', carte, 'carte.png'); embed.image = { url: 'attachment://carte.png' }; }
+            if (carte) formData.append('files[0]', carte, 'carte.png');
         } catch (e) { console.error('Carte rapport :', e); }
 
         if (data.screenshot) {
             try {
                 const preuve = await renderDecoratedScreenshot(data.screenshot, gradeDef);
-                if (preuve) {
-                    formData.append('files[1]', preuve, 'preuve.png');
-                    embeds.push({
-                        color: parseInt(gradeDef.couleur.replace('#', ''), 16),
-                        image: { url: 'attachment://preuve.png' }
-                    });
-                }
+                if (preuve) formData.append('files[1]', preuve, 'preuve.png');
             } catch (e) { console.error('Preuve rapport :', e); }
         }
 
@@ -1616,7 +1613,7 @@ async function postRapportToDiscord(data) {
             avatar_url: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/1f52e.png',
             content: '<@&1353477391208681544> <@&1353478941129572453>',
             allowed_mentions: { roles: ['1353477391208681544', '1353478941129572453'] },
-            embeds
+            embeds: [embed]
         }));
 
         await fetch(DISCORD_WEBHOOK_RAPPORTS, { method: 'POST', body: formData });

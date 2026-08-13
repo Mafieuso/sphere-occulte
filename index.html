@@ -2854,7 +2854,6 @@ async function soumettreRapport(e) {
             dateCreation: firebase.firestore.Timestamp.now()
         };
         await db.collection('soumissions').add(rapportData);
-        postRapportToDiscord(rapportData); // non-bloquant
 
         showAlert('rap-success', 'Rapport soumis avec succès ! En attente de validation.', 'success');
         ['rap-acces','rap-cible','rap-usage','rap-socle','rap-pts','rap-cout'].forEach(id => {
@@ -3500,6 +3499,26 @@ async function validerSoum(soumId, membreId, pts, manip = 0, incanNom = '') {
             ecole: ecoleNomSync || '', gerant: gerantNomSync || ''
         }
     });
+
+    // Poste sur Discord seulement maintenant que le rapport est validé —
+    // jamais au moment de la simple soumission.
+    try {
+        const soumDoc  = await soumRef.get();
+        const soumData = soumDoc.data() || {};
+        postRapportToDiscord({
+            membreNom:    displayName(m),
+            grade:        newGrade,
+            incanNom,
+            dateRap:      soumData.dateRap,
+            accesSalle:   soumData.accesSalle,
+            cible:        soumData.cible,
+            socleUtilise: soumData.socleUtilise,
+            usage:        soumData.usage,
+            screenshot:   soumData.screenshot,
+            ptsGagnes:    pts,
+            manipGagnes:  manip
+        });
+    } catch (e) { console.error('Discord (validation) :', e); }
 }
 
 async function supprimerSoum(soumId) {

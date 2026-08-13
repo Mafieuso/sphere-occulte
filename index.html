@@ -1408,18 +1408,22 @@ const SHEETS_WEBAPP_URL        = 'https://script.google.com/macros/s/AKfycbxjh0K
 async function postRapportToDiscord(data) {
     if (!DISCORD_WEBHOOK_RAPPORTS || DISCORD_WEBHOOK_RAPPORTS.includes('COLLER_ICI')) return;
     try {
+        const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
         const embed = {
+            author: { name: `${gradeDef.icon} ${data.grade || gradeDef.nom}` },
             title: `📜 Nouveau Rapport — ${data.membreNom}`,
-            color: 0x2ac9bc,
+            description: 'Un rapport d\'incantation vient d\'être soumis et attend validation.',
+            color: parseInt(gradeDef.couleur.replace('#', ''), 16),
             fields: [
-                { name: 'Incantation',   value: data.incanNom || '—', inline: true },
-                { name: 'Date RP',       value: data.dateRap  || '—', inline: true },
-                { name: 'Points',        value: `+${data.ptsGagnes || 0} Occulte / +${data.manipGagnes || 0} Manip.`, inline: true },
-                { name: 'Accès Salle',   value: data.accesSalle   || '—', inline: false },
-                { name: 'Cible',         value: data.cible        || '—', inline: true },
-                { name: 'Socle utilisé', value: data.socleUtilise || '—', inline: true },
-                { name: 'Usage',         value: data.usage        || '—', inline: false }
+                { name: '🔮 Incantation',   value: data.incanNom     || '—', inline: true },
+                { name: '📅 Date RP',       value: data.dateRap      || '—', inline: true },
+                { name: '✨ Points',        value: `+${data.ptsGagnes || 0} Occulte / +${data.manipGagnes || 0} Manip.`, inline: true },
+                { name: '🚪 Accès Salle',   value: data.accesSalle   || '—', inline: false },
+                { name: '🎯 Cible',         value: data.cible        || '—', inline: true },
+                { name: '⚗️ Socle utilisé', value: data.socleUtilise || '—', inline: true },
+                { name: '📝 Usage',         value: (data.usage || '—').slice(0, 1024) }
             ],
+            footer: { text: 'Sphère Occulte — En attente de validation' },
             timestamp: new Date().toISOString()
         };
 
@@ -1429,7 +1433,13 @@ async function postRapportToDiscord(data) {
             formData.append('files[0]', blob, 'preuve.png');
             embed.image = { url: 'attachment://preuve.png' };
         }
-        formData.append('payload_json', JSON.stringify({ embeds: [embed] }));
+        formData.append('payload_json', JSON.stringify({
+            username: 'Prophète Occulte',
+            avatar_url: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/1f52e.png',
+            content: '<@&1353477391208681544> <@&1353478941129572453>',
+            allowed_mentions: { roles: ['1353477391208681544', '1353478941129572453'] },
+            embeds: [embed]
+        }));
 
         await fetch(DISCORD_WEBHOOK_RAPPORTS, { method: 'POST', body: formData });
     } catch (e) { console.error('Discord webhook (rapport) :', e); }
@@ -2660,6 +2670,7 @@ async function soumettreRapport(e) {
         const rapportData = {
             membreId:     currentMembre.id,
             membreNom:    displayName(currentMembre),
+            grade:        currentMembre.grade,
             incanId,      incanNom,
             accesSalle:   val('rap-acces'),
             dateRap:      val('rap-date'),

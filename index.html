@@ -1456,7 +1456,7 @@ async function renderRapportImage(data) {
     const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
     const accent   = gradeDef.couleur;
 
-    const W = Math.round(f(1000));
+    const W = Math.round(f(1300));
     const CARD_H = Math.round(f(620));
 
     let img = null, iw = 0, ih = 0, shotH = 0;
@@ -1582,14 +1582,15 @@ async function postRapportToDiscord(data) {
     if (!DISCORD_WEBHOOK_RAPPORTS || DISCORD_WEBHOOK_RAPPORTS.includes('COLLER_ICI')) return;
     try {
         const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
-        const embed = {
-            author: { name: `${gradeDef.icon} ${data.grade || gradeDef.nom}` },
-            title: `📜 Nouveau Rapport — ${data.membreNom}`,
-            description: 'Un rapport d\'incantation vient d\'être soumis et attend validation.',
-            color: parseInt(gradeDef.couleur.replace('#', ''), 16),
-            footer: { text: 'Sphère Occulte — En attente de validation' },
-            timestamp: new Date().toISOString()
-        };
+
+        // Tout en texte brut ("content"), qui s'affiche TOUJOURS au-dessus
+        // des pièces jointes dans Discord — contrairement à un embed, dont
+        // l'ordre par rapport à une pièce jointe séparée n'est pas garanti.
+        const content = [
+            '<@&1353477391208681544> <@&1353478941129572453>',
+            `${gradeDef.icon} **📜 Nouveau Rapport — ${data.membreNom}**`,
+            'Un rapport d\'incantation vient d\'être soumis et attend validation.'
+        ].join('\n');
 
         // Une seule image (carte + screenshot empilés), attachée SANS être
         // référencée dans un embed ("attachment://...") : Discord l'affiche
@@ -1604,9 +1605,8 @@ async function postRapportToDiscord(data) {
         formData.append('payload_json', JSON.stringify({
             username: 'Prophète Occulte',
             avatar_url: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/1f52e.png',
-            content: '<@&1353477391208681544> <@&1353478941129572453>',
-            allowed_mentions: { roles: ['1353477391208681544', '1353478941129572453'] },
-            embeds: [embed]
+            content,
+            allowed_mentions: { roles: ['1353477391208681544', '1353478941129572453'] }
         }));
 
         await fetch(DISCORD_WEBHOOK_RAPPORTS, { method: 'POST', body: formData });

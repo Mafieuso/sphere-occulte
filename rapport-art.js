@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════
    SPHÈRE OCCULTE — Cartes de rapport Discord (v2) + simulateur admin
    Remplace renderRapportCard / renderScreenshotCard / postRapportToDiscord.
-   Dépend des globales de index.html : GRADES, DISCORD_WEBHOOK_RAPPORTS,
+   Dépend des globales de index.html : GRADES, db,
    wrapCanvasText, roundRectPath, loadImageEl, openModal, closeModal, currentMembre.
    ════════════════════════════════════════════════════════════════ */
 (function () {
@@ -264,10 +264,42 @@
     window.renderRapportCard    = data => safe(u => drawRapportCard(data, u));
     window.renderScreenshotCard = (src, g) => safe(u => drawScreenshotCard(src, g, u));
 
+    /* ───────── Webhook : lu dans Firestore (config/discord), jamais dans le code ───────── */
+    const HOOK_RE = /^https:\/\/(?:discord|discordapp)\.com\/api\/webhooks\/\d+\/[\w-]+$/;
+    let hookCache = null, hookAt = 0;
+    async function getWebhook(force) {
+        if (!force && hookCache !== null && Date.now() - hookAt < 300000) return hookCache;
+        try {
+            const d = await db.collection('config').doc('discord').get();
+            hookCache = d.exists ? String(d.data().rapportsWebhook || '') : '';
+        } catch (e) {
+            console.error('[discord] lecture du webhook refusée — règles Firestore à mettre à jour ?', e.code || e);
+            hookCache = ''; window.__hookErr = e.code || String(e);
+        }
+        hookAt = Date.now(); return hookCache;
+    }
+    function setStatus(txt, ok) { const s = document.getElementById('dc-status'); if (s) { s.textContent = txt; s.style.color = ok ? '#72ff8c' : '#ff8a8a'; } }
+    window.discordWebhookStatus = async function (verbose) {
+        window.__hookErr = null; const hook = await getWebhook(true);
+        if (!hook) { setStatus(window.__hookErr ? '❌ lecture refusée (règles Firestore)' : '❌ non configuré', false); return; }
+        try {                                                  // simple lecture : ne poste rien
+            const res = await fetch(hook); setStatus(res.ok ? '✅ actif' : '❌ webhook invalide ou supprimé (' + res.status + ')', res.ok);
+        } catch (e) { setStatus('⚠ vérification impossible', false); }
+    };
+    window.discordWebhookSave = async function () {
+        const inp = document.getElementById('dc-webhook'), url = (inp.value || '').trim();
+        if (!HOOK_RE.test(url)) { setStatus('❌ URL de webhook invalide', false); return; }
+        try {
+            await db.collection('config').doc('discord').set({ rapportsWebhook: url, updatedAt: firebase.firestore.Timestamp.now() });
+            inp.value = ''; hookCache = url; hookAt = Date.now(); await window.discordWebhookStatus();
+        } catch (e) { setStatus('❌ enregistrement refusé — ' + (e.code || e.message) + ' (règles Firestore à publier ?)', false); }
+    };
+
     /* ───────── Envoi Discord ───────── */
     window.postRapportToDiscord = async function (data, opts) {
         opts = opts || {};
-        if (!DISCORD_WEBHOOK_RAPPORTS || DISCORD_WEBHOOK_RAPPORTS.includes('COLLER_ICI')) return false;
+        const HOOK = await getWebhook();
+        if (!HOOK) { console.error('[discord] aucun webhook configuré (Admin → Accès & Comptes)'); return false; }
         try {
             const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
             const content = opts.test
@@ -282,7 +314,8 @@
             catch (e) { console.error('Carte rapport :', e); }
             fd1.append('payload_json', JSON.stringify(Object.assign({ content },
                 opts.test ? { allowed_mentions: { parse: [] } } : { allowed_mentions: { roles: ROLE_PINGS } }, base)));
-            await fetch(DISCORD_WEBHOOK_RAPPORTS, { method: 'POST', body: fd1 });
+            const res1 = await fetch(HOOK, { method: 'POST', body: fd1 });
+            if (!res1.ok) { console.error('[discord] échec', res1.status, await res1.text().catch(() => '')); hookAt = 0; return false; }
 
             if (data.screenshot) {
                 try {
@@ -290,7 +323,8 @@
                     if (preuve) {
                         const fd2 = new FormData(); fd2.append('files[0]', preuve, 'preuve.png');
                         fd2.append('payload_json', JSON.stringify(Object.assign({ allowed_mentions: { parse: [] } }, base)));
-                        await fetch(DISCORD_WEBHOOK_RAPPORTS, { method: 'POST', body: fd2 });
+                        const res2 = await fetch(HOOK, { method: 'POST', body: fd2 });
+                        if (!res2.ok) console.error('[discord] échec preuve', res2.status);
                     }
                 } catch (e) { console.error('Preuve rapport :', e); }
             }

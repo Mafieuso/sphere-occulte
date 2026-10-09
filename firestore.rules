@@ -90,6 +90,14 @@ service cloud.firestore {
         (resource.data.to == request.auth.uid || isHautGrade());
     }
 
+    // ── Configuration privée (webhook Discord) — lisible par les hauts gradés, modifiable par l'admin ──
+    match /config/{docId} {
+      allow read:  if isHautGrade();
+      allow write: if isAuthenticated() &&
+        exists(/databases/$(database)/documents/membres/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/membres/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // ── Logs ───────────────────────────────────────────────────
     match /logs/{logId} {
       allow read:   if isHautGrade();

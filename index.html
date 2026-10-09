@@ -1351,6 +1351,15 @@
             <div style="padding:.85rem 1rem;border-radius:14px;border:1px solid rgba(42,201,188,.25);background:rgba(42,201,188,.05)">
               <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.5rem">🧪 Simuler un rapport Discord</div>
               <button class="btn btn-gold btn-sm" data-glitch-safe="1" onclick="simulerRapport()">📜 Simuler un rapport</button>
+              <div class="admin-only" style="margin-top:.8rem;padding-top:.8rem;border-top:1px solid rgba(255,255,255,.07)">
+                <div style="font-size:.74rem;color:var(--text);margin-bottom:.4rem">🔗 Webhook Discord des rapports <span id="dc-status" style="margin-left:.4rem;font-size:.7rem"></span></div>
+                <div style="display:flex;gap:.45rem;flex-wrap:wrap">
+                  <input class="form-control" id="dc-webhook" type="password" autocomplete="off" placeholder="https://discord.com/api/webhooks/…" style="flex:1;min-width:220px;font-size:.78rem">
+                  <button class="btn btn-gold btn-sm" data-glitch-safe="1" onclick="discordWebhookSave()">💾 Enregistrer</button>
+                  <button class="btn btn-ghost btn-sm" data-glitch-safe="1" onclick="discordWebhookStatus(true)">↻ Vérifier</button>
+                </div>
+                <div style="font-size:.66rem;color:var(--text-muted);margin-top:.35rem">Stocké dans la base (jamais dans le code public). À recréer dans Discord : paramètres du salon → Intégrations → Webhooks → Nouveau webhook.</div>
+              </div>
               <div style="font-size:.68rem;color:var(--text-muted);margin-top:.5rem">Génère la carte et la preuve avec de fausses données pour voir le rendu exact sur Discord (envoi de test facultatif, sans ping).</div>
             </div>
           </div>
@@ -1411,7 +1420,9 @@
    ⚠️ À configurer : voir SETUP.md — sans ça, ces deux fonctions ne
    font rien (silencieusement, aucune erreur pour les utilisateurs).
 ═══════════════════════════════════════════════════════ */
-const DISCORD_WEBHOOK_RAPPORTS = 'https://discord.com/api/webhooks/1537443246337302581/m8Bjzpushvo9maISjrtW4pBMZTpasN90DQmczj0jCoCRJOYwavbVgTKPqsD4LkKd8YuX';
+// Le webhook Discord n'est PLUS dans le code (Discord supprime tout webhook publié sur GitHub) :
+// il est stocké dans Firestore (config/discord) et saisi depuis Admin → Accès & Comptes. Voir rapport-art.js.
+const DISCORD_WEBHOOK_RAPPORTS = '';
 const SHEETS_WEBAPP_URL        = 'https://script.google.com/macros/s/AKfycbxjh0KSCwxSUPG1Plsc5vmpSKmbBOiIlqsrkwmaf54mdImCatwX1FirFRbLOHbb6sw__g/exec';
 
 // Dessine une "carte" visuelle du rapport (Canvas → PNG), aux couleurs du

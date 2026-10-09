@@ -196,7 +196,8 @@
         S.els = {
             vig: mk('div', 'co-vignette'), tint: mk('div', 'co-tint'), cracks: mk('div', 'co-cracks'), dark: mk('div', 'co-dark'),
             ghost: mk('div', 'co-ghost'), type: mk('div', 'co-type'), black: mk('div', 'co-black'),
-            scream: mk('div', 'co-scream'), error: mk('div', 'co-error')
+            scream: mk('div', 'co-scream'), error: mk('div', 'co-error'),
+            hijack: mk('div', 'co-hijack'), catcher: mk('div', 'co-catch')
         };
         S.els.black.innerHTML = '<div class="eyes-wall"></div>';
         S.els.scream.innerHTML = '<div class="face"></div><div class="red"></div>';
@@ -395,6 +396,221 @@
         later(() => { if (e.dataset.coOrig !== undefined) { e.textContent = e.dataset.coOrig; delete e.dataset.coOrig; } }, rnd(900, 1900));
     }
 
+    /* ═════════════ PRISE DE CONTRÔLE : le curseur n'obéit plus ═════════════
+       Le vrai curseur disparaît, un faux (le même que le sien) prend le relais et fait
+       des « interactions fantômes ». Tout est purement visuel et réversible : aucune
+       donnée n'est modifiée, aucun vrai clic n'est envoyé à la page. */
+    SFX.tick = function (vol) {
+        const c = audioCtx(); if (!c) return;
+        const t = c.currentTime, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+        s.buffer = noiseBuf(); f.type = 'bandpass'; f.frequency.value = rnd(1800, 3200); f.Q.value = 3;
+        g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + .05);
+        s.connect(f); f.connect(g); out(g, rnd(-.3, .3), 0); s.start(t, rnd(0, 1.5)); s.stop(t + .06);
+    };
+    SFX.shatter = function (vol) {
+        const c = audioCtx(); if (!c) return;
+        for (let i = 0; i < 14; i++) {
+            const t = c.currentTime + i * rnd(.02, .09), s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+            s.buffer = noiseBuf(); f.type = 'highpass'; f.frequency.value = rnd(2500, 7000);
+            g.gain.setValueAtTime(vol * rnd(.4, 1), t); g.gain.exponentialRampToValueAtTime(.001, t + rnd(.08, .3));
+            s.connect(f); f.connect(g); out(g, rnd(-.9, .9), .3); s.start(t, rnd(0, 1.5)); s.stop(t + .35);
+        }
+        SFX.thud(vol * 1.1);
+    };
+
+    const sleep = ms => new Promise(res => { const id = setTimeout(res, ms); if (S) S.timeouts.push(id); });
+    function visible(sels) {
+        const list = [].concat(...sels.map(s => [...document.querySelectorAll(s)])).filter(e => {
+            if (e.closest('#co-stop, [id^="co-"], .modal-overlay.hidden')) return false;
+            const r = e.getBoundingClientRect(), st = getComputedStyle(e);
+            return r.width > 8 && r.height > 8 && r.top >= 40 && r.bottom <= innerHeight - 10 && r.left >= 0 && r.right <= innerWidth && st.visibility !== 'hidden' && st.display !== 'none';
+        });
+        return list.length ? pick(list) : null;
+    }
+    function ownCursorUrl() {                                  // le curseur personnalisé du site → c'est « le sien »
+        const m = /url\("([^"]+)"\)/.exec(getComputedStyle(document.body).cursor || '');
+        return m ? m[1] : null;
+    }
+    function poke(el, cls) {
+        if (!el) return; el.classList.add(cls || 'co-poke'); SFX.tick(.1);
+        setTimeout(() => el.classList.remove(cls || 'co-poke'), 650);
+    }
+    function ripple(x, y) {
+        const r = mk('div', '', 'co-ripple'); r.style.left = x + 'px'; r.style.top = y + 'px'; setTimeout(() => r.remove(), 700);
+    }
+    function dlg(title, msg, buttons) {
+        const d = mk('div', '', 'co-dlg');
+        d.innerHTML = `<div class="bar">${title}</div><div class="msg"></div><div class="btns">${buttons.map((b, i) => `<span data-i="${i}">${b}</span>`).join('')}</div>`;
+        d.querySelector('.msg').textContent = msg;
+        requestAnimationFrame(() => d.classList.add('on'));
+        return { el: d, btn: i => d.querySelector(`[data-i="${i}"]`), close() { d.classList.remove('on'); setTimeout(() => d.remove(), 300); } };
+    }
+    function toast(text, ms) {
+        const t = mk('div', '', 'co-toast'); t.textContent = text; requestAnimationFrame(() => t.classList.add('on'));
+        later(() => { t.classList.remove('on'); setTimeout(() => t.remove(), 400); }, ms || 3800);
+    }
+    function drain(els) {                                      // « détruit » un chiffre : il s'effondre vers 0 (restauré ensuite)
+        els.forEach(el => {
+            if (el.dataset.coOrig !== undefined) return;
+            const raw = el.textContent.trim(), n = parseFloat(raw.replace(/[^\d.]/g, ''));
+            if (!isFinite(n) || n <= 0) return;
+            el.dataset.coOrig = el.textContent; const t0 = performance.now(), dur = 1800;
+            (function s(now) {
+                if (!S || el.dataset.coOrig === undefined) return;
+                const p = clamp((now - t0) / dur, 0, 1);
+                el.textContent = Math.round(n * (1 - p * p)) + (p > .55 && Math.random() < .3 ? ' ░' : '');
+                el.style.color = '#ff3a48'; el.style.textShadow = '0 0 12px #f00';
+                if (p < 1) requestAnimationFrame(s); else el.textContent = '0';
+            })(t0);
+        });
+    }
+    function undrain() {
+        document.querySelectorAll('[data-co-orig]').forEach(e => { e.textContent = e.dataset.coOrig; delete e.dataset.coOrig; e.style.color = ''; e.style.textShadow = ''; });
+    }
+
+    async function takeover(name) {
+        if (!S || S.tk || S.screaming || modalOpen() || REDUCED) return;
+        const tok = S.tk = { name }, alive = () => S && S.tk === tok;
+        const hj = S.els.hijack, catcher = S.els.catcher;
+        const cur = ownCursorUrl(); if (cur) hj.style.backgroundImage = `url("${cur}")`;
+        const pos = { x: mouse.x, y: mouse.y };
+        const place = () => { hj.style.transform = `translate(${pos.x - 4}px,${pos.y - 3}px)`; };
+        place(); hj.classList.add('on'); catcher.classList.add('on'); document.documentElement.classList.add('co-ghostmode');
+        SFX.static(.18, .12); SFX.creak(.1);
+        const move = (x, y, ms) => new Promise(res => {
+            const x0 = pos.x, y0 = pos.y, t0 = performance.now(), wob = rnd(6, 18), ph = rnd(0, 6);
+            const f = now => {
+                if (!alive()) return res();
+                const p = clamp((now - t0) / ms, 0, 1), e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+                pos.x = x0 + (x - x0) * e + Math.sin(p * 9 + ph) * wob * (1 - p); pos.y = y0 + (y - y0) * e + Math.cos(p * 7 + ph) * wob * (1 - p);
+                place(); if (p < 1) requestAnimationFrame(f); else res();
+            };
+            requestAnimationFrame(f);
+        });
+        const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width * rnd(.3, .7), r.top + r.height * rnd(.35, .65)]; };
+        const h = {
+            alive, sleep: ms => sleep(ms),
+            moveTo: (el, ms) => { if (!el) return Promise.resolve(); const [x, y] = centre(el); return move(x, y, ms || rnd(600, 1200)); },
+            click: async el => {
+                ripple(pos.x, pos.y); hj.classList.add('press'); SFX.tick(.16); poke(el);
+                await sleep(130); hj.classList.remove('press');
+            }
+        };
+        try { await SCENES[name](h); } catch (e) { console.warn('[co] scène', name, e); }
+        // le curseur « rend » le contrôle : il glisse vers la vraie position de la souris
+        if (alive()) { await move(mouse.x, mouse.y, 700); await sleep(250); }
+        endTakeover(tok);
+    }
+    function endTakeover(tok) {
+        if (!S || (tok && S.tk !== tok)) return;
+        S.tk = null; S.els.hijack.classList.remove('on', 'press'); S.els.catcher.classList.remove('on');
+        document.documentElement.classList.remove('co-ghostmode');
+        document.querySelectorAll('.co-dlg,.co-toast,.co-ripple').forEach(e => e.remove());
+        undrain();
+    }
+
+    const NAVTARGETS = ['.spa-nav-links a', '.spa-nav-links button', '.spa-nav-brand', '.sidebar-nav-item', '.dash-nav-item'];
+    const POKETARGETS = ['.btn', '.pill', '.lb-card', '.grade-card-3d', '.hero-stat', '.section-title', '.panel-title', '#music-player button', '.stat-card', '.glass-card'].concat(NAVTARGETS);
+    const SCENES = {
+        // Plein de petites interactions : survols, clics, cases qui se cochent toutes seules…
+        async pokes(h) {
+            const n = 6 + (Math.random() * 6 | 0);
+            for (let i = 0; i < n && h.alive(); i++) {
+                const el = visible(POKETARGETS); if (!el) break;
+                await h.moveTo(el, rnd(380, 900)); await h.sleep(rnd(120, 420));
+                const r = Math.random();
+                if (r < .5) await h.click(el);
+                else if (r < .8) { poke(el, 'co-hover'); await h.sleep(rnd(300, 800)); }
+                else { const old = el.textContent; if (!el.children.length && old.trim().length > 2 && old.length < 28) { el.dataset.coOrig = old; el.textContent = pick(['…', nameOf(), 'oui', 'là']); await h.sleep(500); el.textContent = old; delete el.dataset.coOrig; } else poke(el); }
+            }
+        },
+        async energie(h) {
+            const els = [...document.querySelectorAll('.pts-occulte, #hs-maxpts')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 8 && r.top > 30 && r.bottom < innerHeight; });
+            const target = els.length ? pick(els) : visible(['.hero-stat', '.stat-card', '.lb-card']); if (!target) return;
+            await h.moveTo(target, 1100); await h.sleep(500); await h.click(target);
+            const d = dlg('ÉNERGIE OCCULTE', `Détruire l'énergie occulte de ${nameOf()} ?`, ['Annuler', 'Confirmer']);
+            await h.sleep(700); await h.moveTo(d.btn(0), 700); await h.sleep(900);
+            await h.moveTo(d.btn(1), 380); await h.sleep(200); await h.click(d.btn(1)); d.close();
+            SFX.thud(.5); drain(els.length ? els : [target]);
+            await h.sleep(2300); toast('Énergie occulte détruite.', 3000); await h.sleep(2400);
+            toast(`…${nameOf()}, tu ne sentais rien ?`, 2600); await h.sleep(1200); undrain();
+        },
+        async quitter(h) {
+            const t = visible(NAVTARGETS.concat(['.btn'])); if (!t) return;
+            await h.moveTo(t, 900); await h.click(t);
+            const d = dlg("QUITTER L'ORDRE", `${nameOf()} quitte l'Ordre. Cette action est irréversible.`, ['Oui', 'Oui']);
+            await h.sleep(900); await h.moveTo(d.btn(0), 600); await h.sleep(700); await h.click(d.btn(0)); d.close();
+            await h.sleep(500); toast('Tu as déjà quitté l\'Ordre. Tu ne t\'en souviens pas ?', 3600); await h.sleep(2600);
+        },
+        async deconnexion(h) {
+            const t = visible(['#nl-logout', '.btn-danger', '#nl-auth']); if (!t) return;
+            await h.moveTo(t, 1000); await h.sleep(400); await h.click(t);
+            toast('Déconnexion impossible.', 2400); await h.sleep(1800); toast('Tu es déjà trop près.', 2600); await h.sleep(1800);
+        },
+        async monarque(h) {
+            const t = visible(['#notif-bell', '.spa-nav-brand', '.btn-primary', '.btn']); if (!t) return;
+            await h.moveTo(t, 1000); await h.click(t);
+            toast(`✉ Message envoyé au Monarque : « ${nameOf()} est prêt(e). »`, 4200); await h.sleep(2600);
+        },
+        async contrat(h) {
+            const d = dlg('PACTE', `J'accepte de céder mon nom, ${nameOf()}, à la Sphère.`, ['Refuser', "J'accepte"]);
+            await h.sleep(800); await h.moveTo(d.btn(0), 1000); await h.sleep(1000); await h.moveTo(d.btn(1), 450); await h.click(d.btn(1)); d.close();
+            SFX.thud(.4); toast('Merci.', 2200); await h.sleep(1800);
+        },
+        async musique(h) {
+            const a = $('#bg-audio'), vol = $('#mp-vol'); if (!a || !vol) return;
+            const t = visible(['#mp-vol', '.mp-slider-wrap']) || vol; await h.moveTo(t, 900); await h.sleep(300);
+            const v0 = a.volume; await h.click(t);
+            fadeAudio(a, Math.min(1, Math.max(v0 * 1.9, .55)), 900); await h.sleep(3600); fadeAudio(a, v0, 1500); await h.sleep(1600);
+        },
+        async defilement(h) {
+            const y0 = scrollY, max = document.documentElement.scrollHeight - innerHeight; if (max < 200) return;
+            const to = clamp(y0 + rnd(240, 900), 0, max);
+            await h.moveTo(visible(POKETARGETS), 700);
+            window.scrollTo({ top: to, behavior: 'smooth' }); await h.sleep(1700); window.scrollTo({ top: y0, behavior: 'smooth' }); await h.sleep(1300);
+        }
+    };
+    const SCENE_POOL = [['pokes', 0, 2.2], ['musique', .3, .6], ['defilement', .2, .8], ['energie', .3, 1.1], ['deconnexion', .35, .9],
+                        ['monarque', .4, .9], ['quitter', .45, .9], ['contrat', .5, .8]];
+    function takeoverRandom() {
+        const ok = SCENE_POOL.filter(s => I() >= s[1]), tot = ok.reduce((a, s) => a + s[2], 0); let r = Math.random() * tot;
+        for (const s of ok) { r -= s[2]; if (r <= 0) return takeover(s[0]); }
+    }
+
+    /* ═════════════ AUTODESTRUCTION (très rare) : la page s'effondre puis se ferme ═════════════ */
+    function unsavedInput() {
+        return [...document.querySelectorAll('input[type=text],input[type=password],input[type=email],input[type=url],input[type=number],input[type=search],textarea,[contenteditable=true]')]
+            .some(e => e.offsetParent && ((e.value || e.textContent || '').trim().length > 0));
+    }
+    async function selfDestruct() {
+        if (!S || S.tk || S.screaming || S.destructing || modalOpen() || REDUCED) return;
+        if (!S.preview && unsavedInput()) return;                   // jamais si la personne est en train d'écrire quelque chose
+        S.destructing = true; const preview = S.preview;
+        const a = $('#bg-audio'), vol0 = a ? a.volume : 0; if (a) a.volume = 0;
+        SFX.static(.5, .25); document.documentElement.classList.add('co-crumble');
+        const bits = [...document.querySelectorAll('#app .lb-card, #app .glass-card, #app .hero-stat, #app .grade-card-3d, #app .btn, #app .pill, #app .stat-card, .spa-nav, #music-player, #app h1, #app h2, #app .section-title, #app .panel-title')]
+            .filter(e => { const r = e.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; });
+        typed('C\'est fini.');
+        await sleep(1800);
+        SFX.shatter(.6); S.els.cracks.style.opacity = 1;
+        bits.sort((x, y) => x.getBoundingClientRect().top - y.getBoundingClientRect().top).forEach((e, i) => {
+            e.dataset.coCrumbleStyle = e.getAttribute('style') || '';
+            e.style.transition = `transform ${rnd(.9, 1.7)}s cubic-bezier(.5,0,1,.6) ${i * 45}ms, opacity 1.1s ease-in ${i * 45 + 500}ms`;
+            e.style.transform = `translate(${rnd(-80, 80)}px, ${innerHeight * 1.3}px) rotate(${rnd(-70, 70)}deg)`; e.style.opacity = '0';
+        });
+        await sleep(1400 + bits.length * 45); SFX.thud(.8);
+        const b = S.els.black; b.style.transition = 'opacity 600ms linear'; b.style.opacity = '1'; await sleep(1200);
+        if (preview) {                                              // aperçu admin : on restaure tout
+            bits.forEach(e => { e.setAttribute('style', e.dataset.coCrumbleStyle); delete e.dataset.coCrumbleStyle; });
+            document.documentElement.classList.remove('co-crumble'); b.style.opacity = '0'; S.els.cracks.style.opacity = '';
+            if (a) a.volume = vol0; S.destructing = false; toast('(Aperçu : page restaurée — en vrai, elle se ferme ici.)', 4200); return;
+        }
+        try { sessionStorage.setItem('co_boom', String(Date.now())); } catch (e) {}
+        document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:#6b0d14;display:flex;align-items:center;justify-content:center;font:600 1.1rem Georgia,serif;letter-spacing:.2em">…</div>';
+        try { window.close(); } catch (e) {}
+        setTimeout(() => { try { location.replace('about:blank'); } catch (e) {} }, 900);
+    }
+
     /* ═════════════ RÉCIT : événements programmés + tirages aléatoires ═════════════ */
     const STORY = [
         { t: 12,  run: () => whisper() },
@@ -403,11 +619,13 @@
         { t: 58,  run: () => { SFX.knock(2, .22); whisper(); } },
         { t: 76,  run: () => ghostCursor() },
         { t: 96,  run: () => blackout(() => lurker(1)) },
+        { t: 108, run: () => takeover('pokes') },
         { t: 118, run: () => typed() },
         { t: 138, run: () => flashlight() },
         { t: 176, run: () => blackout(() => { lurker(2); eyes(); }, true) },
         { t: 200, run: () => fakeError() },
         { t: 224, run: () => { typed(); hand(); } },
+        { t: 232, run: () => takeover('energie') },
         { t: 252, run: () => blackout(() => lurker(3)) },
         { t: 275, run: () => silenceThenScream() }
     ];
@@ -438,8 +656,15 @@
         STORY.forEach(s => { if (!s.done && e >= s.t) { s.done = true; if (pageOkForFx() && !S.screaming) try { s.run(); } catch (err) { console.warn('[co]', err); } } });
         // titre d'onglet
         if (e - (S.lastTitle || 0) > 7 / Math.max(1, sp * .5)) { S.lastTitle = e; { const tt = pick(TITLES); document.title = tt === 'Sphère Occulte' ? origTitle : tt.replace('…', nameOf() + '…'); } if (faviconEl && Math.random() < .5) faviconEl.href = eyeFavicon(); else if (faviconEl && origIcon) faviconEl.href = origIcon; }
+        // prise de contrôle du curseur (interactions fantômes) + autodestruction très rare
+        if (e > 90 && !S.screaming && !S.tk && !S.destructing && pageOkForFx()) {
+            const gapT = lerp(80, 24, S.I) / Math.max(1, sp * .8);
+            if (e - (S.lastTake || 120) > gapT && Math.random() < .18) { S.lastTake = e; takeoverRandom(); }
+            let boomOk = true; try { boomOk = Date.now() - (+sessionStorage.getItem('co_boom') || 0) > 3600e3; } catch (err) {}
+            if (boomOk && e > 600 && S.I > .85 && Math.random() < .0009) selfDestruct();
+        }
         // tirages après l'intro
-        if (e > 60 && !S.screaming && pageOkForFx()) {
+        if (e > 60 && !S.screaming && !S.tk && !S.destructing && pageOkForFx()) {
             const gapMin = lerp(14, 5, S.I) / Math.max(1, sp * .7);
             if (e - (S.lastMinor || 0) > gapMin && Math.random() < .35) { S.lastMinor = e; const f = chooseFrom(POOL_MINOR); if (f) try { f(); } catch (err) {} }
             const gapMaj = lerp(70, 26, S.I) / Math.max(1, sp * .8);
@@ -512,6 +737,9 @@
     }
     function stop() {
         if (!S) return;
+        endTakeover(); 
+        document.querySelectorAll('[data-co-crumble-style]').forEach(e => { e.setAttribute('style', e.dataset.coCrumbleStyle); delete e.dataset.coCrumbleStyle; });
+        document.documentElement.classList.remove('co-crumble');
         S.timeouts.forEach(clearTimeout); S.intervals.forEach(clearInterval); clearTimeout(S.heart);
         document.removeEventListener('mouseover', hoverHaunt);
         document.querySelectorAll('[data-co-orig]').forEach(e => { e.textContent = e.dataset.coOrig; delete e.dataset.coOrig; });
@@ -523,6 +751,10 @@
         set(active, opts) { if (active) start(opts); else { if (S && !S.preview) stop(); sessionStorage.removeItem('co_t0'); } },
         preview(speed) { stop(); aborted = false; start({ preview: true, speed: speed || 4, name: (CM() && CM().prenom) || 'Voyageur', grade: (CM() && CM().grade) || '' }); },
         stop() { stop(); },
+        demo(kind) {                                          // aperçu admin d'un événement précis
+            if (!S) window.Corruption.preview(1);
+            setTimeout(() => { if (!S) return; if (kind === 'destruct') selfDestruct(); else if (SCENES[kind]) takeover(kind); else takeoverRandom(); }, 900);
+        },
         isActive() { return !!S; },
         debug() { return S && { I: S.I, elapsed: Math.round(S.elapsed) }; },
         async _probe(name, ...args) {                       // mesure le pic/RMS d'un effet sonore (diagnostic)
@@ -534,7 +766,7 @@
             while (performance.now() - t0 < 2400) { await new Promise(r => setTimeout(r, 30)); an.getFloatTimeDomainData(buf); for (const v of buf) { peak = Math.max(peak, Math.abs(v)); sum += v * v; n++; } }
             A.master.disconnect(an); return { name, peak: +peak.toFixed(3), rms: +Math.sqrt(sum / n).toFixed(4) };
         },
-        _fx: { whisper, typed, eyes, ghostCursor, blackout, lurker, flashlight, hand, fakeError, silenceThenScream, portraitFlash, twistText, SFX }
+        _fx: { takeover, selfDestruct, SCENES, takeoverRandom, whisper, typed, eyes, ghostCursor, blackout, lurker, flashlight, hand, fakeError, silenceThenScream, portraitFlash, twistText, SFX }
     };
     if (PARAMS.get('corrpreview')) addEventListener('load', () => setTimeout(() => window.Corruption.preview(+PARAMS.get('corrspeed') || 6), 1500));
 })();

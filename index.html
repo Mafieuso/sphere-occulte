@@ -3604,6 +3604,8 @@ async function loadAdminAcces() {
             </button>
             <button class="btn btn-sm btn-violet" data-glitch-safe="1" style="margin-left:.4rem" onclick="Corruption.preview(6)">▶ Aperçu accéléré (×6, local)</button>
             <button class="btn btn-sm btn-ghost" data-glitch-safe="1" style="margin-left:.4rem" onclick="Corruption.preview(1)">▶ Aperçu temps réel</button>
+            <button class="btn btn-sm btn-ghost" data-glitch-safe="1" style="margin:.4rem .4rem 0 0" onclick="Corruption.demo('energie')">🖱 Aperçu : perte de contrôle</button>
+            <button class="btn btn-sm btn-ghost" data-glitch-safe="1" style="margin-top:.4rem" onclick="Corruption.demo('destruct')">💥 Aperçu : autodestruction (restaurée)</button>
             <div style="font-size:.68rem;color:var(--text-muted);margin-top:.5rem">L'aperçu se lance seulement sur votre écran, sans rien enregistrer ; un bouton « Arrêter » reste affiché en bas à gauche. Le vrai déclenchement (bouton ci-dessus ou par membre) est enregistré et se déclenche en direct chez la personne. Sécurité : Échap ×5 coupe l'effet sur la page. Les modales ouvertes restent toujours utilisables.</div>
           </div>`;
     } else if (selfTestEl) {

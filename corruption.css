@@ -1,0 +1,152 @@
+/* ════════════════════════════════════════════════════════════════
+   SPHÈRE OCCULTE — Corruption v2 (malaise progressif)
+   Tous les calques ont pointer-events:none : le site reste utilisable.
+   ════════════════════════════════════════════════════════════════ */
+:root { --co-i: 0; }
+
+/* ── Ambiance permanente : vignette qui se resserre, teinte froide ── */
+#co-vignette {
+    position: fixed; inset: 0; z-index: 99000; pointer-events: none;
+    background:
+        radial-gradient(ellipse 78% 70% at 50% 50%, transparent calc(62% - var(--co-i) * 34%), rgba(0,0,0,calc(.35 + var(--co-i) * .62)) 100%);
+    opacity: 1; transition: opacity 1.2s ease;
+}
+#co-vignette::after {                      /* « respiration » synchronisée avec le cœur */
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 55% at 50% 50%, rgba(120,0,10,.0), rgba(120,0,10,calc(.10 + var(--co-i) * .22)) 100%);
+    animation: co-breathe calc(1.9s - var(--co-i) * .9s) ease-in-out infinite;
+}
+@keyframes co-breathe { 0%,100% { opacity: .15; } 50% { opacity: 1; } }
+#co-tint {
+    display: none; position: fixed; inset: 0; z-index: 99001; pointer-events: none;
+    backdrop-filter: saturate(calc(1 - var(--co-i) * .55)) contrast(calc(1 + var(--co-i) * .16)) brightness(calc(1 - var(--co-i) * .16));
+    -webkit-backdrop-filter: saturate(calc(1 - var(--co-i) * .55)) contrast(calc(1 + var(--co-i) * .16)) brightness(calc(1 - var(--co-i) * .16));
+}
+#co-cracks {
+    position: fixed; inset: 0; z-index: 99001; pointer-events: none; mix-blend-mode: screen;
+    background: url(img/corruption/cracks.jpg) center/cover no-repeat; opacity: calc(var(--co-i) * .55 - .12);
+    -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, transparent 38%, #000 100%);
+            mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, transparent 38%, #000 100%);
+}
+/* Aberration chromatique sur les textes, de plus en plus marquée */
+html.co-on .hero-title, html.co-on .spa-nav-brand, html.co-on .lb-name, html.co-on .section-title, html.co-on .panel-title {
+    text-shadow: calc(var(--co-i) * 2.4px) 0 rgba(255,30,60,.42), calc(var(--co-i) * -2.4px) 0 rgba(30,220,255,.30);
+}
+html.co-on .lb-card img, html.co-on .lb-photo-panel img, html.co-on .lb-avatar img {
+    filter: grayscale(calc(var(--co-i) * .8)) contrast(calc(1 + var(--co-i) * .25));
+}
+
+/* ── Lampe torche : on ne voit qu'autour du curseur ── */
+#co-dark {
+    position: fixed; inset: 0; z-index: 99002; pointer-events: none; opacity: 0; transition: opacity 1.4s ease;
+    background: radial-gradient(circle var(--co-r, 170px) at var(--co-mx, 50%) var(--co-my, 50%), transparent 0%, rgba(0,0,4,.55) 45%, rgba(0,0,4,.985) 100%);
+}
+#co-dark.on { opacity: 1; }
+.co-hidden-eye { position: fixed; z-index: 99001; pointer-events: none; opacity: .0; }
+.co-hidden-eye.on { opacity: 1; }
+
+/* ── Yeux qui suivent le curseur ── */
+.co-eyes { position: fixed; z-index: 99003; display: flex; gap: var(--gap, 18px); pointer-events: none; transform: rotate(var(--rot, 0deg)); transition: opacity .35s ease; }
+.co-eye {
+    position: relative; width: var(--es, 54px); height: calc(var(--es, 54px) * .52); border-radius: 50%; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 50%, #ece7da 28%, #bdb4a0 66%, #5a2f2f 100%);
+    box-shadow: inset 0 0 10px rgba(0,0,0,.9), 0 0 22px rgba(150,0,10,.5), 0 0 3px #000;
+    transform: scaleY(0); transform-origin: 50% 50%; animation: co-open 1.3s cubic-bezier(.3,0,.2,1) forwards;
+}
+.co-eyes.blink .co-eye { animation: co-blink .22s ease-in-out; }
+.co-eye::before {                           /* veines */
+    content: ''; position: absolute; inset: 0; opacity: .5;
+    background: repeating-conic-gradient(from 20deg at 50% 50%, transparent 0 12deg, rgba(150,10,20,.35) 12deg 13.5deg);
+    -webkit-mask-image: radial-gradient(circle, transparent 38%, #000 90%); mask-image: radial-gradient(circle, transparent 38%, #000 90%);
+}
+.co-pupil {
+    position: absolute; left: 50%; top: 50%; width: 34%; aspect-ratio: 1; margin: -17% 0 0 -17%;
+    border-radius: 50%; background: radial-gradient(circle at 36% 34%, #3a3a3a 0, #000 28%);
+    box-shadow: 0 0 6px 2px #000; transform: translate(var(--px, 0), var(--py, 0));
+}
+@keyframes co-open  { 0% { transform: scaleY(0); } 55% { transform: scaleY(.18); } 100% { transform: scaleY(1); } }
+@keyframes co-blink { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.05); } }
+.co-eyes.gone { opacity: 0; }
+
+/* ── Curseur « fantôme » : quelqu'un d'autre utilise la page ── */
+#co-ghost {
+    position: fixed; left: 0; top: 0; width: 32px; height: 32px; z-index: 99004; pointer-events: none; opacity: 0; transition: opacity .6s ease;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 3 L4 25 L9.6 19.6 L14 29 L18 27.2 L13.7 18 L21.5 17.8 Z' fill='%23d8d8d8' stroke='%23550008' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat;
+    filter: drop-shadow(0 0 5px rgba(160,0,10,.8)) blur(.3px);
+}
+#co-ghost.on { opacity: .9; }
+
+/* ── Le visiteur au bord de l'écran ── */
+#co-lurker {
+    position: fixed; bottom: 0; z-index: 99005; pointer-events: none; opacity: 0; transition: opacity .9s ease;
+    height: 40vh; aspect-ratio: 2 / 3; transform-origin: 50% 100%;
+    background: url(img/corruption/figure.jpg) center / contain no-repeat;
+    -webkit-mask-image: url(img/corruption/figure.jpg), linear-gradient(to top, #000 80%, transparent);
+            mask-image: url(img/corruption/figure.jpg), linear-gradient(to top, #000 80%, transparent);
+    -webkit-mask-mode: luminance, alpha; mask-mode: luminance, alpha;
+    -webkit-mask-size: contain, 100% 100%; mask-size: contain, 100% 100%;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-composite: source-in; mask-composite: intersect;
+    filter: brightness(2.1) contrast(1.25);
+    animation: co-sway 7s ease-in-out infinite;
+}
+#co-lurker.on { opacity: .9; }
+@keyframes co-sway { 0%,100% { rotate: -.6deg; } 50% { rotate: .8deg; } }
+#co-hand {
+    position: fixed; z-index: 99005; pointer-events: none; width: min(46vw, 520px); aspect-ratio: 3 / 2; opacity: 0; transition: opacity .8s ease, transform 5s linear;
+    background: url(img/corruption/hand.jpg) center / contain no-repeat;
+    -webkit-mask-image: url(img/corruption/hand.jpg); mask-image: url(img/corruption/hand.jpg); -webkit-mask-mode: luminance; mask-mode: luminance; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    filter: brightness(2) contrast(1.2);
+}
+#co-hand.on { opacity: .95; }
+
+/* ── Texte tapé (message qui « s'écrit » tout seul) ── */
+#co-type {
+    position: fixed; z-index: 99006; pointer-events: none; max-width: min(78vw, 760px); opacity: 0; transition: opacity .5s ease;
+    font-family: "Cormorant Garamond", serif; font-weight: 600; letter-spacing: .06em; line-height: 1.25;
+    color: #d9d4cc; text-shadow: 0 0 14px rgba(160,0,10,.85), 0 0 2px #000;
+}
+#co-type.on { opacity: 1; }
+#co-type .cur { display: inline-block; width: .5ch; margin-left: 2px; background: #d9d4cc; animation: co-cur .7s steps(1) infinite; }
+@keyframes co-cur { 50% { opacity: 0; } }
+
+/* ── Coupure de lumière ── */
+#co-black { position: fixed; inset: 0; z-index: 99007; pointer-events: none; background: #000; opacity: 0; }
+#co-black .eyes-wall { position: absolute; inset: 0; background: url(img/corruption/eyes.jpg) center/cover no-repeat; mix-blend-mode: screen; opacity: 0; transition: opacity .5s ease; }
+#co-black.wall .eyes-wall { opacity: .55; }
+
+/* ── Cri ── */
+#co-scream { position: fixed; inset: 0; z-index: 99008; pointer-events: none; display: none; background: #000; overflow: hidden; }
+#co-scream.on { display: block; }
+#co-scream .face { position: absolute; inset: -4%; background: center/cover no-repeat; transform: scale(.82); filter: contrast(1.25) brightness(1.1); }
+#co-scream.on .face { animation: co-zoom .62s cubic-bezier(.1,.7,.2,1) forwards, co-shake .09s linear infinite; }
+#co-scream .red { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, rgba(120,0,0,.65) 100%); mix-blend-mode: multiply; }
+#co-scream .tear { position: absolute; left: 0; right: 0; height: 8px; background: rgba(255,255,255,.65); mix-blend-mode: difference; }
+@keyframes co-zoom  { 0% { transform: scale(.82); } 100% { transform: scale(1.38); } }
+@keyframes co-shake { 0% { translate: 0 0; } 25% { translate: -9px 6px; } 50% { translate: 7px -7px; } 75% { translate: -6px -4px; } 100% { translate: 5px 7px; } }
+
+/* ── Fausse erreur système ── */
+#co-error {
+    position: fixed; left: 50%; top: 50%; z-index: 99006; translate: -50% -50%; width: min(420px, 90vw); pointer-events: none; opacity: 0; transition: opacity .25s;
+    background: #0b0b0e; border: 1px solid #3a0a10; border-radius: 6px; box-shadow: 0 0 0 1px #000, 0 20px 60px rgba(0,0,0,.85), 0 0 40px rgba(130,0,10,.35);
+    font-family: "Karla", sans-serif; color: #cfc9c2;
+}
+#co-error.on { opacity: 1; }
+#co-error .bar { padding: .45rem .8rem; background: #1a0508; color: #ff7a85; font-size: .72rem; letter-spacing: .12em; border-bottom: 1px solid #3a0a10; }
+#co-error .msg { padding: 1.1rem 1.1rem .6rem; font-size: .92rem; line-height: 1.5; }
+#co-error .btns { padding: .4rem 1.1rem 1rem; display: flex; gap: .6rem; justify-content: flex-end; }
+#co-error .btns span { padding: .3rem .9rem; border: 1px solid #402; border-radius: 4px; font-size: .78rem; color: #aaa; }
+
+/* ── Bouton d'arrêt (admin uniquement) ── */
+#co-stop {
+    position: fixed; left: .9rem; bottom: .9rem; z-index: 100010; padding: .45rem .8rem; border-radius: 8px; cursor: pointer;
+    background: rgba(40,8,10,.92); border: 1px solid rgba(255,90,100,.55); color: #ffb3b9; font: 600 .74rem "Karla", sans-serif; opacity: .55;
+}
+#co-stop:hover { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+    #co-vignette::after { animation: none; }
+    #co-lurker { animation: none; }
+}
+
+html.co-heavy #co-tint { display: block; }

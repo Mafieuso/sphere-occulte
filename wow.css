@@ -1,0 +1,317 @@
+/* ════════════════════════════════════════════════════════════════
+   SPHÈRE OCCULTE — Couche « WOW »
+   Surcouche purement additive : aucune fonctionnalité retirée.
+   Images générées avec ChatGPT (img/nebula, sigil, fog, rift).
+   ════════════════════════════════════════════════════════════════ */
+
+@property --wow-a { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+
+:root {
+    --wow-teal:#2ac9bc; --wow-teal-hi:#a8f5ec; --wow-amber:#ff9d3d; --wow-violet:#6b4fd6;
+    --beat:0;
+}
+
+/* ═════════ 1. DÉCOR DE FOND VIVANT ═════════ */
+#wow-bg { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; --beat:0; }
+#wow-bg > * { position:absolute; will-change:transform,opacity; }
+
+#wow-bg .nebula {
+    inset:-6%; background:url(img/nebula.jpg) center/cover no-repeat;
+    opacity:calc(.3 + var(--beat) * .2);
+    filter:saturate(1.15) brightness(calc(.85 + var(--beat) * .35));
+    mix-blend-mode:screen;
+    animation:wow-nebula-breathe 26s ease-in-out infinite alternate;
+}
+@keyframes wow-nebula-breathe {
+    0%   { scale:1;    rotate:0deg; }
+    100% { scale:1.09; rotate:1.4deg; }
+}
+#wow-bg .fog {
+    inset:-10% -20%; background:url(img/fog.jpg) center/cover no-repeat;
+    mix-blend-mode:screen; opacity:.34;
+}
+#wow-bg .fog.f1 { animation:wow-fog-a 70s linear infinite; }
+#wow-bg .fog.f2 { opacity:.22; background-size:140%; transform:scaleX(-1); animation:wow-fog-b 95s linear infinite; }
+@keyframes wow-fog-a { 0%{translate:-6% 0} 50%{translate:6% -3%} 100%{translate:-6% 0} }
+@keyframes wow-fog-b { 0%{translate:7% 2%} 50%{translate:-7% -2%} 100%{translate:7% 2%} }
+
+#wow-bg .sigil-bg {
+    left:50%; top:46%; width:min(150vh,150vw); aspect-ratio:1; translate:-50% -50%;
+    background:url(img/sigil.jpg) center/contain no-repeat;
+    mix-blend-mode:screen;
+    opacity:calc(.05 + var(--beat) * .08);
+    -webkit-mask-image:radial-gradient(circle, #000 38%, transparent 70%);
+            mask-image:radial-gradient(circle, #000 38%, transparent 70%);
+    animation:rotate-cw 240s linear infinite;
+}
+#wow-bg .vignette {
+    inset:0;
+    background:radial-gradient(ellipse 85% 75% at 50% 45%, transparent 35%, rgba(1,2,6,.85) 100%);
+}
+
+/* ═════════ 2. BARRE DE PROGRESSION + NAV ═════════ */
+#wow-progress {
+    position:fixed; top:0; left:0; height:2px; width:100%; z-index:10001; pointer-events:none;
+    transform-origin:0 50%; transform:scaleX(0);
+    background:linear-gradient(90deg, var(--wow-violet), var(--wow-teal), var(--wow-teal-hi), var(--wow-amber));
+    box-shadow:0 0 14px var(--wow-teal), 0 0 34px rgba(42,201,188,.55);
+}
+.spa-nav { transition:box-shadow .4s, background .4s; }
+.spa-nav::after {
+    content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px; pointer-events:none;
+    background:linear-gradient(90deg, transparent 0%, rgba(42,201,188,.9) 50%, transparent 100%);
+    background-size:30% 100%; background-repeat:no-repeat;
+    animation:wow-nav-sweep 6s ease-in-out infinite;
+}
+@keyframes wow-nav-sweep { 0%{background-position:-40% 0} 100%{background-position:140% 0} }
+.spa-nav.wow-scrolled { box-shadow:0 6px 50px rgba(0,0,0,.85), 0 0 40px rgba(42,201,188,.10); }
+.spa-nav-brand { position:relative; }
+
+/* ═════════ 3. SPLASH CINÉMATIQUE ═════════ */
+#splash-overlay { overflow:hidden; background:#02030a; }
+#splash-overlay .wow-splash-nebula {
+    position:absolute; inset:-8%; background:url(img/nebula.jpg) center/cover no-repeat;
+    opacity:.0; filter:saturate(1.2);
+    animation:wow-splash-nebula 3.2s ease-out .1s forwards, wow-kenburns 40s ease-in-out infinite alternate;
+}
+@keyframes wow-splash-nebula { to { opacity:.78; } }
+@keyframes wow-kenburns { 0%{ scale:1; translate:0 0; } 100%{ scale:1.18; translate:-2% -1.5%; } }
+#splash-overlay .wow-splash-vignette {
+    position:absolute; inset:0;
+    background:radial-gradient(ellipse 70% 62% at 50% 50%, rgba(2,3,10,.1) 0%, rgba(2,3,10,.55) 55%, #02030a 100%);
+}
+#splash-overlay .wow-splash-sigil {
+    position:absolute; left:50%; top:50%; width:min(112vh,112vw); aspect-ratio:1; translate:-50% -50%;
+    background:url(img/sigil.jpg) center/contain no-repeat; mix-blend-mode:screen;
+    opacity:0; -webkit-mask-image:radial-gradient(circle,#000 42%,transparent 71%); mask-image:radial-gradient(circle,#000 42%,transparent 71%);
+    animation:wow-sigil-in 2.6s cubic-bezier(.2,.7,.2,1) .3s forwards, rotate-cw 120s linear infinite;
+    transition:filter .9s ease;
+}
+@keyframes wow-sigil-in { from{ opacity:0; scale:.55; } to{ opacity:var(--o,.5); scale:1; } }
+#splash-overlay .wow-splash-sigil.s2 {
+    width:min(78vh,78vw); opacity:0; animation:wow-sigil-in 2.6s cubic-bezier(.2,.7,.2,1) .6s forwards, rotate-ccw 70s linear infinite;
+    filter:hue-rotate(60deg) brightness(1.1);
+}
+#splash-overlay .wow-splash-rays {
+    position:absolute; left:50%; top:50%; width:170vmax; height:170vmax; translate:-50% -50%;
+    background:repeating-conic-gradient(from 0deg, rgba(42,201,188,.0) 0deg 7deg, rgba(42,201,188,.10) 8deg 9deg, rgba(42,201,188,0) 10deg 18deg);
+    -webkit-mask-image:radial-gradient(circle, #000 0%, transparent 55%); mask-image:radial-gradient(circle, #000 0%, transparent 55%);
+    mix-blend-mode:screen; opacity:.55; animation:rotate-cw 90s linear infinite;
+}
+#splash-overlay .wow-splash-flash {
+    position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, #fff 0%, var(--wow-teal-hi) 18%, transparent 62%);
+    opacity:0; pointer-events:none; mix-blend-mode:screen;
+}
+#splash-overlay .splash-inner { position:relative; z-index:2; transition:transform .9s cubic-bezier(.6,0,.2,1), opacity .9s ease, filter .9s ease; }
+#splash-overlay .splash-title {
+    filter:drop-shadow(0 0 30px rgba(42,201,188,.55));
+    animation:shimmer 5s linear infinite, wow-title-in 2.4s cubic-bezier(.2,.8,.2,1) .4s both;
+}
+#splash-overlay .splash-sub { animation:wow-fade-up 1.6s ease 1.2s both; }
+#splash-overlay .splash-enter { animation:pulse-gold 2s ease-in-out infinite, wow-fade-up 1.6s ease 1.8s both; backdrop-filter:blur(6px); background:rgba(42,201,188,.05); }
+#splash-overlay .splash-sigil { animation:wow-fade-up 1.4s ease .2s both; }
+@keyframes wow-title-in {
+    0%   { opacity:0; letter-spacing:.9em; filter:blur(16px) drop-shadow(0 0 0 transparent); }
+    60%  { opacity:1; }
+    100% { opacity:1; letter-spacing:.3em; filter:blur(0) drop-shadow(0 0 30px rgba(42,201,188,.55)); }
+}
+@keyframes wow-fade-up { from{ opacity:0; transform:translateY(22px); } to{ opacity:1; transform:none; } }
+
+/* Explosion à l'entrée */
+#splash-overlay.wow-burst .splash-inner { transform:scale(1.9); opacity:0; filter:blur(12px); }
+#splash-overlay.wow-burst .wow-splash-sigil { filter:brightness(2.4) saturate(1.4); animation-duration:2.6s, 8s; scale:1.7; transition:scale .9s cubic-bezier(.5,0,.2,1), filter .9s; }
+#splash-overlay.wow-burst .wow-splash-flash { animation:wow-flash 1s ease-out forwards; }
+#splash-overlay.wow-burst .wow-splash-nebula { transition:scale .9s ease; scale:1.45; }
+@keyframes wow-flash { 0%{opacity:0} 18%{opacity:1} 100%{opacity:0} }
+
+/* ═════════ 4. VOILE DE TRANSITION ═════════ */
+#veil { background:radial-gradient(circle at 50% 50%, rgba(8,14,30,.97), #02030a 70%); }
+#veil::before {
+    content:''; position:absolute; left:50%; top:50%; width:min(120vh,120vw); aspect-ratio:1; translate:-50% -50%;
+    background:url(img/sigil.jpg) center/contain no-repeat; mix-blend-mode:screen;
+    opacity:.0; transition:opacity .4s ease, scale .8s ease; scale:.7;
+    -webkit-mask-image:radial-gradient(circle,#000 40%,transparent 70%); mask-image:radial-gradient(circle,#000 40%,transparent 70%);
+    animation:rotate-cw 30s linear infinite;
+}
+#veil.open::before { opacity:.7; scale:1; }
+
+/* ═════════ 5. HERO ═════════ */
+.hero { overflow:visible; }
+.hero > div { position:relative; z-index:2; }
+.hero::after {
+    content:''; position:absolute; left:50%; top:calc(50% + 20px); width:min(980px,130vw); aspect-ratio:1; translate:-50% -50%;
+    background:url(img/sigil.jpg) center/contain no-repeat; pointer-events:none; z-index:1;
+    -webkit-mask-image:url(img/sigil.jpg), radial-gradient(circle,#000 36%,transparent 68%);
+            mask-image:url(img/sigil.jpg), radial-gradient(circle,#000 36%,transparent 68%);
+    -webkit-mask-mode:luminance, alpha; mask-mode:luminance, alpha;
+    -webkit-mask-size:contain, 100% 100%; mask-size:contain, 100% 100%;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-composite:source-in; mask-composite:intersect;
+    opacity:calc(.4 + var(--beat) * .3);
+    animation:rotate-cw 160s linear infinite;
+}
+.hero-title-wrap { position:relative; }
+.hero-title {
+    animation:shimmer 7s linear infinite, wow-title-in-hero 1.8s cubic-bezier(.2,.8,.2,1) both;
+    filter:drop-shadow(0 0 calc(30px + var(--beat) * 30px) rgba(42,201,188,calc(.3 + var(--beat) * .35)));
+}
+@keyframes wow-title-in-hero {
+    0%   { opacity:0; letter-spacing:.5em; transform:translateY(20px) scale(.96); }
+    100% { opacity:1; letter-spacing:.16em; transform:none; }
+}
+.hero-sub { animation:wow-fade-up 1.4s ease .5s both; }
+.hero-stat { animation:wow-fade-up 1.1s cubic-bezier(.2,.8,.2,1) backwards; transition:border-color .3s, box-shadow .3s; }
+.hero-stat:nth-child(1){ animation-delay:.7s } .hero-stat:nth-child(2){ animation-delay:.85s } .hero-stat:nth-child(3){ animation-delay:1s }
+.hero-stat:hover { border-color:rgba(42,201,188,.55); box-shadow:0 0 40px rgba(42,201,188,.2), inset 0 0 30px rgba(42,201,188,.06); }
+.hero-stat span.wow-counting { text-shadow:0 0 24px rgba(168,245,236,.9); }
+
+/* Bouton principal : reflet + aura */
+.btn-primary { position:relative; overflow:hidden; isolation:isolate; }
+.btn-primary::before {
+    content:''; position:absolute; top:0; bottom:0; left:-80%; width:50%; z-index:-1; pointer-events:none;
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent);
+    transform:skewX(-20deg); animation:wow-btn-shine 4.5s ease-in-out infinite;
+}
+@keyframes wow-btn-shine { 0%,55%{ left:-80% } 100%{ left:160% } }
+.btn-primary:hover { box-shadow:0 4px 40px rgba(107,79,214,.6), 0 0 60px rgba(42,201,188,.25), 0 0 0 1px rgba(168,245,236,.5); }
+.btn { will-change:transform; }
+
+/* ═════════ 6. FAILLE D'ÉNERGIE (séparateur) ═════════ */
+.wow-rift {
+    position:relative; height:clamp(90px,14vw,190px); margin:-.5rem auto 1rem; max-width:1500px; pointer-events:none;
+    background:url(img/rift.jpg) center/100% 100% no-repeat;
+    -webkit-mask-image:url(img/rift.jpg), linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);
+            mask-image:url(img/rift.jpg), linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);
+    -webkit-mask-mode:luminance, alpha; mask-mode:luminance, alpha;
+    -webkit-mask-size:100% 100%, 100% 100%; mask-size:100% 100%, 100% 100%;
+    -webkit-mask-composite:source-in; mask-composite:intersect;
+    opacity:.0; transform:scaleX(.2); transition:opacity 1.4s ease, transform 1.6s cubic-bezier(.2,.8,.2,1);
+    animation:wow-rift-pulse 5s ease-in-out infinite;
+}
+.wow-rift.wow-in { opacity:.9; transform:none; }
+@keyframes wow-rift-pulse { 0%,100%{ filter:brightness(.85) saturate(1.1) } 50%{ filter:brightness(1.35) saturate(1.3) } }
+
+/* Éclair occasionnel plein écran */
+.wow-flash-bolt {
+    position:fixed; z-index:5; pointer-events:none; mix-blend-mode:screen;
+    width:min(1200px,160vw); height:min(400px,55vh);
+    background:url(img/rift.jpg) center/100% 100% no-repeat; opacity:0;
+}
+.wow-flash-bolt.go { animation:wow-bolt .9s ease-out forwards; }
+@keyframes wow-bolt { 0%{opacity:0} 8%{opacity:.95} 16%{opacity:.2} 24%{opacity:.85} 100%{opacity:0} }
+
+/* ═════════ 7. RÉVÉLATION AU SCROLL ═════════ */
+.wow-reveal { opacity:0; transform:translateY(46px) scale(.96); filter:blur(7px);
+    transition:opacity .9s cubic-bezier(.2,.8,.2,1), transform .9s cubic-bezier(.2,.8,.2,1), filter .9s ease;
+    transition-delay:var(--wow-d,0ms); }
+.wow-reveal.wow-in { opacity:1; transform:none; filter:none; }
+.section-header.wow-reveal:not(.wow-in) { transform:translateY(24px) scale(1); }
+
+/* ═════════ 8. CARTES : tilt 3D, reflet holographique, bordure énergétique ═════════ */
+.lb-card, .grade-card-3d, .glass-card.wow-tilt { transform-style:preserve-3d; }
+.lb-card.wow-ready {
+    transform:perspective(900px) rotateX(var(--wow-rx,0deg)) rotateY(var(--wow-ry,0deg));
+    transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease, border-color .3s ease;
+}
+.lb-card.wow-ready.wow-hover {
+    transform:perspective(900px) rotateX(var(--wow-rx,0deg)) rotateY(var(--wow-ry,0deg)) translateY(-6px) scale(1.018);
+    transition:transform .08s linear, box-shadow .3s ease, border-color .3s ease;
+    z-index:3;
+}
+.wow-glare {
+    position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:6; opacity:0; transition:opacity .3s ease;
+    background:
+        radial-gradient(circle at var(--gx,50%) var(--gy,50%), rgba(168,245,236,.28) 0%, rgba(42,201,188,.10) 22%, transparent 48%),
+        linear-gradient(115deg, transparent 30%, rgba(255,255,255,.05) 45%, rgba(255,157,61,.07) 52%, transparent 66%);
+    mix-blend-mode:screen;
+}
+.wow-hover > .wow-glare { opacity:1; }
+.wow-edge {
+    position:absolute; inset:-1px; border-radius:inherit; pointer-events:none; z-index:7; opacity:0; transition:opacity .4s ease;
+    padding:1.5px;
+    background:conic-gradient(from var(--wow-a), transparent 0deg, var(--wow-teal) 60deg, var(--wow-teal-hi) 90deg, var(--wow-amber) 140deg, transparent 200deg, var(--wow-violet) 280deg, transparent 360deg);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+    animation:wow-edge-spin 3.2s linear infinite;
+    filter:drop-shadow(0 0 6px rgba(42,201,188,.7));
+}
+@keyframes wow-edge-spin { to { --wow-a:360deg; } }
+.wow-hover > .wow-edge, .lb-card--monarque > .wow-edge { opacity:1; }
+.lb-card--monarque > .wow-edge { opacity:.8; }
+
+/* Aura du n°1 (halo + braises) */
+.lb-card--monarque { isolation:isolate; }
+.lb-card--monarque::before {
+    content:''; position:absolute; inset:-30%; z-index:-1; pointer-events:none;
+    background:conic-gradient(from var(--wow-a), transparent, rgba(42,201,188,.28), transparent 30%, rgba(255,157,61,.2), transparent 60%, rgba(107,79,214,.25), transparent);
+    animation:wow-edge-spin 9s linear infinite; filter:blur(26px);
+}
+
+/* Barres de progression vivantes */
+.lb-card [class*="progress"] > div, .lb-card [class*="bar"] > div { position:relative; overflow:hidden; }
+
+/* Cartes de grade : lévitation */
+.grade-card-3d { animation:wow-levitate 7s ease-in-out infinite; }
+.grade-card-3d:nth-child(2){ animation-delay:-1.4s } .grade-card-3d:nth-child(3){ animation-delay:-2.8s }
+.grade-card-3d:nth-child(4){ animation-delay:-4.2s } .grade-card-3d:nth-child(5){ animation-delay:-5.6s }
+.grade-card-3d:hover { animation-play-state:paused; }
+@keyframes wow-levitate { 0%,100%{ translate:0 0 } 50%{ translate:0 -7px } }
+.grade-card-icon { animation:wow-icon-glow 3.6s ease-in-out infinite; }
+@keyframes wow-icon-glow { 0%,100%{ filter:drop-shadow(0 0 8px var(--card-accent,rgba(42,201,188,.5))) } 50%{ filter:drop-shadow(0 0 22px var(--card-accent,rgba(42,201,188,.9))) brightness(1.25) } }
+
+/* Verre : reflet passant sur les panneaux */
+.glass-card::before { background:linear-gradient(90deg,transparent,rgba(168,245,236,.35),transparent); }
+.glass-card:hover { box-shadow:0 14px 60px rgba(0,0,0,.55), 0 0 40px rgba(42,201,188,.14), 0 0 0 1px rgba(42,201,188,.2); }
+
+/* Titres de section : lueur */
+.section-title { text-shadow:0 0 18px rgba(42,201,188,.35); }
+.section-title::before, .section-title::after { box-shadow:0 0 10px rgba(42,201,188,.6); }
+
+/* Pills / filtres */
+.pill { transition:all .25s; }
+.pill.active { box-shadow:0 0 22px rgba(42,201,188,.35), inset 0 0 14px rgba(42,201,188,.1); }
+.pill:hover:not(.active) { transform:translateY(-1px); box-shadow:0 0 14px rgba(42,201,188,.15); }
+
+/* Lecteur audio : halo pulsant */
+#music-player { box-shadow:0 0 calc(18px + var(--beat) * 28px) rgba(42,201,188,calc(.12 + var(--beat) * .4)), 0 10px 40px rgba(0,0,0,.6); }
+
+/* ═════════ 9. CANVAS D'EFFETS (braises, étincelles, ondes) ═════════ */
+#wow-fx { position:fixed; inset:0; width:100%; height:100%; z-index:10000; pointer-events:none; }
+
+/* ═════════ 10. TOASTS / MODALES : entrée plus spectaculaire ═════════ */
+.modal-overlay:not(.hidden) .modal-box { animation:wow-modal-in .55s cubic-bezier(.2,.9,.25,1.1) both; }
+@keyframes wow-modal-in { from{ opacity:0; transform:scale(.86) translateY(30px) rotateX(10deg); filter:blur(8px) } to{ opacity:1; transform:none; filter:none } }
+
+/* ═════════ 11. MOBILE / ACCESSIBILITÉ ═════════ */
+@media (max-width:760px) {
+    #wow-bg .fog.f2, #wow-bg .sigil-bg { display:none; }
+    #splash-overlay .wow-splash-sigil.s2 { display:none; }
+    .wow-reveal { transform:translateY(28px) scale(.98); filter:none; }
+    .lb-card.wow-ready, .lb-card.wow-ready.wow-hover { transform:none; }
+    .grade-card-3d { animation:none; }
+}
+@media (hover:none) { .wow-glare, .wow-edge { display:none; } .lb-card--monarque > .wow-edge { display:block; } }
+@media (prefers-reduced-motion: reduce) {
+    #wow-bg *, #splash-overlay *, .hero::after, .wow-rift, .spa-nav::after, .grade-card-3d, .btn-primary::before { animation:none !important; }
+    .wow-reveal { opacity:1; transform:none; filter:none; transition:none; }
+    #wow-fx, .wow-flash-bolt { display:none; }
+}
+
+/* Lisibilité du titre du splash : halo sombre derrière le texte */
+#splash-overlay .splash-inner::before {
+    content:''; position:absolute; left:50%; top:58%; width:min(900px,120vw); height:340px; translate:-50% -50%; z-index:-1; pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(2,3,10,.82) 0%, rgba(2,3,10,.55) 45%, transparent 72%);
+}
+#splash-overlay .wow-splash-sigil.s2 { --o:.28; }
+
+/* Lisibilité du hero : voile sombre sous les chiffres et légendes */
+.hero::before { background:radial-gradient(ellipse 60% 55% at 50% 48%, rgba(2,4,12,.72) 0%, rgba(2,4,12,.35) 55%, transparent 80%), radial-gradient(ellipse 80% 60% at 50% 0%, rgba(160,80,0,.16) 0%, transparent 65%); }
+.hero-stat { background:rgba(6,10,22,.62); }
+
+/* ═════════ 12. CURSEUR PERSONNALISÉ ═════════ */
+html, body, body.music-playing, body * { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23a8f5ec%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%232ac9bc%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M4%203%20L4%2025%20L9.6%2019.6%20L14%2029%20L18%2027.2%20L13.7%2018%20L21.5%2017.8%20Z%22%20fill%3D%22none%22%20stroke%3D%22%232ac9bc%22%20stroke-width%3D%224.2%22%20stroke-linejoin%3D%22round%22%20opacity%3D%22.28%22%2F%3E%3Cpath%20d%3D%22M4%203%20L4%2025%20L9.6%2019.6%20L14%2029%20L18%2027.2%20L13.7%2018%20L21.5%2017.8%20Z%22%20fill%3D%22%23070b14%22%20stroke%3D%22url(%23g)%22%20stroke-width%3D%221.7%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M6.4%208.6%20L6.4%2018.8%20L9.4%2016%20Z%22%20fill%3D%22%23ffb35c%22%20opacity%3D%22.55%22%2F%3E%3Ccircle%20cx%3D%224%22%20cy%3D%223%22%20r%3D%221.9%22%20fill%3D%22%23ffb35c%22%2F%3E%3C%2Fsvg%3E") 4 3, default !important; }
+a, button, .btn, .pill, [onclick], select, summary, label[for], .lb-card[onclick], .grade-card-3d,
+input[type=checkbox], input[type=radio], input[type=range], input[type=file], .modal-close, .mp-playbtn, .mp-vbtn,
+.spa-nav-brand, .splash-enter, #splash-overlay, [style*="cursor:pointer"], [style*="cursor: pointer"] { cursor:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23ffd9a0%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23ff9d3d%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M4%203%20L4%2025%20L9.6%2019.6%20L14%2029%20L18%2027.2%20L13.7%2018%20L21.5%2017.8%20Z%22%20fill%3D%22none%22%20stroke%3D%22%23ff9d3d%22%20stroke-width%3D%224.2%22%20stroke-linejoin%3D%22round%22%20opacity%3D%22.28%22%2F%3E%3Cpath%20d%3D%22M4%203%20L4%2025%20L9.6%2019.6%20L14%2029%20L18%2027.2%20L13.7%2018%20L21.5%2017.8%20Z%22%20fill%3D%22%23070b14%22%20stroke%3D%22url(%23g)%22%20stroke-width%3D%221.7%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M6.4%208.6%20L6.4%2018.8%20L9.4%2016%20Z%22%20fill%3D%22%23a8f5ec%22%20opacity%3D%22.55%22%2F%3E%3Ccircle%20cx%3D%224%22%20cy%3D%223%22%20r%3D%221.9%22%20fill%3D%22%23a8f5ec%22%2F%3E%3C%2Fsvg%3E") 4 3, pointer !important; }
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=button]):not([type=submit]),
+textarea, [contenteditable=true] { cursor:text !important; }

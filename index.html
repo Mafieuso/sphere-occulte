@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sphère Occulte — Ordre Démoniaque</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="wow.css">
 </head>
 <body>
 
@@ -1958,38 +1959,22 @@ function makeDistortionCurve(amount) {
 function setBgMusicDistorted(on) {
     const audioEl = document.getElementById('bg-audio');
     if (!audioEl) return;
-    const ctx = getGlitchAudioCtx();
-    try {
-        if (!glitchAudioSource) glitchAudioSource = ctx.createMediaElementSource(audioEl);
-        glitchAudioSource.disconnect();
-    } catch (e) { /* déjà connecté ailleurs — on continue quand même */ }
+    // La musique joue en direct (aucun passage par WebAudio : un MediaElementSource est muet
+    // en file:// et tant que le contexte audio n'a pas été débloqué par un clic). La
+    // "corruption" vient d'une vraie piste dédiée (theme-corrupt.mp3), de même durée que le
+    // thème : on bascule de l'une à l'autre à la même position, sans coupure.
+    audioEl.playbackRate = 1;
 
-    if (!on) {
-        audioEl.playbackRate = 1;
-        try { glitchAudioSource.connect(ctx.destination); } catch (e) {}
-        return;
-    }
-
-    const distortion = ctx.createWaveShaper();
-    distortion.curve = makeDistortionCurve(90);
-    distortion.oversample = '4x';
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 900;
-    filter.Q.value = 1.4;
-    const gain = ctx.createGain();
-    gain.gain.value = 1.15;
-    try {
-        glitchAudioSource.connect(distortion).connect(filter).connect(gain).connect(ctx.destination);
-    } catch (e) {}
-    glitchDistortNodes = { filter, gain };
-
-    // Modulation lente du filtre + wobble de pitch — musique qui "tourne mal"
-    glitchIntervals.push(setInterval(() => {
-        if (!glitchDistortNodes) return;
-        glitchDistortNodes.filter.frequency.value = 300 + Math.random() * 2200;
-        audioEl.playbackRate = Math.max(.4, Math.min(1.7, .65 + Math.random() * .9));
-    }, 500 + Math.random() * 700));
+    const want = on ? 'audio/theme-corrupt.mp3' : 'audio/theme-v2.mp3';
+    if (audioEl.getAttribute('src') === want) return;
+    const pos = audioEl.currentTime || 0, wasPlaying = !audioEl.paused;
+    audioEl.setAttribute('src', want);
+    audioEl.addEventListener('loadedmetadata', function onMeta() {
+        audioEl.removeEventListener('loadedmetadata', onMeta);
+        try { if (audioEl.duration) audioEl.currentTime = pos % audioEl.duration; } catch (e) {}
+        if (wasPlaying) audioEl.play().catch(() => {});
+    });
+    audioEl.load();
 }
 
 function glitchNoiseBurst() {
@@ -4049,6 +4034,9 @@ async function loadAdminAcces() {
     const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     const isAdmin = currentMembre?.role === 'admin';
+    // Les Hauts Gradés (Collecteurs d'Ombre…) créent les comptes : ils doivent pouvoir lire et
+    // régénérer le code temporaire pour le transmettre au nouveau membre.
+    const canSeeCodes = isAdmin || currentMembre?.role === 'haut_grade';
 
     const selfTestEl = document.getElementById('glitch-self-test');
     if (selfTestEl && isAdmin) {
@@ -4083,7 +4071,7 @@ async function loadAdminAcces() {
         const safeNom = name.replace(/'/g,"\\'");
 
         // Codes et révocation : admin seulement
-        const codeRow = isAdmin
+        const codeRow = canSeeCodes
             ? (m.tempPassword
                 ? `<div style="display:flex;align-items:center;gap:.6rem;margin-top:.55rem;flex-wrap:wrap">
                     <span style="font-size:.68rem;color:var(--text-muted);font-family:'Cormorant Garamond',serif;flex-shrink:0">🔑 Code :</span>
@@ -6112,7 +6100,7 @@ async function loadDashReglement() {
 showView('loading');
 </script>
 <!-- ═══ LECTEUR AUDIO ═══ -->
-<audio id="bg-audio" src="theme.mp3" loop preload="auto"></audio>
+<audio id="bg-audio" src="audio/theme-v2.mp3" loop preload="auto"></audio>
 
 <div id="music-player">
   <div class="mp-top">
@@ -6120,7 +6108,7 @@ showView('loading');
       <span></span><span></span><span></span><span></span><span></span>
     </div>
     <div class="mp-info">
-      <div class="mp-title">Lucifer's Hymn</div>
+      <div class="mp-title">Hymne du Voile</div>
       <div class="mp-sub">Musique d'ambiance · Boucle</div>
     </div>
     <button class="mp-playbtn" id="mp-play" onclick="mpToggle()" title="Lecture / Pause">▶</button>
@@ -6180,5 +6168,6 @@ showView('loading');
 })();
 </script>
 
+<script src="wow.js"></script>
 </body>
 </html>

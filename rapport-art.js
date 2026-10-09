@@ -332,8 +332,8 @@
             const content = opts.test
                 ? [`${gradeDef.icon} **🧪 SIMULATION — Rapport de ${data.membreNom}**`, '*Aperçu de rendu envoyé depuis le panneau admin — aucune validation réelle, aucun ping.*'].join('\n')
                 : [`<@&${ROLE_PINGS[0]}> <@&${ROLE_PINGS[1]}>`,
-                   `${gradeDef.icon} **📜 Nouveau Rapport — ${data.membreNom}**`,
-                   'Un rapport d\'incantation vient d\'être soumis et attend validation.'].join('\n');
+                   `${gradeDef.icon} **✅ Rapport validé — ${data.membreNom}**`,
+                   'Le rapport d\'incantation vient d\'être validé par le Conclave.'].join('\n');
             const messages = [];
             try { const carte = await renderRapportCard(data); if (carte) messages.push({ content, ping: !opts.test, test: !!opts.test, files: [{ name: 'carte.png', b64: await blobB64(carte) }] }); }
             catch (e) { console.error('Carte rapport :', e); }

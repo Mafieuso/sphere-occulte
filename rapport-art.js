@@ -269,9 +269,11 @@
        c'est lui qui détient le webhook et vérifie le rôle de l'envoyeur. L'adresse du relais
        (non secrète) est stockée dans Firestore : config/discord.relayUrl. */
     const RELAY_RE = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/;
+    // Adresse du relais déployé (publique, non secrète). Un éventuel réglage Firestore (config/discord.relayUrl) la remplace.
+    const DEFAULT_RELAY = 'https://script.google.com/macros/s/AKfycbyxcDFd62PkEXyNPUXSxAfRZm2NGHF4dZmFCUGrnknR_u9-NIEiYhBySx_2Q8sNoepG/exec';
     let relayCache = null, relayAt = 0;
     async function getRelay(force) {
-        if (!force && relayCache !== null && Date.now() - relayAt < 300000) return relayCache;
+        if (!force && relayCache !== null && Date.now() - relayAt < 300000) return relayCache || DEFAULT_RELAY;
         try {
             const d = await db.collection('config').doc('discord').get();
             relayCache = d.exists ? String(d.data().relayUrl || '') : '';
@@ -279,7 +281,7 @@
             console.error('[discord] lecture de la config refusée — règles Firestore à publier ?', e.code || e);
             relayCache = ''; window.__hookErr = e.code || String(e);
         }
-        relayAt = Date.now(); return relayCache;
+        relayAt = Date.now(); return relayCache || DEFAULT_RELAY;
     }
     function setStatus(txt, ok) { const s = document.getElementById('dc-status'); if (s) { s.textContent = txt; s.style.color = ok ? '#72ff8c' : '#ff8a8a'; } }
     const ERR_TXT = {
@@ -290,7 +292,6 @@
 
     window.discordWebhookStatus = async function () {
         window.__hookErr = null; const url = await getRelay(true);
-        if (!url) { setStatus(window.__hookErr ? '❌ lecture refusée (règles Firestore)' : '❌ relais non configuré', false); return; }
         try {
             const j = await (await fetch(url, { method: 'GET' })).json();
             if (!j.ok) setStatus('❌ relais invalide', false);

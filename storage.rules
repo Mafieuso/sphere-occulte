@@ -2,11 +2,16 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // Un compte Auth seul ne suffit pas : il faut une fiche membre dans Firestore.
+    function isMember() {
+      return request.auth != null &&
+        firestore.exists(/databases/(default)/documents/membres/$(request.auth.uid));
+    }
+
     // Screenshots de soumissions : upload par le membre connecté uniquement
-    // Lecture par les hauts grades (via admin panel)
     match /soumissions/{userId}/{soumissionId}/{filename} {
-      allow read:  if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId
+      allow read:  if isMember();
+      allow write: if isMember() && request.auth.uid == userId
                    && request.resource.size < 5 * 1024 * 1024   // max 5 MB
                    && request.resource.contentType.matches('image/.*');
     }

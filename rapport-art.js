@@ -264,42 +264,68 @@
     window.renderRapportCard    = data => safe(u => drawRapportCard(data, u));
     window.renderScreenshotCard = (src, g) => safe(u => drawScreenshotCard(src, g, u));
 
-    /* ───────── Webhook : lu dans Firestore (config/discord), jamais dans le code ───────── */
-    const HOOK_RE = /^https:\/\/(?:discord|discordapp)\.com\/api\/webhooks\/\d+\/[\w-]+$/;
-    let hookCache = null, hookAt = 0;
-    async function getWebhook(force) {
-        if (!force && hookCache !== null && Date.now() - hookAt < 300000) return hookCache;
+    /* ───────── Relais Discord (Apps Script) : le webhook n'est jamais dans le navigateur ─────────
+       Le site envoie le rapport + son jeton Firebase à un relais gratuit (Google Apps Script) ;
+       c'est lui qui détient le webhook et vérifie le rôle de l'envoyeur. L'adresse du relais
+       (non secrète) est stockée dans Firestore : config/discord.relayUrl. */
+    const RELAY_RE = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/;
+    let relayCache = null, relayAt = 0;
+    async function getRelay(force) {
+        if (!force && relayCache !== null && Date.now() - relayAt < 300000) return relayCache;
         try {
             const d = await db.collection('config').doc('discord').get();
-            hookCache = d.exists ? String(d.data().rapportsWebhook || '') : '';
+            relayCache = d.exists ? String(d.data().relayUrl || '') : '';
         } catch (e) {
-            console.error('[discord] lecture du webhook refusée — règles Firestore à mettre à jour ?', e.code || e);
-            hookCache = ''; window.__hookErr = e.code || String(e);
+            console.error('[discord] lecture de la config refusée — règles Firestore à publier ?', e.code || e);
+            relayCache = ''; window.__hookErr = e.code || String(e);
         }
-        hookAt = Date.now(); return hookCache;
+        relayAt = Date.now(); return relayCache;
     }
     function setStatus(txt, ok) { const s = document.getElementById('dc-status'); if (s) { s.textContent = txt; s.style.color = ok ? '#72ff8c' : '#ff8a8a'; } }
-    window.discordWebhookStatus = async function (verbose) {
-        window.__hookErr = null; const hook = await getWebhook(true);
-        if (!hook) { setStatus(window.__hookErr ? '❌ lecture refusée (règles Firestore)' : '❌ non configuré', false); return; }
-        try {                                                  // simple lecture : ne poste rien
-            const res = await fetch(hook); setStatus(res.ok ? '✅ actif' : '❌ webhook invalide ou supprimé (' + res.status + ')', res.ok);
-        } catch (e) { setStatus('⚠ vérification impossible', false); }
+    const ERR_TXT = {
+        auth: 'identité refusée (reconnecte-toi)', forbidden: 'réservé aux admins / hauts gradés', rate: 'trop d\'envois, patiente quelques minutes',
+        no_webhook: 'le relais n\'a pas encore de webhook (Propriétés du script → DISCORD_WEBHOOK)', no_relay: 'relais non configuré (Admin → Accès & Comptes)'
+    };
+    function errText(code) { return ERR_TXT[code] || (String(code).startsWith('discord_') ? 'Discord a refusé (' + code.slice(8) + ') — webhook invalide ou supprimé ?' : code); }
+
+    window.discordWebhookStatus = async function () {
+        window.__hookErr = null; const url = await getRelay(true);
+        if (!url) { setStatus(window.__hookErr ? '❌ lecture refusée (règles Firestore)' : '❌ relais non configuré', false); return; }
+        try {
+            const j = await (await fetch(url, { method: 'GET' })).json();
+            if (!j.ok) setStatus('❌ relais invalide', false);
+            else setStatus(j.webhook ? '✅ relais actif — webhook présent' : '⚠ relais joignable, mais aucun webhook (Propriétés du script → DISCORD_WEBHOOK)', !!j.webhook);
+        } catch (e) { setStatus('⚠ relais injoignable (déploiement « Tout le monde » ?)', false); }
     };
     window.discordWebhookSave = async function () {
         const inp = document.getElementById('dc-webhook'), url = (inp.value || '').trim();
-        if (!HOOK_RE.test(url)) { setStatus('❌ URL de webhook invalide', false); return; }
+        if (/discord(app)?\.com\/api\/webhooks/i.test(url)) { inp.value = ''; setStatus('⛔ Ne colle PAS le webhook ici : il va dans le relais (voir l\'aide ci-dessous)', false); return; }
+        if (!RELAY_RE.test(url)) { setStatus('❌ adresse invalide (https://script.google.com/macros/s/…/exec)', false); return; }
         try {
-            await db.collection('config').doc('discord').set({ rapportsWebhook: url, updatedAt: firebase.firestore.Timestamp.now() });
-            inp.value = ''; hookCache = url; hookAt = Date.now(); await window.discordWebhookStatus();
+            await db.collection('config').doc('discord').set({ relayUrl: url, updatedAt: firebase.firestore.Timestamp.now() });
+            inp.value = ''; relayCache = url; relayAt = Date.now(); await window.discordWebhookStatus();
         } catch (e) { setStatus('❌ enregistrement refusé — ' + (e.code || e.message) + ' (règles Firestore à publier ?)', false); }
     };
+
+    const blobB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(b); });
+    async function relaySend(messages) {
+        const url = await getRelay();
+        if (!url) return { ok: false, error: 'no_relay' };
+        const user = (typeof auth !== 'undefined') ? auth.currentUser : null;
+        if (!user) return { ok: false, error: 'auth' };
+        const idToken = await user.getIdToken();
+        try {
+            const res = await fetch(url, { method: 'POST', body: JSON.stringify({ idToken, messages }) });   // text/plain : pas de pré-vérification CORS
+            return await res.json();
+        } catch (e) {
+            console.error('[discord] relais injoignable', e); relayAt = 0;
+            return { ok: false, error: 'relais injoignable' };
+        }
+    }
 
     /* ───────── Envoi Discord ───────── */
     window.postRapportToDiscord = async function (data, opts) {
         opts = opts || {};
-        const HOOK = await getWebhook();
-        if (!HOOK) { console.error('[discord] aucun webhook configuré (Admin → Accès & Comptes)'); return false; }
         try {
             const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
             const content = opts.test
@@ -307,29 +333,18 @@
                 : [`<@&${ROLE_PINGS[0]}> <@&${ROLE_PINGS[1]}>`,
                    `${gradeDef.icon} **📜 Nouveau Rapport — ${data.membreNom}**`,
                    'Un rapport d\'incantation vient d\'être soumis et attend validation.'].join('\n');
-            const base = { username: BOT_NAME, avatar_url: LOGO_PUBLIC_URL };
-
-            const fd1 = new FormData();
-            try { const carte = await renderRapportCard(data); if (carte) fd1.append('files[0]', carte, 'carte.png'); }
+            const messages = [];
+            try { const carte = await renderRapportCard(data); if (carte) messages.push({ content, ping: !opts.test, test: !!opts.test, files: [{ name: 'carte.png', b64: await blobB64(carte) }] }); }
             catch (e) { console.error('Carte rapport :', e); }
-            fd1.append('payload_json', JSON.stringify(Object.assign({ content },
-                opts.test ? { allowed_mentions: { parse: [] } } : { allowed_mentions: { roles: ROLE_PINGS } }, base)));
-            const res1 = await fetch(HOOK, { method: 'POST', body: fd1 });
-            if (!res1.ok) { console.error('[discord] échec', res1.status, await res1.text().catch(() => '')); hookAt = 0; return false; }
-
             if (data.screenshot) {
-                try {
-                    const preuve = await renderScreenshotCard(data.screenshot, gradeDef);
-                    if (preuve) {
-                        const fd2 = new FormData(); fd2.append('files[0]', preuve, 'preuve.png');
-                        fd2.append('payload_json', JSON.stringify(Object.assign({ allowed_mentions: { parse: [] } }, base)));
-                        const res2 = await fetch(HOOK, { method: 'POST', body: fd2 });
-                        if (!res2.ok) console.error('[discord] échec preuve', res2.status);
-                    }
-                } catch (e) { console.error('Preuve rapport :', e); }
+                try { const preuve = await renderScreenshotCard(data.screenshot, gradeDef); if (preuve) messages.push({ content: '', test: !!opts.test, files: [{ name: 'preuve.png', b64: await blobB64(preuve) }] }); }
+                catch (e) { console.error('Preuve rapport :', e); }
             }
+            if (!messages.length) return false;
+            const j = await relaySend(messages);
+            if (!j.ok) { console.error('[discord] échec :', j.error); window.__lastDiscordError = errText(j.error); return false; }
             return true;
-        } catch (e) { console.error('Discord webhook (rapport) :', e); return false; }
+        } catch (e) { console.error('Discord (rapport) :', e); window.__lastDiscordError = String(e.message || e); return false; }
     };
 
     /* ───────── Simulateur admin ───────── */
@@ -428,6 +443,6 @@
         const ok = await postRapportToDiscord(simData, { test: true });
         btn.disabled = false;
         status.style.color = ok ? '#72ff8c' : '#ff8a8a';
-        status.textContent = ok ? '✅ Envoyé sur Discord.' : '❌ Échec de l\'envoi (voir la console).';
+        status.textContent = ok ? '✅ Envoyé sur Discord.' : '❌ ' + (window.__lastDiscordError || 'Échec de l\'envoi (voir la console).');
     };
 })();

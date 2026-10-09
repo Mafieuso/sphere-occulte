@@ -2,52 +2,94 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Fonctions ──────────────────────────────────────────────
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isHautGrade() {
+    // Un compte Firebase Auth seul ne suffit PAS : il faut une fiche membre
+    // (n'importe qui peut créer un compte Auth avec la clé web publique).
+    function isMember() {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/membres/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/membres/$(request.auth.uid)).data.role
-          in ['haut_grade', 'admin'];
+        exists(/databases/$(database)/documents/membres/$(request.auth.uid));
     }
 
-    function memberGrade() {
-      return get(/databases/$(database)/documents/membres/$(request.auth.uid)).data.grade;
+    function me() {
+      return get(/databases/$(database)/documents/membres/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isMember() && me().role == 'admin';
+    }
+
+    function isHautGrade() {
+      return isMember() && me().role in ['haut_grade', 'admin'];
     }
 
     function isCollecteurOrHigher() {
-      return isAuthenticated() &&
-        exists(/databases/$(database)/documents/membres/$(request.auth.uid)) &&
-        memberGrade() in [
-          "Collecteur d'Ombre",
-          "Marchand des Âmes",
-          "Monarque des Ombres"
-        ];
+      return isMember() && me().grade in [
+        "Collecteur d'Ombre",
+        "Marchand des Âmes",
+        "Monarque des Ombres"
+      ];
+    }
+
+    // true si la mise à jour ne touche QUE les champs listés
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
     }
 
     // ── Membres ────────────────────────────────────────────────
+    // Lecture publique (le classement est visible sans connexion).
+    // Les codes temporaires ne sont PLUS ici : voir /secrets.
     match /membres/{userId} {
       allow read: if true;
-      allow create: if isAuthenticated() &&
-        (request.auth.uid == userId || isHautGrade());
-      allow update: if isAuthenticated() &&
-        (request.auth.uid == userId || isHautGrade() || isCollecteurOrHigher());
-      allow delete: if isHautGrade();
+
+      // Création d'un compte : par un haut grade uniquement, toujours en simple membre Incantateur.
+      // (Plus d'auto-création : un inconnu ne peut plus se fabriquer une fiche "admin".)
+      allow create: if isHautGrade() &&
+        request.resource.data.role == 'membre' &&
+        request.resource.data.grade == 'Incantateur' &&
+        request.resource.data.pointsOcculte == 0;
+
+      allow update: if isAuthenticated() && (
+        // L'admin peut tout modifier
+        isAdmin()
+        // Un haut grade modifie les AUTRES membres, sans jamais changer un rôle ;
+        // sur un admin, uniquement points / grade (validations de rapports, Corruption).
+        || (isHautGrade() && request.auth.uid != userId
+            && request.resource.data.role == resource.data.role
+            && (resource.data.role != 'admin'
+                || onlyChanges(['pointsOcculte', 'pointsManipulation', 'grade', 'dateEvolution', 'glitchActif'])))
+        // Chacun ne peut modifier de LUI-MÊME que son profil (jamais rôle, grade, points…)
+        || (request.auth.uid == userId
+            && onlyChanges(['lastLogin', 'firstLogin', 'tempPassword', 'prenom', 'nom', 'projetOcculte', 'photoURL', 'ecoleId']))
+        // Un fondateur d'école (Collecteur+) rattache / détache des membres : uniquement ecoleId
+        || (isCollecteurOrHigher() && onlyChanges(['ecoleId']))
+      );
+
+      allow delete: if isAdmin() ||
+        (isHautGrade() && resource.data.role == 'membre');
+    }
+
+    // ── Secrets (codes temporaires) — jamais lisibles publiquement ──
+    match /secrets/{userId} {
+      allow read:   if isHautGrade();
+      allow create, update: if isHautGrade();
+      allow delete: if isHautGrade() || (isAuthenticated() && request.auth.uid == userId);
     }
 
     // ── Incantations ───────────────────────────────────────────
     match /incantations/{incantationId} {
-      allow read: if isAuthenticated();
+      allow read: if isMember();
       allow write: if isCollecteurOrHigher() || isHautGrade();
     }
 
     // ── Soumissions ────────────────────────────────────────────
     match /soumissions/{soumissionId} {
-      allow read: if isAuthenticated() &&
+      allow read: if isMember() &&
         (request.auth.uid == resource.data.membreId || isHautGrade());
-      allow create: if isAuthenticated() &&
+      allow create: if isMember() &&
         request.auth.uid == request.resource.data.membreId;
       allow update: if isHautGrade();
       allow delete: if isHautGrade();
@@ -55,47 +97,45 @@ service cloud.firestore {
 
     // ── Écoles ─────────────────────────────────────────────────
     match /ecoles/{ecoleId} {
-      allow read: if isAuthenticated();
+      allow read: if isMember();
       allow create: if isCollecteurOrHigher() &&
         request.resource.data.fondateurId == request.auth.uid;
-      allow update: if isAuthenticated() &&
+      allow update: if isMember() &&
         (resource.data.fondateurId == request.auth.uid ||
          isHautGrade() ||
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['membres']));
-      allow delete: if isAuthenticated() &&
+      allow delete: if isMember() &&
         (resource.data.fondateurId == request.auth.uid || isHautGrade());
     }
 
     // ── Savoirs Uniques ────────────────────────────────────────
     match /savoirsUniques/{savoirId} {
-      allow read: if isAuthenticated();
+      allow read: if isMember();
       allow write: if isHautGrade();
     }
 
     // ── Règlement ──────────────────────────────────────────────
     match /reglement/{regleId} {
-      allow read: if isAuthenticated();
+      allow read: if isMember();
       allow write: if isHautGrade();
     }
 
     // ── Notifications ──────────────────────────────────────────
     match /notifications/{notifId} {
-      allow read: if isAuthenticated() &&
+      allow read: if isMember() &&
         (resource.data.to == request.auth.uid || isHautGrade());
-      allow create: if isAuthenticated() &&
-        (isCollecteurOrHigher() || isHautGrade());
-      allow update: if isAuthenticated() &&
+      allow create: if isCollecteurOrHigher() || isHautGrade();
+      allow update: if isMember() &&
         resource.data.to == request.auth.uid;
-      allow delete: if isAuthenticated() &&
+      allow delete: if isMember() &&
         (resource.data.to == request.auth.uid || isHautGrade());
     }
 
-    // ── Configuration privée (webhook Discord) — lisible par les hauts gradés, modifiable par l'admin ──
+    // ── Configuration (adresse du relais Discord — NON secrète) ──
+    // Le webhook Discord lui-même n'est PAS dans la base : il vit dans le relais Apps Script.
     match /config/{docId} {
       allow read:  if isHautGrade();
-      allow write: if isAuthenticated() &&
-        exists(/databases/$(database)/documents/membres/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/membres/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
 
     // ── Logs ───────────────────────────────────────────────────

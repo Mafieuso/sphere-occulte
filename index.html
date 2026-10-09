@@ -1352,13 +1352,13 @@
               <div style="font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--gold);margin-bottom:.5rem">🧪 Simuler un rapport Discord</div>
               <button class="btn btn-gold btn-sm" data-glitch-safe="1" onclick="simulerRapport()">📜 Simuler un rapport</button>
               <div class="admin-only" style="margin-top:.8rem;padding-top:.8rem;border-top:1px solid rgba(255,255,255,.07)">
-                <div style="font-size:.74rem;color:var(--text);margin-bottom:.4rem">🔗 Webhook Discord des rapports <span id="dc-status" style="margin-left:.4rem;font-size:.7rem"></span></div>
+                <div style="font-size:.74rem;color:var(--text);margin-bottom:.4rem">🔗 Relais Discord des rapports <span id="dc-status" style="margin-left:.4rem;font-size:.7rem"></span></div>
                 <div style="display:flex;gap:.45rem;flex-wrap:wrap">
-                  <input class="form-control" id="dc-webhook" type="password" autocomplete="off" placeholder="https://discord.com/api/webhooks/…" style="flex:1;min-width:220px;font-size:.78rem">
+                  <input class="form-control" id="dc-webhook" type="text" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec  (adresse du relais)" style="flex:1;min-width:220px;font-size:.78rem">
                   <button class="btn btn-gold btn-sm" data-glitch-safe="1" onclick="discordWebhookSave()">💾 Enregistrer</button>
-                  <button class="btn btn-ghost btn-sm" data-glitch-safe="1" onclick="discordWebhookStatus(true)">↻ Vérifier</button>
+                  <button class="btn btn-ghost btn-sm" data-glitch-safe="1" onclick="discordWebhookStatus()">↻ Vérifier</button>
                 </div>
-                <div style="font-size:.66rem;color:var(--text-muted);margin-top:.35rem">Stocké dans la base (jamais dans le code public). À recréer dans Discord : paramètres du salon → Intégrations → Webhooks → Nouveau webhook.</div>
+                <div style="font-size:.66rem;color:var(--text-muted);margin-top:.35rem">Le webhook Discord n'est jamais saisi ici ni stocké dans la base : il vit uniquement dans le relais (Google Apps Script → Paramètres du projet → Propriétés du script → DISCORD_WEBHOOK). Ici, seule l'adresse du relais (non secrète).</div>
               </div>
               <div style="font-size:.68rem;color:var(--text-muted);margin-top:.5rem">Génère la carte et la preuve avec de fausses données pour voir le rendu exact sur Discord (envoi de test facultatif, sans ping).</div>
             </div>
@@ -2092,8 +2092,9 @@ async function changerMotDePasse() {
         if (currentMembre) {
             await db.collection('membres').doc(currentMembre.id).update({
                 firstLogin:    false,
-                tempPassword:  firebase.firestore.FieldValue.delete()
+                tempPassword:  firebase.firestore.FieldValue.delete()      // (anciens comptes)
             });
+            db.collection('secrets').doc(currentMembre.id).delete().catch(() => {});
             currentMembre.firstLogin = false;
         }
         closeModal('modal-change-pw');
@@ -3288,6 +3289,7 @@ async function supprimerMembre(id, nom, grade='') {
 
     const memDoc = await db.collection('membres').doc(id).get();
     const m = memDoc.exists ? memDoc.data() : {};
+    try { const sd = await db.collection('secrets').doc(id).get(); if (sd.exists) m.tempPassword = m.tempPassword || sd.data().tempPassword; } catch (e) {}
 
     // 1. Retirer de l'école si besoin
     if (m.ecoleId) {
@@ -3300,6 +3302,8 @@ async function supprimerMembre(id, nom, grade='') {
 
     // 2. Supprimer le doc Firestore
     await db.collection('membres').doc(id).delete();
+
+    db.collection('secrets').doc(id).delete().catch(() => {});
 
     // 3. Supprimer le compte Auth via secondaryAuth (possible seulement si tempPassword connu)
     if (m.tempPassword && m.steamId && secondaryAuth) {
@@ -3599,6 +3603,24 @@ async function loadAdminAcces() {
     }
     const membres = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    // Codes temporaires : collection privée /secrets (+ migration des anciens codes laissés dans la fiche publique)
+    try {
+        const sec = {};
+        (await db.collection('secrets').get()).forEach(d => { sec[d.id] = d.data().tempPassword; });
+        for (const m of membres) {
+            if (m.tempPassword && !sec[m.id]) {
+                try {
+                    await db.collection('secrets').doc(m.id).set({ tempPassword: m.tempPassword, migratedAt: firebase.firestore.Timestamp.now() });
+                    sec[m.id] = m.tempPassword;
+                } catch (e) { continue; }
+            }
+            if (m.tempPassword) {
+                db.collection('membres').doc(m.id).update({ tempPassword: firebase.firestore.FieldValue.delete() }).catch(() => {});
+            }
+            m.tempPassword = sec[m.id] || '';
+        }
+    } catch (e) { console.warn('[secrets]', e.code || e.message); }
+
     const isAdmin = currentMembre?.role === 'admin';
     // Les Hauts Gradés (Collecteurs d'Ombre…) créent les comptes : ils doivent pouvoir lire et
     // régénérer le code temporaire pour le transmettre au nouveau membre.
@@ -3710,10 +3732,8 @@ async function regenererCode(membreId, steamId, ancienCode) {
         const cred = await secondaryAuth.signInWithEmailAndPassword(email, ancienCode);
         await cred.user.updatePassword(newCode);
         await secondaryAuth.signOut();
-        await db.collection('membres').doc(membreId).update({
-            tempPassword: newCode,
-            firstLogin:   true
-        });
+        await db.collection('secrets').doc(membreId).set({ tempPassword: newCode, updatedAt: firebase.firestore.Timestamp.now() });
+        await db.collection('membres').doc(membreId).update({ firstLogin: true });
         await logAction('RESET CODE', steamId, 0);
         loadAdminAcces();
     } catch(err) {
@@ -4283,10 +4303,11 @@ async function creerMembre(e) {
             nbMembresProjet: 0,
             role:            'membre',
             firstLogin:      true,
-            tempPassword:    tempPw,
             dateEvolution:   firebase.firestore.Timestamp.now(),
             dateCreation:    firebase.firestore.Timestamp.now()
         });
+        // Le code temporaire n'est jamais stocké dans la fiche (lisible par tous) : collection privée /secrets
+        await db.collection('secrets').doc(cred.user.uid).set({ tempPassword: tempPw, createdAt: firebase.firestore.Timestamp.now() });
         await secondaryAuth.signOut();
         const nomComplet = nom ? prenom + ' ' + nom : prenom;
         await logAction('creation', `Nouveau membre : ${nomComplet}`, 0);

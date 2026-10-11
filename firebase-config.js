@@ -28,6 +28,26 @@ const GRADES = [
     { nom: "Monarque des Ombres",  minOcculte: 400, couleur: "#4fd6c8", css: "grade-monarque",    icon: "👑" }
 ];
 
+// ── Seuil « Monarque des Ombres » dynamique ──────────────────────
+// Pour devenir Monarque il faut au moins la puissance du Monarque actuel (le moins puissant s'il y en a
+// plusieurs), avec un plancher de 400. Il suit donc le Monarque en temps réel.
+const SEUIL_MONARQUE_BASE = 400;
+function actualiserSeuilMonarque(membres) {
+    const pts = (membres || []).filter(m => m && m.grade === 'Monarque des Ombres').map(m => Number(m.pointsOcculte) || 0);
+    const seuil = pts.length ? Math.max(SEUIL_MONARQUE_BASE, Math.min.apply(null, pts)) : SEUIL_MONARQUE_BASE;
+    const g = GRADES[GRADES.length - 1];
+    if (g.minOcculte !== seuil) {
+        g.minOcculte = seuil;
+        try { document.dispatchEvent(new CustomEvent('seuil-monarque', { detail: seuil })); } catch (e) {}
+    }
+    return seuil;
+}
+// Écoute en direct (lecture publique des membres) : le seuil s'actualise avec la puissance du Monarque.
+try {
+    db.collection('membres').where('grade', '==', 'Monarque des Ombres')
+      .onSnapshot(s => actualiserSeuilMonarque(s.docs.map(d => d.data())), () => {});
+} catch (e) {}
+
 function getGrade(pointsOcculte) {
     let g = GRADES[0];
     for (const grade of GRADES) { if (pointsOcculte >= grade.minOcculte) g = grade; }

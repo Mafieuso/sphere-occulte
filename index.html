@@ -1841,26 +1841,46 @@ let homeLive         = null;
 let filterGrade      = '';
 let filterPres       = false;
 
-function loadHome() {
-    // Légende grades
+// Légende + cartes des grades (le seuil du Monarque suit sa puissance : mise à jour sur place)
+function renderGradeInfos() {
+    const last = GRADES.length - 1;
     const legend = document.getElementById('home-grade-legend');
-    if (legend && !legend.innerHTML.trim()) {
-        legend.innerHTML = GRADES.map(g =>
-            `<span class="grade-badge ${g.css}">${g.nom} <span style="opacity:.5;font-size:.65rem">≥${g.minOcculte}</span></span>`
-        ).join('');
+    if (legend) {
+        if (!legend.innerHTML.trim()) {
+            legend.innerHTML = GRADES.map(g =>
+                `<span class="grade-badge ${g.css}">${g.nom} <span style="opacity:.5;font-size:.65rem">≥${g.minOcculte}</span></span>`
+            ).join('');
+        } else {
+            const s = legend.children[last] && legend.children[last].querySelector('span');
+            if (s) s.textContent = '≥' + GRADES[last].minOcculte;
+        }
     }
-    // Grade showcase
     const showcase = document.getElementById('grade-showcase');
-    if (showcase && !showcase.innerHTML.trim()) {
-        showcase.innerHTML = GRADES.map(g =>
-            `<div class="grade-card-3d" data-tilt>
-                <div class="grade-card-icon">${g.icon}</div>
-                <div class="grade-card-name">${g.nom}</div>
-                <div class="grade-card-pts">≥ ${g.minOcculte} pts Puissance Occulte</div>
-            </div>`
-        ).join('');
-        initTilt();
+    if (showcase) {
+        if (!showcase.innerHTML.trim()) {
+            showcase.innerHTML = GRADES.map(g =>
+                `<div class="grade-card-3d" data-tilt>
+                    <div class="grade-card-icon">${g.icon}</div>
+                    <div class="grade-card-name">${g.nom}</div>
+                    <div class="grade-card-pts">≥ ${g.minOcculte} pts Puissance Occulte</div>
+                </div>`
+            ).join('');
+            initTilt();
+        } else {
+            const p = showcase.children[last] && showcase.children[last].querySelector('.grade-card-pts');
+            if (p) p.textContent = '≥ ' + GRADES[last].minOcculte + ' pts Puissance Occulte';
+        }
     }
+}
+// Le Monarque a changé de puissance → tous les affichages dépendants se mettent à jour
+document.addEventListener('seuil-monarque', () => {
+    try { renderGradeInfos(); } catch (e) {}
+    try { if (typeof filtrerHome === 'function' && homeMembers && homeMembers.length) filtrerHome(); } catch (e) {}
+    try { if (currentMembre && document.getElementById('dash-name') && typeof renderDashProfile === 'function') renderDashProfile(currentMembre); } catch (e) {}
+});
+
+function loadHome() {
+    renderGradeInfos();
     if (homeLive) return;
     // Charger les écoles une fois pour les noms dans le classement
     db.collection('ecoles').get().then(snap => {
@@ -3137,6 +3157,7 @@ async function validerSoum(soumId, membreId, pts, manip = 0, incanNom = '') {
         ? await db.collection('membres').where('grade', '==', 'Monarque des Ombres').get()
         : { docs: [] };
 
+    if (monarqueSnap.docs.length) actualiserSeuilMonarque(monarqueSnap.docs.map(d => d.data()));   // seuil = puissance actuelle du Monarque
     const newOcculte = (m.pointsOcculte || 0) + pts;
     const newGrade   = getGrade(newOcculte);
 

@@ -59,48 +59,54 @@
 .fx-burst .lb-name { animation: fx-name .5s steps(1); }
 @keyframes fx-name { 0%,100% { text-shadow: none; } 25% { text-shadow: 3px 0 #ff003c, -3px 0 #00ffe7; } 60% { text-shadow: -2px 1px #ff003c, 2px -1px #00ffe7; } }
 
-/* ═════════ IROH : flamme jumelle ═════════ */
-.fx-iroh { --iroh: #ff5c8a; border-color: rgba(255,92,138,.45) !important; box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 38px rgba(255,92,138,.22) !important; isolation: isolate; }
+/* ═════════ Carte du Monarque : texte indéchiffrable (le nom reste lisible) ═════════ */
+.fx-cipher .lb-body { font-variant-ligatures: none; }
+.fx-cipher .lb-body > *:not(.lb-name) { color: rgba(168,245,236,.78); text-shadow: 0 0 8px rgba(42,201,188,.45); letter-spacing: .06em; }
+.fx-cipher .lb-name { text-shadow: 0 0 14px rgba(168,245,236,.55); }
+
+/* ═════════ Orbes en orbite autour d'une carte (avec traîne) ═════════ */
+.fx-orbits { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; border-radius: inherit; }
+.fx-orb {
+    position: absolute; left: 0; top: 0; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+    offset-path: inset(3px round 16px); offset-rotate: 0deg; offset-distance: 0%;
+    animation: fx-orbit var(--dur, 8s) linear infinite;
+    --oc: 94,242,226;
+    background: radial-gradient(circle, #fff 0, rgba(var(--oc),1) 42%, rgba(var(--oc),0) 75%);
+    box-shadow: 0 0 9px 2px rgba(var(--oc),.85), 0 0 22px 6px rgba(var(--oc),.35);
+}
+.fx-orb.rose { --oc: 255,92,138; }
+.fx-orb.tail { box-shadow: 0 0 6px 1px rgba(var(--oc),.55); }
+.fx-orb.t1 { width: 6px; height: 6px; margin: -3px 0 0 -3px; opacity: .7; }
+.fx-orb.t2 { width: 4.5px; height: 4.5px; margin: -2.25px 0 0 -2.25px; opacity: .45; }
+.fx-orb.t3 { width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; opacity: .25; }
+@keyframes fx-orbit { to { offset-distance: 100%; } }
+.fx-echo .fx-orb { animation-duration: calc(var(--dur, 8s) * .45); }
+
+/* ═════════ IROH : orbes jumelles + halo rose-turquoise ═════════ */
+.fx-iroh { border-color: rgba(255,120,160,.42) !important; isolation: isolate;
+    box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 30px rgba(255,92,138,.16), 0 0 46px rgba(42,201,188,.10) !important; }
 .fx-iroh > .wow-edge {
-    opacity: .95 !important;
-    background: conic-gradient(from var(--wow-a), transparent, #ff5c8a, #ffd1de, #ff9d3d, transparent 200deg, #b43cff 280deg, transparent) !important;
-    filter: drop-shadow(0 0 8px rgba(255,92,138,.8)) !important;
+    opacity: .85 !important;
+    background: conic-gradient(from var(--wow-a), transparent 0deg, #5ef2e2 50deg, #ffffff 80deg, #ff5c8a 130deg, transparent 190deg, #ff9d3d 250deg, transparent 320deg) !important;
+    filter: drop-shadow(0 0 7px rgba(255,92,138,.6)) drop-shadow(0 0 7px rgba(94,242,226,.4)) !important;
 }
-.fx-iroh::before {                                        /* brume rose-ambre qui respire */
-    content: ''; position: absolute; inset: -20%; z-index: -1; pointer-events: none;
-    background: radial-gradient(circle at 30% 100%, rgba(255,92,138,.35), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255,157,61,.22), transparent 50%);
-    animation: fx-breathe 4.5s ease-in-out infinite;
+.fx-iroh::before {                                        /* voile double : rose en bas, turquoise en haut */
+    content: ''; position: absolute; inset: -18%; z-index: -1; pointer-events: none;
+    background: radial-gradient(circle at 25% 105%, rgba(255,92,138,.30), transparent 55%), radial-gradient(circle at 85% -5%, rgba(94,242,226,.20), transparent 52%);
+    animation: fx-breathe 5s ease-in-out infinite;
 }
-@keyframes fx-breathe { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes fx-breathe { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 .fx-wisps { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
 .fx-wisps i {
-    position: absolute; bottom: -10px; width: 6px; height: 6px; border-radius: 50%;
-    background: radial-gradient(circle, #fff 0, #ffb3c8 35%, rgba(255,92,138,0) 70%); box-shadow: 0 0 10px 2px rgba(255,92,138,.7);
-    animation: fx-rise var(--d, 5s) linear infinite; animation-delay: var(--dl, 0s); opacity: 0;
+    position: absolute; bottom: -10px; width: 5px; height: 5px; border-radius: 50%;
+    background: radial-gradient(circle, #fff 0, #ffc2d4 38%, rgba(255,92,138,0) 72%); box-shadow: 0 0 8px 1px rgba(255,92,138,.6);
+    animation: fx-rise var(--d, 5.5s) linear infinite; animation-delay: var(--dl, 0s); opacity: 0;
 }
-@keyframes fx-rise { 0% { transform: translate(0,0) scale(.6); opacity: 0; } 15% { opacity: .95; } 100% { transform: translate(var(--dx, 10px), -190px) scale(1.15); opacity: 0; } }
-.fx-iroh-tag {
-    position: absolute; right: .7rem; bottom: .55rem; z-index: 6; pointer-events: none;
-    font: 700 .56rem "Cormorant Garamond", serif; letter-spacing: .22em; text-transform: uppercase;
-    background: linear-gradient(90deg, #ff9d3d, #ff5c8a, #ffd1de); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-    text-shadow: none; filter: drop-shadow(0 0 6px rgba(255,92,138,.6));
-}
-.fx-iroh.fx-echo { box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 70px rgba(255,92,138,.55) !important; }
-.fx-iroh.fx-echo .fx-wisps i { animation-duration: 2.2s; }
-.lb-card--monarque.fx-echo { box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 70px rgba(255,92,138,.35) !important; }
-/* fil de lumière entre le Monarque et son second */
-.fx-thread {
-    position: fixed; z-index: 98; height: 2px; pointer-events: none; transform-origin: 0 50%; opacity: 0; transition: opacity .35s;
-    background: linear-gradient(90deg, rgba(168,245,236,.9), rgba(255,92,138,.9)); box-shadow: 0 0 12px rgba(255,92,138,.8), 0 0 24px rgba(42,201,188,.5);
-}
-.fx-thread.on { opacity: .9; }
+@keyframes fx-rise { 0% { transform: translate(0,0) scale(.6); opacity: 0; } 18% { opacity: .85; } 100% { transform: translate(var(--dx, 10px), -170px) scale(1.1); opacity: 0; } }
+.fx-iroh.fx-echo { box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 56px rgba(255,92,138,.4), 0 0 62px rgba(42,201,188,.22) !important; }
+.lb-card--monarque.fx-echo { box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 56px rgba(255,92,138,.28) !important; }
 
 @media (prefers-reduced-motion: reduce) {
-    .fx-slices i, .fx-wisps i, .fx-iroh::before, .lb-card--monarque .lb-photo-panel::before { animation: none !important; }
+    .fx-slices i, .fx-wisps i, .fx-iroh::before, .lb-card--monarque .lb-photo-panel::before, .fx-orb { animation: none !important; }
     .lb-card--monarque:hover { animation: none !important; }
 }
-@media (hover: none) { .fx-thread { display: none; } }
-
-/* Étiquette d'Iroh : pastille sombre pour rester lisible par-dessus le texte */
-.fx-iroh-tag { padding: .16rem .6rem; border-radius: 20px; background: rgba(8,4,10,.86); -webkit-background-clip: border-box; background-clip: border-box;
-    -webkit-text-fill-color: #ffc2d4; color: #ffc2d4; border: 1px solid rgba(255,92,138,.5); filter: drop-shadow(0 0 6px rgba(255,92,138,.5)); }

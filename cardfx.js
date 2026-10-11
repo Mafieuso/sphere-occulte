@@ -1,5 +1,8 @@
 /* ════════════════════════════════════════════════════════════════
-   SPHÈRE OCCULTE — Effets de cartes dédiés (Monarque + Iroh Jin)
+   SPHÈRE OCCULTE — Effets de cartes dédiés
+   • Monarque : distorsion « signal corrompu » + texte qui change en permanence
+     (seul le nom / prénom reste lisible)
+   • Iroh Jin : orbes jumelles (turquoise du Monarque + rose d'Iroh) en orbite sur la carte
    Surcouche additive : se branche sur les cartes déjà rendues par le site.
    ════════════════════════════════════════════════════════════════ */
 (function () {
@@ -8,7 +11,7 @@
     const COARSE  = window.matchMedia('(hover: none)').matches;
     const rnd = (a, b) => a + Math.random() * (b - a);
 
-    /* ── Filtres SVG de déformation (idle = rare, hot = au survol) ── */
+    /* ── Filtres SVG de déformation (n'agissent que pendant une rafale / un survol) ── */
     if (!document.getElementById('fx-svg')) {
         const s = document.createElement('div'); s.id = 'fx-svg'; s.className = 'fx-svg'; s.setAttribute('aria-hidden', 'true');
         s.innerHTML = `<svg width="0" height="0" xmlns="http://www.w3.org/2000/svg">
@@ -32,17 +35,47 @@
         document.body.appendChild(s);
     }
 
+    /* ── Texte incompréhensible : tous les caractères changent en permanence, sauf le nom ── */
+    const GLYPHS = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ⛧☽⌖◈⟁✵⚶⛣▓▒░◬◭◮⌬⏣⎔';
+    function fxScramble(card) {
+        if (card.dataset.fxS) return;
+        const body = card.querySelector('.lb-body'); if (!body) return;
+        card.dataset.fxS = '1';
+        const nodes = [], walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+        for (let n; (n = walker.nextNode());) {
+            const p = n.parentElement;
+            if (!p || p.closest('.lb-name') || !n.nodeValue.trim()) continue;      // le nom / prénom reste intact
+            nodes.push({ n, orig: n.nodeValue });
+        }
+        if (!nodes.length) return;
+        const g = () => GLYPHS[(Math.random() * GLYPHS.length) | 0];
+        let on = true;
+        if ('IntersectionObserver' in window) {
+            new IntersectionObserver(e => { on = e[0].isIntersecting; }, { threshold: 0 }).observe(card);
+        }
+        const run = () => {
+            if (!card.isConnected) return;
+            if (on && !document.hidden) {
+                for (const o of nodes) o.n.nodeValue = o.orig.replace(/\S/g, g);
+            }
+            setTimeout(run, REDUCED ? 700 : 110);
+        };
+        run();
+        card.classList.add('fx-cipher');
+    }
+
     /* ── Monarque : tranches du portrait + rafales aléatoires ── */
     function fxMonarque(card) {
         if (card.dataset.fxM) return; card.dataset.fxM = '1';
+        fxScramble(card);
         const panel = card.querySelector('.lb-photo-panel'); if (!panel) return;
         const img = panel.querySelector('img');
         const box = document.createElement('div'); box.className = 'fx-slices';
         if (img && img.src) box.style.setProperty('--fx-img', `url("${img.src}")`);
         ['', 'r', '', 'c', '', 'r'].forEach(k => { const i = document.createElement('i'); if (k) i.className = k; box.appendChild(i); });
         panel.appendChild(box);
+        if (!REDUCED) addOrbs(card, [['rose', 0, 9]]);
         if (REDUCED) return;
-        // rafales : de temps en temps, la carte « saute » même sans survol
         (function loop() {
             setTimeout(() => {
                 if (!card.isConnected) return;
@@ -52,7 +85,22 @@
         })();
     }
 
-    /* ── Iroh Jin : flamme jumelle + écho avec le Monarque ── */
+    /* ── Orbes en orbite le long du bord de la carte (avec traîne) ── */
+    function addOrbs(card, specs) {
+        const wrap = document.createElement('div'); wrap.className = 'fx-orbits';
+        specs.forEach(([tone, phase, dur]) => {
+            for (let k = 0; k < 4; k++) {                                   // tête + traîne
+                const o = document.createElement('i');
+                o.className = 'fx-orb ' + tone + (k ? ' tail t' + k : '');
+                o.style.setProperty('--dur', dur + 's');
+                o.style.animationDelay = (-(phase * dur) - k * 0.075 * dur / 7) + 's';
+                wrap.appendChild(o);
+            }
+        });
+        card.appendChild(wrap);
+    }
+
+    /* ── Iroh Jin : orbes jumelles (le turquoise du Monarque + son rose) ── */
     function isIroh(card) {
         const n = (card.querySelector('.lb-name') || {}).textContent || '';
         return /\biroh\b/i.test(n);
@@ -61,37 +109,22 @@
         if (card.dataset.fxI) return; card.dataset.fxI = '1';
         card.classList.add('fx-iroh');
         const w = document.createElement('div'); w.className = 'fx-wisps';
-        for (let k = 0; k < 7; k++) {
+        for (let k = 0; k < 4; k++) {
             const i = document.createElement('i');
-            i.style.left = rnd(6, 94) + '%'; i.style.setProperty('--d', rnd(3.6, 6.4) + 's'); i.style.setProperty('--dl', -rnd(0, 6) + 's'); i.style.setProperty('--dx', rnd(-22, 22) + 'px');
+            i.style.left = rnd(10, 90) + '%'; i.style.setProperty('--d', rnd(4.6, 7.4) + 's'); i.style.setProperty('--dl', -rnd(0, 7) + 's'); i.style.setProperty('--dx', rnd(-18, 18) + 'px');
             w.appendChild(i);
         }
         card.appendChild(w);
-        const tag = document.createElement('div'); tag.className = 'fx-iroh-tag'; tag.textContent = '✦ Second du Monarque';
-        card.appendChild(tag);
+        if (!REDUCED) addOrbs(card, [['teal', 0, 8], ['rose', 0.5, 8]]);
     }
 
-    /* ── Écho : survoler l'un fait réagir l'autre, avec un fil de lumière ── */
-    let thread = null;
-    function link(a, b, on) {
-        if (COARSE || !a || !b) return;
-        a.classList.toggle('fx-echo', on); b.classList.toggle('fx-echo', on);
-        if (!thread) { thread = document.createElement('div'); thread.className = 'fx-thread'; document.body.appendChild(thread); }
-        if (on) {
-            const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-            const x1 = ra.left + ra.width / 2, y1 = ra.top + ra.height / 2, x2 = rb.left + rb.width / 2, y2 = rb.top + rb.height / 2;
-            thread.style.left = x1 + 'px'; thread.style.top = y1 + 'px';
-            thread.style.width = Math.hypot(x2 - x1, y2 - y1) + 'px';
-            thread.style.transform = `rotate(${Math.atan2(y2 - y1, x2 - x1)}rad)`;
-            thread.classList.add('on');
-        } else thread.classList.remove('on');
-    }
+    /* ── Écho : survoler l'un fait réagir l'autre (sans aucun trait) ── */
     function bindEcho() {
         const mon = document.querySelector('.lb-card--monarque'), iroh = document.querySelector('.lb-card.fx-iroh');
-        if (!mon || !iroh || mon.dataset.fxE) return; mon.dataset.fxE = '1';
-        [mon, iroh].forEach(c => {
-            c.addEventListener('mouseenter', () => link(mon, iroh, true));
-            c.addEventListener('mouseleave', () => link(mon, iroh, false));
+        if (COARSE || !mon || !iroh || mon.dataset.fxE) return; mon.dataset.fxE = '1';
+        [[mon, iroh], [iroh, mon]].forEach(([a, b]) => {
+            a.addEventListener('mouseenter', () => { a.classList.add('fx-echo'); b.classList.add('fx-echo'); });
+            a.addEventListener('mouseleave', () => { a.classList.remove('fx-echo'); b.classList.remove('fx-echo'); });
         });
     }
 

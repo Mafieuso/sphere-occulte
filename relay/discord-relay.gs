@@ -19,6 +19,12 @@ const AVATAR_URL   = 'https://mafieuso.github.io/sphere-occulte/img/logo.png';
 const MAX_PER_10MN = 30;                  // envois max par personne / 10 min
 const MAX_MESSAGES = 3, MAX_FILES = 2, MAX_B64_CHARS = 9000000;
 
+// Savoirs chiffrés intégrés au site : le texte (chiffré) est dans le code public du site, la CLÉ n'existe
+// que dans ce script. Elle n'est remise qu'aux membres dont le grade atteint "min" (ou aux hauts grades).
+// (Dans le dépôt GitHub ce tableau est vide ; les vraies clés ne sont que dans le script déployé.)
+const SAVOIR_KEYS = {};
+const GRADES = ['Incantateur', 'Marcheur des Voiles', "Collecteur d'Ombre", 'Marchand des Âmes', 'Monarque des Ombres'];
+
 function doGet(e) {                         // vérification depuis l'admin : dit seulement si le webhook est configuré
   const has = !!PropertiesService.getScriptProperties().getProperty('DISCORD_WEBHOOK');
   return json_({ ok: true, service: 'relais-discord', webhook: has });
@@ -46,6 +52,17 @@ function doPost(e) {
     const f = JSON.parse(fs.getContentText()).fields || {};
     const role = f.role && f.role.stringValue;
     const suspended = f.suspended && f.suspended.booleanValue;
+    const grade = f.grade && f.grade.stringValue;
+
+    // ── Clé d'un savoir chiffré (selon le grade) ──
+    if (req.action === 'savoirKey') {
+      const s = SAVOIR_KEYS[String(req.id || '')];
+      if (!s || suspended) return json_({ ok: false, error: 'forbidden' });
+      const idx = GRADES.indexOf(grade);
+      const haut = role === 'admin' || role === 'haut_grade';
+      if (!haut && idx < s.min) return json_({ ok: false, error: 'grade' });
+      return json_({ ok: true, key: s.key });
+    }
     if ((role !== 'admin' && role !== 'haut_grade') || suspended) return json_({ ok: false, error: 'forbidden' });
 
     // 3. Cadence

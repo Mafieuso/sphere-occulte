@@ -2772,12 +2772,24 @@ function formatSavoir(txt) {
         const bullet = /^[*•\-–]\s+(.+)/.exec(l);
         if (bullet) { if (!list) { out.push('<ul class="savoir-ul">'); list = true; } out.push('<li>' + lk(bullet[1]) + '</li>'); return; }
         close();
-        if (/^(?:[IVX]{1,5}|\d+)\s*[-–.)]\s+\S/.test(l) || /^[\u{1F300}-\u{1FAFF}☀-➿]/u.test(l)) { out.push('<h4 class="savoir-h">' + lk(l) + '</h4>'); return; }
+        const rom = /^([IVX]{1,5})\s*[-–]\s+(.+)/.exec(l);
+        if (rom) { out.push('<h4 class="savoir-h roman"><span class="num">' + rom[1] + '</span>' + lk(rom[2]) + '</h4>'); return; }
+        if (/^(?:\d+)\s*[-–.)]\s+\S/.test(l) || /^[\u{1F300}-\u{1FAFF}☀-➿]/u.test(l)) { out.push('<h4 class="savoir-h">' + lk(l) + '</h4>'); return; }
         if (/^["“”«]/.test(l)) { out.push('<blockquote class="savoir-q">' + lk(l) + '</blockquote>'); return; }
         out.push('<p>' + lk(l) + '</p>');
     });
     close();
     return out.join('');
+}
+
+function b64bytes(b) { const s = atob(b), a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+async function dechiffrerSavoir(s) {
+    if (!window.relayRequest) return null;
+    const r = await window.relayRequest({ action: 'savoirKey', id: s.id });
+    if (!r || !r.ok || !r.key) return null;
+    const key = await crypto.subtle.importKey('raw', b64bytes(r.key), 'AES-GCM', false, ['decrypt']);
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64bytes(s.iv) }, key, b64bytes(s.data));
+    return new TextDecoder().decode(pt);
 }
 
 async function loadDashSavoirs() {
@@ -2796,15 +2808,26 @@ async function loadDashSavoirs() {
             if (isHaut) { await syncSavoirsApercu(); if (!fiches.length) fiches = (await db.collection('savoirsApercu').get()).docs.map(d => ({ id: d.id, ...d.data() })); }
         } catch (e) { fiches = null; }
         if (fiches === null) {
-            const old = await db.collection('savoirsUniques').orderBy('gradeOrdre').get();
-            fiches = old.docs.map(d => ({ id: d.id, ...d.data(), _full: d.data() }));
+            try {
+                const old = await db.collection('savoirsUniques').orderBy('gradeOrdre').get();
+                fiches = old.docs.map(d => ({ id: d.id, ...d.data(), _full: d.data() }));
+            } catch (e) { fiches = []; }
         }
+        // Savoirs intégrés au site (texte chiffré dans le code ; clé remise par le relais selon le grade)
+        (window.SAVOIRS_INTEGRES || []).forEach(s => fiches.push({ ...s, id: 'int-' + s.id, _int: s, _intId: s.id }));
         if (!fiches.length) return vide('Aucun Savoir Unique disponible pour le moment');
         fiches.sort((a, b) => (a.gradeOrdre || 0) - (b.gradeOrdre || 0));
 
         // Contenu complet uniquement pour les grades autorisés
         const accessibles = fiches.filter(f => (f.gradeOrdre || 0) <= (isHaut ? 99 : memberGradeIdx));
         await Promise.all(accessibles.map(async f => {
+            if (f._int) {
+                try {
+                    const clair = await dechiffrerSavoir({ id: f._intId, iv: f._int.iv, data: f._int.data });
+                    if (clair) f._full = { nom: f._int.nom, categorie: f._int.categorie, description: f._int.description, contenu: clair, _feat: f._int };
+                } catch (e) { console.warn('[savoir]', e.message || e); }
+                return;
+            }
             if (f._full) return;
             try { const d = await db.collection('savoirsUniques').doc(f.id).get(); if (d.exists) f._full = d.data(); } catch (e) {}
         }));
@@ -2816,7 +2839,20 @@ async function loadDashSavoirs() {
                 last = gi;
                 html += `<div style="font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.1em;color:${gd?.couleur || 'var(--gold)'};margin:1rem 0 .5rem;text-transform:uppercase">✦ ${escHtml(gd?.nom || '')} ${ok ? '' : '— réservé'}</div>`;
             }
-            if (ok) {
+            if (ok && f._full._feat) {
+                const m = f._full._feat;
+                html += `<article class="glass-card savoir-feature">
+                    <header class="sf-head" style="background-image:url('${escHtml(m.image || '')}')">
+                        <div class="sf-shade"></div>
+                        <div class="sf-title">
+                            <span class="sf-kicker">✦ Savoir Unique · ${escHtml(m.categorie || '')}</span>
+                            <h3>${escHtml(m.nom)}</h3>
+                            <div class="sf-meta"><span>✍ ${escHtml(m.auteur || '')}</span><span>⚔ ${escHtml(m.rang || '')}</span><span style="color:${gd?.couleur || 'var(--gold)'}">◈ ${escHtml(m.gradeRequis || '')}</span></div>
+                        </div>
+                    </header>
+                    <div class="sf-body savoir-body">${formatSavoir(f._full.contenu)}</div>
+                </article>`;
+            } else if (ok) {
                 const s = f._full;
                 html += `<div class="glass-card incan-card" style="margin-bottom:.6rem;padding:0;overflow:hidden">
                     ${s.imageB64 ? `<img src="${s.imageB64}" style="width:100%;height:160px;object-fit:cover;display:block">` : ''}
@@ -2832,7 +2868,7 @@ async function loadDashSavoirs() {
             } else {
                 const lines = Math.max(4, Math.min(14, Math.round((f.longueur || 600) / 90)));
                 const cols = Array.from({ length: lines }, () => 18 + Math.floor(Math.random() * 40)).join(',');
-                html += `<div class="glass-card savoir-locked" style="margin-bottom:.6rem;padding:.9rem 1rem">
+                html += `<div class="glass-card savoir-locked" style="margin-bottom:.6rem;padding:.9rem 1rem;${f._int && f._int.image ? `background-image:linear-gradient(rgba(4,8,18,.84),rgba(4,8,18,.92)),url('${escHtml(f._int.image)}');background-size:cover;background-position:center;` : ''}">
                     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
                         <strong class="savoir-glyph" data-glyph="${Math.max(10, (f.nom || 'xxxxxxxxxxxxxx').length)}" style="font-size:.95rem"></strong>
                         <span class="badge" style="background:${gd?.couleur || 'var(--gold)'}22;color:${gd?.couleur || 'var(--gold)'};font-size:.68rem">🔒 ${escHtml(f.gradeRequis || gd?.nom || '')}</span>
@@ -5860,6 +5896,7 @@ showView('loading');
 </script>
 
 <script src="rapport-art.js"></script>
+<script src="savoirs-data.js"></script>
 <script src="corruption.js"></script>
 <script src="cardfx.js"></script>
 <script src="wow.js"></script>

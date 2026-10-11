@@ -324,6 +324,18 @@
         }
     }
 
+    // Appel générique (jeton Firebase + action) : utilisé par les savoirs chiffrés
+    window.relayRequest = async function (payload) {
+        const url = await getRelay();
+        const user = (typeof auth !== 'undefined') ? auth.currentUser : null;
+        if (!url || !user) return { ok: false, error: !url ? 'no_relay' : 'auth' };
+        try {
+            const idToken = await user.getIdToken();
+            const res = await fetch(url, { method: 'POST', body: JSON.stringify(Object.assign({ idToken }, payload)) });
+            return await res.json();
+        } catch (e) { return { ok: false, error: 'relais injoignable' }; }
+    };
+
     /* ───────── Envoi Discord ───────── */
     window.postRapportToDiscord = async function (data, opts) {
         opts = opts || {};

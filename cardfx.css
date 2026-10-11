@@ -110,3 +110,6 @@
     .fx-slices i, .fx-wisps i, .fx-iroh::before, .lb-card--monarque .lb-photo-panel::before, .fx-orb { animation: none !important; }
     .lb-card--monarque:hover { animation: none !important; }
 }
+
+.savoir-body a { color: var(--gold-bright, #a8f5ec); text-decoration: underline; text-decoration-color: rgba(42,201,188,.5); text-underline-offset: 3px; }
+.savoir-body a:hover { color: #fff; }

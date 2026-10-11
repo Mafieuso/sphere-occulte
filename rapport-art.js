@@ -8,7 +8,7 @@
     'use strict';
 
     const LOGO_PUBLIC_URL = 'https://mafieuso.github.io/sphere-occulte/img/logo.png';
-    const ROLE_PINGS      = ['1353477391208681544', '1353478941129572453'];
+    const ROLE_PINGS      = ['1353477391208681544', '1353478941129572453', '1442217516205215845'];
     const BOT_NAME        = 'Prophète Occulte';
 
     /* ───────── Chargement des visuels (jamais bloquant) ───────── */
@@ -331,7 +331,7 @@
             const gradeDef = GRADES.find(g => g.nom === data.grade) || GRADES[0];
             const content = opts.test
                 ? [`${gradeDef.icon} **🧪 SIMULATION — Rapport de ${data.membreNom}**`, '*Aperçu de rendu envoyé depuis le panneau admin — aucune validation réelle, aucun ping.*'].join('\n')
-                : [`<@&${ROLE_PINGS[0]}> <@&${ROLE_PINGS[1]}>`,
+                : [ROLE_PINGS.map(id => `<@&${id}>`).join(' '),
                    `${gradeDef.icon} **✅ Rapport validé — ${data.membreNom}**`,
                    'Le rapport d\'incantation vient d\'être validé par le Conclave.'].join('\n');
             const messages = [];

@@ -184,3 +184,25 @@ html.co-ghostmode, html.co-ghostmode * { cursor: none !important; }
 /* ═════════ Autodestruction : tout s'effondre ═════════ */
 html.co-crumble body { background: #000; }
 html.co-crumble #co-vignette { --co-i: 1; }
+
+/* ═════════ Destructions ciblées ═════════ */
+.co-sel { position: fixed; z-index: 99010; pointer-events: none; border: 1.5px dashed rgba(120,190,255,.95); background: rgba(80,140,255,.10); box-shadow: 0 0 0 1px rgba(0,0,0,.4); }
+.co-sel.set { border-style: solid; border-color: #4aa8ff; background: rgba(80,140,255,.16); }
+.co-sel::before, .co-sel::after { content: ''; position: absolute; width: 7px; height: 7px; background: #fff; border: 1px solid #4aa8ff; }
+.co-sel::before { left: -4px; top: -4px; } .co-sel::after { right: -4px; bottom: -4px; }
+.co-ctx { position: fixed; z-index: 99011; min-width: 176px; padding: 4px; background: #17191d; border: 1px solid #3a3f48; border-radius: 6px; box-shadow: 0 12px 34px rgba(0,0,0,.7); font: 500 .82rem "Karla", sans-serif; color: #d9dde3; pointer-events: none; }
+.co-ctx .it { padding: .38rem .8rem; border-radius: 4px; }
+.co-ctx .it.hl { background: #2f6fe0; color: #fff; }
+.co-ctx .it.del.hl { background: #c4192b; }
+.co-keycap { position: fixed; z-index: 99011; padding: .35rem .8rem; border-radius: 6px; background: #20242a; border: 1px solid #505763; border-bottom-width: 3px; color: #e8ecf2; font: 700 .85rem "Karla", sans-serif; pointer-events: none; animation: co-key .9s ease-out forwards; }
+@keyframes co-key { 0% { transform: translateY(0) scale(.9); } 20% { transform: translateY(2px) scale(1); } 100% { transform: translateY(-14px) scale(1); opacity: 0; } }
+.co-shard { will-change: transform, opacity; }
+/* brûlure : l'élément est « rongé » depuis un point + liseré de braise */
+.co-burn {
+    -webkit-mask-image: radial-gradient(circle at var(--bx, 50%) var(--by, 50%), transparent var(--br, 0%), #000 calc(var(--br, 0%) + 7%));
+            mask-image: radial-gradient(circle at var(--bx, 50%) var(--by, 50%), transparent var(--br, 0%), #000 calc(var(--br, 0%) + 7%));
+    filter: sepia(.6) saturate(2.2) brightness(.85) drop-shadow(0 0 6px rgba(255,120,30,.8));
+}
+/* cicatrice laissée sur ce qui a été « détruit » puis restauré */
+.co-scar { position: relative; filter: saturate(.55) contrast(1.15) brightness(.88); }
+.co-scar::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 9; mix-blend-mode: screen; opacity: .55; background: url(img/corruption/cracks.jpg) center / cover no-repeat; }

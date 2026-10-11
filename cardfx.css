@@ -1,0 +1,106 @@
+/* ════════════════════════════════════════════════════════════════
+   SPHÈRE OCCULTE — Effets de cartes dédiés
+   • Monarque : distorsion « signal corrompu » (déformation, tranches RVB, rafales)
+   • Iroh Jin : flamme jumelle « second du Monarque »
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Savoirs uniques : symboles qui bougent (texte réel jamais envoyé) ── */
+.savoir-glyph { font-family: "Cormorant Garamond", "Segoe UI Symbol", serif; letter-spacing: .12em; color: rgba(168,245,236,.55); word-break: break-all; white-space: pre-wrap; text-shadow: 0 0 10px rgba(42,201,188,.35); }
+.savoir-glyph-body { margin-top: .7rem; font-size: .8rem; line-height: 1.8; color: rgba(168,245,236,.35); filter: blur(.4px); -webkit-mask-image: linear-gradient(#000 40%, transparent); mask-image: linear-gradient(#000 40%, transparent); }
+.savoir-locked { border-style: dashed; background: linear-gradient(160deg, rgba(10,16,32,.7), rgba(4,8,18,.8)); }
+.savoir-body { margin-top: .85rem; padding: .85rem 1rem; background: rgba(0,0,0,.28); border-radius: 8px; line-height: 1.75; font-size: .86rem; color: var(--text); }
+.savoir-body p { margin: 0 0 .65rem; }
+.savoir-h { margin: 1.1rem 0 .45rem; font-family: "Cormorant Garamond", serif; font-size: .95rem; letter-spacing: .06em; color: var(--gold-bright, #a8f5ec); border-left: 3px solid var(--gold); padding-left: .6rem; }
+.savoir-ul { margin: .3rem 0 .8rem 1.1rem; padding: 0; }
+.savoir-ul li { margin-bottom: .25rem; }
+.savoir-hr { border: 0; height: 1px; margin: 1rem 0; background: linear-gradient(90deg, transparent, rgba(42,201,188,.5), transparent); }
+.savoir-q { margin: .6rem 0; padding: .5rem .9rem; border-left: 2px solid rgba(255,157,61,.7); color: var(--text-muted); font-style: italic; }
+
+/* ═════════ MONARQUE : distorsion ═════════ */
+.fx-svg { position: absolute; width: 0; height: 0; overflow: hidden; }
+/* le filtre SVG (coûteux) n'est actif que pendant une rafale ou au survol */
+.lb-card--monarque.fx-burst .lb-photo-panel img { filter: url(#fx-warp-idle) saturate(1.2); }
+.lb-card--monarque:hover .lb-photo-panel img { filter: url(#fx-warp-hot) saturate(1.35) contrast(1.1); }
+
+/* tranches du portrait qui se décalent + fantômes RVB */
+.fx-slices { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.fx-slices i { position: absolute; left: 0; right: 0; opacity: 0; background: var(--fx-img) center / cover no-repeat; will-change: transform, opacity; }
+.fx-slices i:nth-child(1) { top: 8%;  height: 11%; }
+.fx-slices i:nth-child(2) { top: 27%; height: 6%;  }
+.fx-slices i:nth-child(3) { top: 41%; height: 14%; }
+.fx-slices i:nth-child(4) { top: 62%; height: 7%;  }
+.fx-slices i:nth-child(5) { top: 76%; height: 10%; }
+.fx-slices i:nth-child(6) { top: 90%; height: 5%;  }
+.fx-slices i.r { background-blend-mode: normal; filter: sepia(1) saturate(6) hue-rotate(-30deg); mix-blend-mode: screen; }
+.fx-slices i.c { filter: sepia(1) saturate(6) hue-rotate(150deg); mix-blend-mode: screen; }
+.fx-burst .fx-slices i, .lb-card--monarque:hover .fx-slices i { animation: fx-slice .42s steps(2) infinite; }
+.fx-slices i:nth-child(2n) { animation-delay: .07s !important; animation-duration: .31s !important; }
+.fx-slices i:nth-child(3n) { animation-delay: .13s !important; animation-duration: .5s !important; }
+@keyframes fx-slice {
+    0%   { opacity: 0;  transform: translateX(0); }
+    20%  { opacity: .95; transform: translateX(-14px); }
+    45%  { opacity: .8;  transform: translateX(11px); }
+    70%  { opacity: .9;  transform: translateX(-6px); }
+    100% { opacity: 0;  transform: translateX(0); }
+}
+/* bande de balayage horizontale */
+.lb-card--monarque .lb-photo-panel::before {
+    content: ''; position: absolute; left: 0; right: 0; height: 22%; top: -30%; z-index: 5; pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(168,245,236,.22), rgba(255,0,60,.12), transparent); mix-blend-mode: screen;
+    animation: fx-sweep 3.4s linear infinite;
+}
+@keyframes fx-sweep { 0% { top: -30%; } 100% { top: 120%; } }
+/* secousse + nom plus nerveux */
+.lb-card--monarque:hover { animation: fx-jitter .5s steps(1) infinite !important; }
+@keyframes fx-jitter {
+    0% { transform: translate(0,0) skewX(0); } 12% { transform: translate(-2px,1px) skewX(-2.4deg); } 24% { transform: translate(2px,-1px) skewX(1.6deg); }
+    36% { transform: translate(0,0) skewX(0); } 58% { transform: translate(-1px,-1px) skewX(2.2deg); } 74% { transform: translate(2px,1px) skewX(-1.2deg); } 100% { transform: translate(0,0) skewX(0); }
+}
+.fx-burst .lb-name { animation: fx-name .5s steps(1); }
+@keyframes fx-name { 0%,100% { text-shadow: none; } 25% { text-shadow: 3px 0 #ff003c, -3px 0 #00ffe7; } 60% { text-shadow: -2px 1px #ff003c, 2px -1px #00ffe7; } }
+
+/* ═════════ IROH : flamme jumelle ═════════ */
+.fx-iroh { --iroh: #ff5c8a; border-color: rgba(255,92,138,.45) !important; box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 38px rgba(255,92,138,.22) !important; isolation: isolate; }
+.fx-iroh > .wow-edge {
+    opacity: .95 !important;
+    background: conic-gradient(from var(--wow-a), transparent, #ff5c8a, #ffd1de, #ff9d3d, transparent 200deg, #b43cff 280deg, transparent) !important;
+    filter: drop-shadow(0 0 8px rgba(255,92,138,.8)) !important;
+}
+.fx-iroh::before {                                        /* brume rose-ambre qui respire */
+    content: ''; position: absolute; inset: -20%; z-index: -1; pointer-events: none;
+    background: radial-gradient(circle at 30% 100%, rgba(255,92,138,.35), transparent 55%), radial-gradient(circle at 80% 0%, rgba(255,157,61,.22), transparent 50%);
+    animation: fx-breathe 4.5s ease-in-out infinite;
+}
+@keyframes fx-breathe { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+.fx-wisps { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.fx-wisps i {
+    position: absolute; bottom: -10px; width: 6px; height: 6px; border-radius: 50%;
+    background: radial-gradient(circle, #fff 0, #ffb3c8 35%, rgba(255,92,138,0) 70%); box-shadow: 0 0 10px 2px rgba(255,92,138,.7);
+    animation: fx-rise var(--d, 5s) linear infinite; animation-delay: var(--dl, 0s); opacity: 0;
+}
+@keyframes fx-rise { 0% { transform: translate(0,0) scale(.6); opacity: 0; } 15% { opacity: .95; } 100% { transform: translate(var(--dx, 10px), -190px) scale(1.15); opacity: 0; } }
+.fx-iroh-tag {
+    position: absolute; right: .7rem; bottom: .55rem; z-index: 6; pointer-events: none;
+    font: 700 .56rem "Cormorant Garamond", serif; letter-spacing: .22em; text-transform: uppercase;
+    background: linear-gradient(90deg, #ff9d3d, #ff5c8a, #ffd1de); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    text-shadow: none; filter: drop-shadow(0 0 6px rgba(255,92,138,.6));
+}
+.fx-iroh.fx-echo { box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 70px rgba(255,92,138,.55) !important; }
+.fx-iroh.fx-echo .fx-wisps i { animation-duration: 2.2s; }
+.lb-card--monarque.fx-echo { box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 70px rgba(255,92,138,.35) !important; }
+/* fil de lumière entre le Monarque et son second */
+.fx-thread {
+    position: fixed; z-index: 98; height: 2px; pointer-events: none; transform-origin: 0 50%; opacity: 0; transition: opacity .35s;
+    background: linear-gradient(90deg, rgba(168,245,236,.9), rgba(255,92,138,.9)); box-shadow: 0 0 12px rgba(255,92,138,.8), 0 0 24px rgba(42,201,188,.5);
+}
+.fx-thread.on { opacity: .9; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fx-slices i, .fx-wisps i, .fx-iroh::before, .lb-card--monarque .lb-photo-panel::before { animation: none !important; }
+    .lb-card--monarque:hover { animation: none !important; }
+}
+@media (hover: none) { .fx-thread { display: none; } }
+
+/* Étiquette d'Iroh : pastille sombre pour rester lisible par-dessus le texte */
+.fx-iroh-tag { padding: .16rem .6rem; border-radius: 20px; background: rgba(8,4,10,.86); -webkit-background-clip: border-box; background-clip: border-box;
+    -webkit-text-fill-color: #ffc2d4; color: #ffc2d4; border: 1px solid rgba(255,92,138,.5); filter: drop-shadow(0 0 6px rgba(255,92,138,.5)); }

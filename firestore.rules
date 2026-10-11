@@ -34,6 +34,14 @@ service cloud.firestore {
       ];
     }
 
+    // Rang du grade (0 = Incantateur … 4 = Monarque des Ombres)
+    function gradeIdx() {
+      return me().grade == 'Monarque des Ombres' ? 4 :
+             me().grade == "Marchand des Âmes" ? 3 :
+             me().grade == "Collecteur d'Ombre" ? 2 :
+             me().grade == 'Marcheur des Voiles' ? 1 : 0;
+    }
+
     // true si la mise à jour ne touche QUE les champs listés
     function onlyChanges(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
@@ -109,8 +117,18 @@ service cloud.firestore {
     }
 
     // ── Savoirs Uniques ────────────────────────────────────────
+    // Contenu COMPLET : lisible seulement si le grade du membre atteint le grade requis.
+    // (pas de "list" pour les membres : ils passent par /savoirsApercu, sans le texte)
     match /savoirsUniques/{savoirId} {
-      allow read: if isMember();
+      allow get:   if isHautGrade() || (isMember() && resource.data.gradeOrdre <= gradeIdx());
+      allow list:  if isHautGrade();
+      allow write: if isHautGrade();
+    }
+
+    // Fiche publique : nom, catégorie, grade requis, longueur — jamais le texte.
+    // Les grades inférieurs en voient les symboles, mais ne peuvent pas lire.
+    match /savoirsApercu/{savoirId} {
+      allow read:  if isMember();
       allow write: if isHautGrade();
     }
 

@@ -13,7 +13,7 @@
  */
 const PROJECT_ID   = 'sphere-occulte';
 const API_KEY      = 'AIzaSyCs9zjHSdoTlfVKIPnhZRIcjsHMwHvcPG4';            // clé web Firebase (publique par conception)
-const ROLE_PINGS   = ['1353477391208681544', '1353478941129572453'];
+const ROLE_PINGS   = ['1353477391208681544', '1353478941129572453', '1442217516205215845'];
 const BOT_NAME     = 'Prophète Occulte';
 const AVATAR_URL   = 'https://mafieuso.github.io/sphere-occulte/img/logo.png';
 const MAX_PER_10MN = 30;                  // envois max par personne / 10 min

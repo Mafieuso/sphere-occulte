@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="wow.css">
 <link rel="stylesheet" href="corruption.css">
+<link rel="stylesheet" href="cardfx.css">
 </head>
 <body>
 
@@ -240,6 +241,7 @@
           <option value="1">Marcheur des Voiles</option>
           <option value="2">Collecteur d'Ombre</option>
           <option value="3">Marchand des Âmes</option>
+          <option value="4">Monarque des Ombres</option>
         </select>
       </div>
       <div class="form-group">
@@ -1977,7 +1979,7 @@ function renderLbRows(containerId, membres, ecoleMap, fondateurMap) {
 
         lbCache[m.id] = { m, ecoleName, ecoleLogo, color };
 
-        return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}" style="--grade-color:${color};cursor:pointer" onclick="openProfilLb('${m.id}')">
+        return `<div class="lb-card ${isMon ? 'lb-card--monarque' : ''} ${m.absent ? 'lb-absent' : ''}" data-mid="${m.id}" style="--grade-color:${color};cursor:pointer" onclick="openProfilLb('${m.id}')">
             <div class="lb-photo-panel">
                 ${photoSide}
                 <div class="lb-photo-fade"></div>
@@ -2727,51 +2729,142 @@ function loadDashClassement() {
     });
 }
 
-function loadDashSavoirs() {
+/* ─────────── Savoirs Uniques : contenu complet protégé par grade ───────────
+   • savoirsUniques/{id}  = contenu complet (lisible seulement si grade >= gradeOrdre, voir firestore.rules)
+   • savoirsApercu/{id}   = fiche publique sans le texte : nom, catégorie, grade requis, longueur
+   Les grades inférieurs voient des SYMBOLES qui bougent (le texte réel ne leur est jamais envoyé). */
+const SAVOIR_GLYPHS = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ⛧☽⌖◈⟁✵⚶⛣';
+function glyphLine(n) {
+    let out = '', i = 0;
+    while (i < n) {
+        const w = Math.min(n - i, 2 + Math.floor(Math.random() * 7));
+        for (let k = 0; k < w; k++) out += SAVOIR_GLYPHS[Math.floor(Math.random() * SAVOIR_GLYPHS.length)];
+        i += w; if (i < n) { out += ' '; i++; }
+    }
+    return out;
+}
+function animateSavoirGlyphs(root) {
+    const els = [...root.querySelectorAll('[data-glyph]')];
+    els.forEach(el => { el.textContent = el.dataset.glyph.split(',').map(n => glyphLine(+n)).join('\n'); });
+    const t = setInterval(() => {
+        if (!root.isConnected) return clearInterval(t);
+        els.forEach(el => {
+            const chars = [...el.textContent];
+            for (let k = 0; k < Math.max(2, chars.length * .06); k++) {
+                const i = Math.floor(Math.random() * chars.length);
+                if (chars[i] !== ' ' && chars[i] !== '\n') chars[i] = SAVOIR_GLYPHS[Math.floor(Math.random() * SAVOIR_GLYPHS.length)];
+            }
+            el.textContent = chars.join('');
+        });
+    }, 160);
+}
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+// Mise en forme lisible d'un texte brut (titres numérotés, listes, séparateurs)
+function formatSavoir(txt) {
+    const out = []; let list = false;
+    const close = () => { if (list) { out.push('</ul>'); list = false; } };
+    String(txt || '').replace(/\r/g, '').split('\n').forEach(raw => {
+        const l = raw.trim();
+        if (!l) { close(); return; }
+        if (/^_{6,}$/.test(l)) { close(); out.push('<hr class="savoir-hr">'); return; }
+        const bullet = /^[*•\-–]\s+(.+)/.exec(l);
+        if (bullet) { if (!list) { out.push('<ul class="savoir-ul">'); list = true; } out.push('<li>' + escHtml(bullet[1]) + '</li>'); return; }
+        close();
+        if (/^(?:[IVX]{1,5}|\d+)\s*[-–.)]\s+\S/.test(l) || /^[\u{1F300}-\u{1FAFF}☀-➿]/u.test(l)) { out.push('<h4 class="savoir-h">' + escHtml(l) + '</h4>'); return; }
+        if (/^["“”«]/.test(l)) { out.push('<blockquote class="savoir-q">' + escHtml(l) + '</blockquote>'); return; }
+        out.push('<p>' + escHtml(l) + '</p>');
+    });
+    close();
+    return out.join('');
+}
+
+async function loadDashSavoirs() {
     const list = document.getElementById('dash-savoirs-list');
     if (!list) return;
     list.innerHTML = '<div class="empty-state"><div class="loader"></div></div>';
     const memberGradeIdx = getGradeIndex(currentMembre.grade);
-    db.collection('savoirsUniques').orderBy('gradeOrdre').get().then(snap => {
-        if (snap.empty) {
-            list.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">Aucun Savoir Unique disponible pour votre grade</div></div>';
-            return;
+    const isHaut = ['admin', 'haut_grade'].includes(currentMembre.role);
+    const vide = msg => { list.innerHTML = `<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">${msg}</div></div>`; };
+    try {
+        // Fiches publiques (sans texte). Repli sur l'ancienne structure tant que les règles ne sont pas à jour.
+        let fiches = [];
+        try {
+            const ap = await db.collection('savoirsApercu').get();
+            fiches = ap.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (isHaut) { await syncSavoirsApercu(); if (!fiches.length) fiches = (await db.collection('savoirsApercu').get()).docs.map(d => ({ id: d.id, ...d.data() })); }
+        } catch (e) { fiches = null; }
+        if (fiches === null) {
+            const old = await db.collection('savoirsUniques').orderBy('gradeOrdre').get();
+            fiches = old.docs.map(d => ({ id: d.id, ...d.data(), _full: d.data() }));
         }
-        // Filtrer par grade
-        const accessible = snap.docs.filter(d => {
-            const s = d.data();
-            return (s.gradeOrdre !== undefined ? s.gradeOrdre : 0) <= memberGradeIdx;
-        });
-        if (!accessible.length) {
-            list.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">Aucun Savoir Unique disponible à votre grade</div></div>';
-            return;
-        }
-        let lastGradeOrdre = -1;
-        let html = '';
-        accessible.forEach(d => {
-            const s        = d.data();
-            const gradeIdx = s.gradeOrdre || 0;
-            const gradeDef = GRADES[gradeIdx];
-            if (gradeIdx !== lastGradeOrdre) {
-                lastGradeOrdre = gradeIdx;
-                html += `<div style="font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.1em;color:${gradeDef?.couleur || 'var(--gold)'};margin:1rem 0 .5rem;text-transform:uppercase">✦ ${gradeDef?.nom || 'Niveau ' + gradeIdx}</div>`;
+        if (!fiches.length) return vide('Aucun Savoir Unique disponible pour le moment');
+        fiches.sort((a, b) => (a.gradeOrdre || 0) - (b.gradeOrdre || 0));
+
+        // Contenu complet uniquement pour les grades autorisés
+        const accessibles = fiches.filter(f => (f.gradeOrdre || 0) <= (isHaut ? 99 : memberGradeIdx));
+        await Promise.all(accessibles.map(async f => {
+            if (f._full) return;
+            try { const d = await db.collection('savoirsUniques').doc(f.id).get(); if (d.exists) f._full = d.data(); } catch (e) {}
+        }));
+
+        let last = -1, html = '';
+        fiches.forEach(f => {
+            const gi = f.gradeOrdre || 0, gd = GRADES[gi], ok = !!f._full;
+            if (gi !== last) {
+                last = gi;
+                html += `<div style="font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.1em;color:${gd?.couleur || 'var(--gold)'};margin:1rem 0 .5rem;text-transform:uppercase">✦ ${escHtml(gd?.nom || '')} ${ok ? '' : '— réservé'}</div>`;
             }
-            html += `<div class="glass-card incan-card" style="margin-bottom:.6rem;padding:0;overflow:hidden">
-                ${s.imageB64 ? `<img src="${s.imageB64}" style="width:100%;height:160px;object-fit:cover;display:block">` : ''}
-                <div style="padding:.9rem 1rem">
-                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
-                        <strong style="color:var(--gold);font-size:.9rem">${s.nom || 'Savoir Inconnu'}</strong>
-                        ${s.categorie ? `<span class="badge badge-attente" style="font-size:.68rem">${s.categorie}</span>` : ''}
+            if (ok) {
+                const s = f._full;
+                html += `<div class="glass-card incan-card" style="margin-bottom:.6rem;padding:0;overflow:hidden">
+                    ${s.imageB64 ? `<img src="${s.imageB64}" style="width:100%;height:160px;object-fit:cover;display:block">` : ''}
+                    <div style="padding:.9rem 1rem">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+                            <strong style="color:var(--gold);font-size:.95rem">${escHtml(s.nom || 'Savoir Inconnu')}</strong>
+                            ${s.categorie ? `<span class="badge badge-attente" style="font-size:.68rem">${escHtml(s.categorie)}</span>` : ''}
+                        </div>
+                        ${s.description ? `<p style="color:var(--text-muted);font-size:.82rem;margin:.5rem 0 0">${escHtml(s.description)}</p>` : ''}
+                        ${s.contenu ? `<div class="savoir-body">${formatSavoir(s.contenu)}</div>` : ''}
                     </div>
-                    ${s.description ? `<p style="color:var(--text-muted);font-size:.82rem;margin:.5rem 0 0">${s.description}</p>` : ''}
-                    ${s.contenu ? `<div style="font-size:.82rem;color:var(--text-light);margin-top:.75rem;padding:.6rem;background:rgba(0,0,0,.25);border-radius:6px;line-height:1.7">${s.contenu.replace(/\n/g, '<br>')}</div>` : ''}
-                </div>
-            </div>`;
+                </div>`;
+            } else {
+                const lines = Math.max(4, Math.min(14, Math.round((f.longueur || 600) / 90)));
+                const cols = Array.from({ length: lines }, () => 18 + Math.floor(Math.random() * 40)).join(',');
+                html += `<div class="glass-card savoir-locked" style="margin-bottom:.6rem;padding:.9rem 1rem">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+                        <strong class="savoir-glyph" data-glyph="${Math.max(10, (f.nom || 'xxxxxxxxxxxxxx').length)}" style="font-size:.95rem"></strong>
+                        <span class="badge" style="background:${gd?.couleur || 'var(--gold)'}22;color:${gd?.couleur || 'var(--gold)'};font-size:.68rem">🔒 ${escHtml(f.gradeRequis || gd?.nom || '')}</span>
+                    </div>
+                    <div class="savoir-glyph savoir-glyph-body" data-glyph="${cols}"></div>
+                    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.6rem;letter-spacing:.06em">Ces symboles se réorganisent. Seuls les ${escHtml(f.gradeRequis || gd?.nom || '')} et au-dessus peuvent les lire.</div>
+                </div>`;
+            }
         });
         list.innerHTML = html;
-    }).catch(() => {
-        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">Aucun Savoir Unique disponible pour le moment</div></div>';
-    });
+        animateSavoirGlyphs(list);
+    } catch (e) {
+        vide('Aucun Savoir Unique disponible pour le moment');
+    }
+}
+
+// Crée / met à jour les fiches publiques manquantes (hauts grades uniquement)
+async function syncSavoirsApercu() {
+    if (!currentMembre || !['admin', 'haut_grade'].includes(currentMembre.role)) return;
+    try {
+        const [full, ap] = await Promise.all([db.collection('savoirsUniques').get(), db.collection('savoirsApercu').get()]);
+        const have = new Set(ap.docs.map(d => d.id));
+        const batch = db.batch(); let n = 0;
+        full.docs.forEach(d => {
+            if (have.has(d.id)) return;
+            const s = d.data();
+            batch.set(db.collection('savoirsApercu').doc(d.id), {
+                nom: s.nom || '', categorie: s.categorie || '', gradeOrdre: s.gradeOrdre || 0,
+                gradeRequis: s.gradeRequis || '', longueur: (s.contenu || '').length + (s.description || '').length
+            }); n++;
+        });
+        have.forEach(id => { if (!full.docs.some(d => d.id === id)) { batch.delete(db.collection('savoirsApercu').doc(id)); n++; } });
+        if (n) await batch.commit();
+    } catch (e) { console.warn('[savoirs] synchro des fiches publiques :', e.code || e.message); }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3454,6 +3547,7 @@ function loadAdminSavoirs() {
             grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-text">Aucun Savoir Unique — créez le premier !</div></div>';
             return;
         }
+        syncSavoirsApercu();
         grid.innerHTML = snap.docs.map(d => {
             const s    = d.data();
             const gIdx = s.gradeOrdre || 0;
@@ -3537,11 +3631,14 @@ async function sauvegarderSavoir() {
     };
     if (savoirImgB64) data.imageB64 = savoirImgB64;
     if (!data.nom) return alert('Le nom est requis.');
-    if (id) {
-        await db.collection('savoirsUniques').doc(id).update(data);
-    } else {
-        await db.collection('savoirsUniques').add(data);
-    }
+    const ref = id ? db.collection('savoirsUniques').doc(id) : db.collection('savoirsUniques').doc();
+    await ref.set(data, { merge: true });
+    // Fiche publique : jamais le texte, seulement de quoi afficher les symboles aux grades inférieurs
+    await db.collection('savoirsApercu').doc(ref.id).set({
+        nom: data.nom, categorie: data.categorie, gradeOrdre: data.gradeOrdre, gradeRequis: data.gradeRequis,
+        longueur: (data.contenu || '').length + (data.description || '').length,
+        updatedAt: firebase.firestore.Timestamp.now()
+    });
     closeModal('modal-savoir');
     loadAdminSavoirs();
 }
@@ -3549,6 +3646,7 @@ async function sauvegarderSavoir() {
 async function supprimerSavoir(id) {
     if (!confirm('Supprimer ce Savoir Unique ?')) return;
     await db.collection('savoirsUniques').doc(id).delete();
+    db.collection('savoirsApercu').doc(id).delete().catch(() => {});
     loadAdminSavoirs();
 }
 
@@ -5761,6 +5859,7 @@ showView('loading');
 
 <script src="rapport-art.js"></script>
 <script src="corruption.js"></script>
+<script src="cardfx.js"></script>
 <script src="wow.js"></script>
 </body>
 </html>
